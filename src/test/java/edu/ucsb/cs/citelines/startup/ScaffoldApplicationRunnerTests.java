@@ -1,6 +1,6 @@
 package edu.ucsb.cs.citelines.startup;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.Mockito.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,16 +12,19 @@ class ScaffoldApplicationRunnerTests {
 
   private ScaffoldApplicationRunner scaffoldApplicationRunner;
 
+  @Mock private ScaffoldStartup scaffoldStartup;
   @Mock private ApplicationArguments mockArgs;
 
   @BeforeEach
   void setUp() {
     MockitoAnnotations.openMocks(this);
     scaffoldApplicationRunner = new ScaffoldApplicationRunner();
+    scaffoldApplicationRunner.scaffoldStartup = scaffoldStartup;
   }
 
   @Test
-  void run_does_not_throw() {
-    assertDoesNotThrow(() -> scaffoldApplicationRunner.run(mockArgs));
+  void run_calls_alwaysRunOnStartup() throws Exception {
+    scaffoldApplicationRunner.run(mockArgs);
+    verify(scaffoldStartup, times(1)).alwaysRunOnStartup();
   }
 }

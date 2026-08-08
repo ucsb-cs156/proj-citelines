@@ -74,12 +74,29 @@ public abstract class WebTestCase {
     setupUser(false, true);
   }
 
+  /**
+   * Logs in as the given email without inserting any Admin/Researcher row, so any roles the user
+   * ends up with come entirely from what's already in the database (e.g. from ADMIN_EMAILS having
+   * been seeded into the admins table at startup, rather than a test manually granting the role).
+   */
+  public void setupUserWithEmail(String email) {
+    User user =
+        User.builder()
+            .email(email)
+            .familyName("Gaucho")
+            .givenName("Chris")
+            .fullName("Chris Gaucho")
+            .googleSub("123456789")
+            .pictureUrl("")
+            .build();
+    userRepository.save(user);
+    login(email);
+  }
+
   @SuppressWarnings("null")
   private void setupUser(boolean isAdmin, boolean isResearcher) {
     String email = isResearcher ? "researcher@ucsb.edu" : "cgaucho@ucsb.edu";
     email = isAdmin ? "admin@ucsb.edu" : email;
-
-    WiremockServiceImpl.setupOauthMocks(wireMockServer, email);
 
     User user =
         User.builder()
@@ -98,6 +115,12 @@ public abstract class WebTestCase {
     if (isAdmin) {
       adminRepository.save(Admin.builder().email(email).build());
     }
+
+    login(email);
+  }
+
+  private void login(String email) {
+    WiremockServiceImpl.setupOauthMocks(wireMockServer, email);
 
     browser =
         Playwright.create()
