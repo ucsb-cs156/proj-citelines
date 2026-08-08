@@ -1,0 +1,34 @@
+{
+  "databaseChangeLog": [
+    {
+      "changeSet": {
+        "id": "039-migrate-jobs-to-lib-jobs",
+        "author": "pc",
+        "comment": "Migrate the jobs table to the lib-jobs library schema: creator denormalized to created_by_email (no backfill; UI tolerates null), Course link generalized to scope_type/scope_id (see lib-jobs DESIGN.md 3.4/3.7)",
+        "changes": [
+          {
+            "addColumn": {
+              "tableName": "jobs",
+              "columns": [
+                { "column": { "name": "created_by_email", "type": "VARCHAR(255)" } },
+                { "column": { "name": "scope_type", "type": "VARCHAR(255)" } },
+                { "column": { "name": "scope_id", "type": "BIGINT" } }
+              ]
+            }
+          },
+          {
+            "sql": {
+              "sql": "UPDATE jobs SET scope_type = 'course', scope_id = course_id WHERE course_id IS NOT NULL"
+            }
+          },
+          {
+            "dropColumn": {
+              "tableName": "jobs",
+              "columnName": "course_id"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

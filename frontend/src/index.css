@@ -1,0 +1,344 @@
+/* ============================================================================
+   All of the app's custom CSS lives in this one file. It is loaded exactly
+   once, in main.tsx, AFTER bootstrap.css so that anything here wins over
+   Bootstrap's defaults. (App.css is intentionally an empty stub.)
+
+   Sections:
+     1. Design tokens + global layout (every page)
+     2. App-wide component styles (instructor pages: tabs, tables)
+     3. Scaffold Canvas (LegacyHomePage / ConceptGraphPage only)
+
+   Everything outside section 3 is deliberately minimal: ordinary pages
+   (CRUD tables, admin pages, CSV upload, etc.) should look like standard
+   React-Bootstrap and scroll normally.
+   ============================================================================ */
+
+/* ── 1. Design tokens + global layout ──────────────────────────────────── */
+
+:root {
+  --border: #e5e4e7;
+  --text-h: #08060d;
+  --table-header-bg: #f4f3ec;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  /* Shows in the gutters either side of BasicLayout's centered column,
+     which uses the same cream background. */
+  background-color: #f7ede1;
+}
+
+#root {
+  width: 100%;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 2. App-wide component styles (instructor pages) ───────────────────── */
+
+.tabComponent {
+  background-color: #fefeff;
+}
+
+.tabsGroup {
+  background-color: #fefeff;
+  padding: 12px 12px 12px 12px;
+}
+
+.table {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  width: 100%;
+  margin-bottom: 24px;
+
+  th,
+  td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    line-height: 135%;
+    color: var(--text-h);
+  }
+
+  th {
+    background-color: var(--table-header-bg);
+    font-weight: bold;
+    color: var(--text-h);
+  }
+}
+
+/* ── 3. Scaffold Canvas (LegacyHomePage / ConceptGraphPage only) ───────── */
+
+/* BasicLayout adds this class to <body> while a page rendered with
+   <BasicLayout lockScroll> is mounted: the viewport is pinned so the React
+   Flow canvas handles all pan/zoom itself. Every other page scrolls
+   normally. */
+body.scaffold-canvas-active {
+  height: 100svh;
+  overflow: hidden;
+}
+
+body.scaffold-canvas-active #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body.scaffold-canvas-active input::placeholder {
+  color: #94a3b8;
+}
+
+/* React Flow chrome (only ever rendered on the canvas pages) */
+
+.react-flow__controls {
+  --xy-controls-button-background-color: #ffffff;
+  --xy-controls-button-background-color-hover: #1e293b;
+  --xy-controls-button-color: #1e293b;
+  --xy-controls-button-border-color: #1e293b;
+  --xy-controls-box-shadow: 2px 4px 0px #1e293b;
+  border: 1.5px solid #1e293b;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* LegacyConceptGraph.tsx / ScaffoldConceptGraph.tsx overlay controls */
+
+.concept-graph-legend,
+.concept-graph-reset-button {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 10px;
+  border-top: 1.5px solid #1e293b;
+  border-left: 1.5px solid #1e293b;
+  border-right: 4px solid #1e293b;
+  border-bottom: 4px solid #1e293b;
+  padding: 8px;
+  display: flex;
+  overflow: hidden;
+  transition: width 0.2s ease;
+}
+
+.concept-graph-legend {
+  flex-direction: column;
+  gap: 6px;
+  width: 44px;
+  cursor: default;
+
+  &:hover {
+    width: 100px;
+  }
+}
+
+.concept-graph-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.concept-graph-legend-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1.5px solid #1e293b;
+  flex-shrink: 0;
+}
+
+.concept-graph-legend-label,
+.concept-graph-reset-button-label {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  width: 0;
+  opacity: 0;
+  transition:
+    width 0.2s ease,
+    opacity 0.15s ease;
+}
+
+.concept-graph-legend:hover .concept-graph-legend-label {
+  width: 72px;
+  opacity: 1;
+}
+
+.concept-graph-reset-button {
+  align-items: center;
+  gap: 4px;
+  width: 44px;
+  cursor: pointer;
+
+  &:hover {
+    width: 180px;
+
+    .concept-graph-reset-button-label {
+      width: 180px;
+      opacity: 1;
+    }
+  }
+}
+
+.concept-graph-detail-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border-top: 1.5px solid #1e293b;
+  border-left: 1.5px solid #1e293b;
+  border-right: 3px solid #1e293b;
+  border-bottom: 3px solid #1e293b;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+  z-index: 1;
+
+  &:hover {
+    background: #ef4444;
+
+    .concept-graph-detail-delete-icon {
+      stroke: #ffffff;
+    }
+  }
+}
+
+.concept-graph-detail-delete-icon {
+  stroke: #1e293b;
+  transition: stroke 0.15s;
+}
+
+/* Markdown rendered inside a concept detail card (ScaffoldConceptGraph.tsx,
+   ConceptGraphPage.tsx): undo the default <p> margins so single-paragraph
+   descriptions don't get extra whitespace, and keep images inside the card. */
+
+.concept-detail-content {
+  p {
+    margin: 0;
+  }
+
+  p + p {
+    margin-top: 0.5em;
+  }
+
+  img {
+    max-width: 100%;
+  }
+}
+
+/* Shared dropdown option row (AssessmentSelect.tsx, QuestionSearch.tsx) */
+
+.dropdown-option {
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #1e293b;
+  background: #ffffff;
+
+  &.is-selected {
+    background: #eff6ff;
+  }
+
+  &:hover {
+    background: #f8fafc;
+  }
+}
+
+/* Canvas bottom toolbar close button */
+
+.homepage-toolbar-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border-top: 1.5px solid #1e293b;
+  border-left: 1.5px solid #1e293b;
+  border-right: 4px solid #1e293b;
+  border-bottom: 4px solid #1e293b;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #ef4444;
+
+    .homepage-toolbar-close-icon {
+      stroke: #ffffff;
+    }
+  }
+}
+
+.homepage-toolbar-close-icon {
+  stroke: #1e293b;
+  transition: stroke 0.15s;
+}
+
+
+.BasicLayout {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Give the sticky Navbar an opaque background matching the app's general
+   background so page content doesn't show through behind the Navbar text
+   when scrolling. */
+.AppNavbar {
+  background-color: #f7ede1;
+}
+
+.scaffold-top-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.scaffold-top-bar-course-info {
+  flex-shrink: 0;
+  background: #e2d76a;
+  padding: 4px 20px;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  color: #1e293b;
+  text-align: left;
+}
+
+.scaffold-top-bar {
+  height: 60px;
+  flex-shrink: 0;
+  background: #f4e87b;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+}
+
+.main-content {
+  width: 1126px;
+  max-width: 100%;
+  margin: 0 auto;
+  border-inline: 1px solid var(--border);
+  background: #f7ede1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}

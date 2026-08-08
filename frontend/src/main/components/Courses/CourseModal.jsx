@@ -1,0 +1,105 @@
+import Modal from "react-bootstrap/Modal";
+import { Form } from "react-bootstrap";
+import { useForm } from "react-hook-form";
+import { useEffect } from "react";
+import { SchoolTypeahead } from "main/components/Courses/SchoolTypeahead";
+
+function CourseModal({
+  onSubmitAction,
+  showModal,
+  toggleShowModal,
+  initialContents,
+  buttonText = "Create",
+  modalTitle = "Create Course",
+}) {
+  const {
+    register,
+    formState: { errors },
+    handleSubmit,
+    reset,
+    control,
+  } = useForm({});
+
+  // Reset form when initialContents changes (e.g., when editing)
+  useEffect(() => {
+    reset(initialContents);
+  }, [initialContents, reset]);
+
+  const closeModal = () => {
+    toggleShowModal(false);
+  };
+
+  return (
+    <Modal
+      show={showModal}
+      onHide={closeModal}
+      centered={true}
+      data-testid={"CourseModal-base"}
+    >
+      <Modal.Header>
+        <Modal.Title>{modalTitle}</Modal.Title>
+        <button
+          type="button"
+          className="btn-close"
+          aria-label="Close"
+          data-testid={"CourseModal-closeButton"}
+          onClick={closeModal}
+        ></button>
+      </Modal.Header>
+      <Form onSubmit={handleSubmit(onSubmitAction)}>
+        <Modal.Body>
+          <Form.Group>
+            <Form.Label htmlFor="courseName">Course Name</Form.Label>
+            <Form.Control
+              data-testid={"CourseModal-courseName"}
+              id="courseName"
+              type="text"
+              isInvalid={Boolean(errors.courseName)}
+              {...register("courseName", {
+                required: "Course Name is required.",
+              })}
+            />
+            <Form.Control.Feedback type="invalid">
+              {errors.courseName?.message}
+            </Form.Control.Feedback>
+            <Form.Label htmlFor="term">Term</Form.Label>
+            <Form.Control
+              data-testid={"CourseModal-term"}
+              id="term"
+              type="text"
+              isInvalid={Boolean(errors.term)}
+              {...register("term", {
+                required: "Course Term is required.",
+              })}
+            />
+            <Form.Control.Feedback type="invalid">
+              {errors.term?.message}
+            </Form.Control.Feedback>
+          </Form.Group>
+          <Form.Group>
+            <Form.Label htmlFor="school">School</Form.Label>
+            <SchoolTypeahead
+              rules={{ required: "School is required." }}
+              control={control}
+              testid={"CourseModal-school"}
+            />
+            <Form.Control.Feedback type="invalid">
+              {errors.school?.message}
+            </Form.Control.Feedback>
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            data-testid="CourseModal-submit"
+          >
+            {buttonText}
+          </button>
+        </Modal.Footer>
+      </Form>
+    </Modal>
+  );
+}
+
+export default CourseModal;
