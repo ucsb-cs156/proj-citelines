@@ -43,8 +43,8 @@ public class DOIService {
    *
    * @param rawDoi the DOI, in any recognized format
    * @return the canonical, lower-cased, bare DOI (e.g. {@code 10.1038/s41586-020-2649-2})
-   * @throws IllegalArgumentException if {@code rawDoi} cannot be recognized as a DOI in any of
-   *     the supported formats
+   * @throws IllegalArgumentException if {@code rawDoi} cannot be recognized as a DOI in any of the
+   *     supported formats
    */
   public String normalizeRawDOI(String rawDoi) {
     if (rawDoi != null) {

@@ -73,8 +73,7 @@ public class DOIServiceTests {
 
   @Test
   public void surrounding_whitespace_is_ignored() {
-    assertEquals(
-        CANONICAL, doiService.normalizeRawDOI("  10.1038/s41586-020-2649-2  \n"));
+    assertEquals(CANONICAL, doiService.normalizeRawDOI("  10.1038/s41586-020-2649-2  \n"));
   }
 
   @Test
@@ -82,8 +81,7 @@ public class DOIServiceTests {
     IllegalArgumentException thrown =
         assertThrows(
             IllegalArgumentException.class, () -> doiService.normalizeRawDOI("not a doi at all"));
-    assertEquals(
-        "Argument cannot be recognized as a DOI: not a doi at all", thrown.getMessage());
+    assertEquals("Argument cannot be recognized as a DOI: not a doi at all", thrown.getMessage());
   }
 
   @Test
