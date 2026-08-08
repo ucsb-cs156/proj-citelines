@@ -31,14 +31,12 @@ public class DOIService {
       Pattern.compile("\\b10\\.\\d{4,}(?:\\.\\d+)*/[^\\s<>\"]+", Pattern.CASE_INSENSITIVE);
 
   // Matches a shortDOI, either as a bare "10/xxxx" identifier or as a doi.org URL, with or
-  // without the leading "10/".
+  // without the leading "10/" segment (e.g. "10/c234", "https://doi.org/c234", or
+  // "https://doi.org/10/c234").
   private static final Pattern SHORT_DOI_PATTERN =
       Pattern.compile(
-          "^(?:https?://(?:dx\\.)?doi\\.org/)?10/([a-zA-Z0-9]+)$", Pattern.CASE_INSENSITIVE);
-
-  private static final Pattern SHORT_DOI_URL_PATTERN =
-      Pattern.compile(
-          "^https?://(?:dx\\.)?doi\\.org/([a-zA-Z0-9]+)$", Pattern.CASE_INSENSITIVE);
+          "^(?:https?://(?:dx\\.)?doi\\.org/(?:10/)?|10/)([a-zA-Z0-9]+)$",
+          Pattern.CASE_INSENSITIVE);
 
   /**
    * Normalizes a DOI given in any of the recognized formats to its canonical bare form.
@@ -55,11 +53,6 @@ public class DOIService {
       Matcher shortDoiMatcher = SHORT_DOI_PATTERN.matcher(trimmed);
       if (shortDoiMatcher.matches()) {
         return "10/" + shortDoiMatcher.group(1).toLowerCase();
-      }
-
-      Matcher shortDoiUrlMatcher = SHORT_DOI_URL_PATTERN.matcher(trimmed);
-      if (shortDoiUrlMatcher.matches()) {
-        return "10/" + shortDoiUrlMatcher.group(1).toLowerCase();
       }
 
       Matcher doiMatcher = DOI_PATTERN.matcher(trimmed);
