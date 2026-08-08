@@ -40,18 +40,18 @@ which is read by `spring.data.mongodb.uri` in
 
 If you want to list records in the mongo collections, you can access a mongo
 command line on dokku with the following command (substitute the name of your
-mongo db database in place of `citelines-m`):
+mongo db database in place of `citelines-m-db`):
 
 ```
-dokku mongo:connect citelines-m
+dokku mongo:connect citelines-m-db
 ```
 
 That gives you something like the following:
 
 ```
-pconrad@dokku-00:~$ dokku mongo:connect citelines-m
+pconrad@dokku-00:~$ dokku mongo:connect citelines-m-db
 Current Mongosh Log ID:	69768804b279b310cf0bbacc
-Connecting to:		mongodb://<credentials>@127.0.0.1:27017/citelines_m?directConnection=true&serverSelectionTimeoutMS=2000&authSource=citelines_m&appName=mongosh+1.10.1
+Connecting to:		mongodb://<credentials>@127.0.0.1:27017/citelines_m_db?directConnection=true&serverSelectionTimeoutMS=2000&authSource=citelines_m_db&appName=mongosh+1.10.1
 Using MongoDB:		6.0.7
 Using Mongosh:		1.10.1
 
