@@ -1,6 +1,6 @@
 describe("index.html title", () => {
-  test("document title should be Scaffold", () => {
-    document.title = "Scaffold";
-    expect(document.title).toBe("Scaffold");
+  test("document title should be Citelines", () => {
+    document.title = "Citelines";
+    expect(document.title).toBe("Citelines");
   });
 });

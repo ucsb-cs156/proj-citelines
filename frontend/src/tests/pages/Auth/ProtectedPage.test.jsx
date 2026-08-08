@@ -39,7 +39,7 @@ describe("ProtectedPage tests", () => {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <ProtectedPage
-            currentUser={currentUserFixtures.instructorUser}
+            currentUser={currentUserFixtures.researcherUser}
             enforceRole={"ROLE_ADMIN"}
           />
         </BrowserRouter>
@@ -54,8 +54,8 @@ describe("ProtectedPage tests", () => {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <ProtectedPage
-            currentUser={currentUserFixtures.instructorUser}
-            enforceRole={"ROLE_INSTRUCTOR"}
+            currentUser={currentUserFixtures.researcherUser}
+            enforceRole={"ROLE_RESEARCHER"}
             component={<div>Renders successfully.</div>}
           />
         </BrowserRouter>

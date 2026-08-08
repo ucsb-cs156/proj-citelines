@@ -82,14 +82,14 @@ describe("AdminsIndexPage tests", () => {
     await waitFor(() => {
       expect(
         screen.getByTestId(`${testId}-cell-row-0-col-email`),
-      ).toHaveTextContent("instructor1@example.com");
+      ).toHaveTextContent("researcher1@example.com");
     });
     expect(
       screen.getByTestId(`${testId}-cell-row-1-col-email`),
     ).toHaveTextContent("admin1@example.com");
     expect(
       screen.getByTestId(`${testId}-cell-row-2-col-email`),
-    ).toHaveTextContent("instructor2@example.com");
+    ).toHaveTextContent("researcher2@example.com");
 
     // delete button should be visible
     expect(
@@ -139,7 +139,7 @@ describe("AdminsIndexPage tests", () => {
     setupAdminUser();
 
     axiosMock.onGet(getEndpoint).reply(200, roleEmailFixtures.threeItems);
-    axiosMock.onDelete(deleteEndpoint).reply(200, "first instructor deleted");
+    axiosMock.onDelete(deleteEndpoint).reply(200, "first researcher deleted");
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -157,7 +157,7 @@ describe("AdminsIndexPage tests", () => {
 
     expect(
       screen.getByTestId(`${testId}-cell-row-0-col-email`),
-    ).toHaveTextContent("instructor1@example.com");
+    ).toHaveTextContent("researcher1@example.com");
 
     const deleteButton = screen.getByTestId(
       `${testId}-cell-row-0-col-delete-button`,
@@ -167,7 +167,7 @@ describe("AdminsIndexPage tests", () => {
     fireEvent.click(deleteButton);
 
     await waitFor(() => {
-      expect(mockToast).toHaveBeenCalledWith("first instructor deleted");
+      expect(mockToast).toHaveBeenCalledWith("first researcher deleted");
     });
 
     await waitFor(() => {
@@ -175,7 +175,7 @@ describe("AdminsIndexPage tests", () => {
     });
     expect(axiosMock.history.delete[0].url).toBe(deleteEndpoint);
     expect(axiosMock.history.delete[0].params).toEqual({
-      email: "instructor1@example.com",
+      email: "researcher1@example.com",
     });
   });
   test("useBackend is called with correct cache query key", async () => {

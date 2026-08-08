@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import AboutScaffold from "main/pages/Help/AboutScaffold";
+import AboutCitelines from "main/pages/Help/AboutCitelines";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 
@@ -8,7 +8,7 @@ import { systemInfoFixtures } from "fixtures/systemInfoFixtures";
 import axios from "axios";
 import AxiosMockAdapter from "axios-mock-adapter";
 
-describe("AboutScaffold tests", () => {
+describe("AboutCitelines tests", () => {
   const axiosMock = new AxiosMockAdapter(axios);
   axiosMock
     .onGet("/api/currentUser")
@@ -22,36 +22,20 @@ describe("AboutScaffold tests", () => {
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <AboutScaffold />
+          <AboutCitelines />
         </MemoryRouter>
       </QueryClientProvider>,
     );
 
     expect(
-      await screen.findByRole("heading", { level: 1, name: "About Scaffold" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { level: 2, name: "What Scaffold is for" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", {
-        level: 2,
-        name: "Where did Scaffold come from",
+      await screen.findByRole("heading", {
+        level: 1,
+        name: "About Citelines",
       }),
     ).toBeInTheDocument();
 
-    expect(screen.getByRole("link", { name: "PrairieLearn" })).toHaveAttribute(
-      "href",
-      "https://www.prairielearn.com/",
-    );
     expect(
-      screen.getByRole("link", {
-        name: "https://github.com/ucsb-cs156/proj-scaffold",
-      }),
+      screen.getByRole("link", { name: "proj-scaffold" }),
     ).toHaveAttribute("href", "https://github.com/ucsb-cs156/proj-scaffold");
-    expect(screen.getByRole("link", { name: "CMPSC 156" })).toHaveAttribute(
-      "href",
-      "https://ucsb-cs156.github.io",
-    );
   });
 });

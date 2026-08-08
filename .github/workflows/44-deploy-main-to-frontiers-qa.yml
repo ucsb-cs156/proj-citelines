@@ -1,4 +1,4 @@
-name: 44-deploy-main-to-scaffold-qa.yml
+name: 44-deploy-main-to-citelines-qa.yml
 on:
   workflow_dispatch
 
@@ -7,10 +7,10 @@ env:
 
 jobs:
   has_deploy_label:
-    name: Launch Scaffold Deploy for QA
+    name: Launch Citelines Deploy for QA
     runs-on: ubuntu-latest
     steps:
-      - name: "Launch scaffold deploy for qa"
+      - name: "Launch citelines deploy for qa"
         run: |
             gh api \
             --method POST \

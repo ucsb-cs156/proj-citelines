@@ -26,14 +26,14 @@ public class SystemInfoServiceImplTests {
     SystemInfoServiceImpl service = new SystemInfoServiceImpl();
     ReflectionTestUtils.setField(service, "gitProperties", null);
     ReflectionTestUtils.setField(
-        service, "sourceRepo", "https://github.com/ucsb-cs156/proj-scaffold");
+        service, "sourceRepo", "https://github.com/ucsb-cs156/proj-citelines");
 
     SystemInfo systemInfo = service.getSystemInfo();
 
     assertEquals("unknown", systemInfo.getCommitMessage());
     assertEquals("unknown", systemInfo.getCommitId());
     assertEquals(
-        "https://github.com/ucsb-cs156/proj-scaffold/commit/unknown", systemInfo.getGithubUrl());
+        "https://github.com/ucsb-cs156/proj-citelines/commit/unknown", systemInfo.getGithubUrl());
   }
 
   @Test
@@ -46,13 +46,13 @@ public class SystemInfoServiceImplTests {
     SystemInfoServiceImpl service = new SystemInfoServiceImpl();
     ReflectionTestUtils.setField(service, "gitProperties", gitProperties);
     ReflectionTestUtils.setField(
-        service, "sourceRepo", "https://github.com/ucsb-cs156/proj-scaffold");
+        service, "sourceRepo", "https://github.com/ucsb-cs156/proj-citelines");
 
     SystemInfo systemInfo = service.getSystemInfo();
 
     assertEquals("Fix the bug", systemInfo.getCommitMessage());
     assertEquals("abc1234", systemInfo.getCommitId());
     assertEquals(
-        "https://github.com/ucsb-cs156/proj-scaffold/commit/abc1234", systemInfo.getGithubUrl());
+        "https://github.com/ucsb-cs156/proj-citelines/commit/abc1234", systemInfo.getGithubUrl());
   }
 }

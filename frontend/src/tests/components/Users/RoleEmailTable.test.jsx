@@ -209,15 +209,15 @@ describe("RoleEmailTable", () => {
   });
 
   test("Check that api endpoint overrides work", async () => {
-    axiosMock.onDelete("/api/admin/instructor/delete").reply(200, {});
+    axiosMock.onDelete("/api/admin/researcher/delete").reply(200, {});
 
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
           <RoleEmailTable
             data={testData}
-            deleteEndpoint="/api/admin/instructor/delete"
-            getEndpoint="/api/admin/instructor/all"
+            deleteEndpoint="/api/admin/researcher/delete"
+            getEndpoint="/api/admin/researcher/all"
           />
           ,
         </MemoryRouter>
@@ -232,7 +232,7 @@ describe("RoleEmailTable", () => {
       expect(axiosMock.history.delete.length).toBe(1);
     });
     expect(axiosMock.history.delete[0].url).toBe(
-      "/api/admin/instructor/delete",
+      "/api/admin/researcher/delete",
     );
     expect(axiosMock.history.delete[0].params).toEqual({
       email: "user1@example.org",
@@ -240,7 +240,7 @@ describe("RoleEmailTable", () => {
 
     expect(invalidateQueriesSpy).toHaveBeenCalledTimes(1);
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ["/api/admin/instructor/all"],
+      queryKey: ["/api/admin/researcher/all"],
     });
   });
 });

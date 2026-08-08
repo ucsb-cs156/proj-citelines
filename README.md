@@ -1,4 +1,4 @@
-# scaffold
+# citelines
 
 ## Setup before running
 
@@ -69,12 +69,13 @@ on port 8090, and drive a headless Chromium browser with Playwright.
    INTEGRATION=true HEADLESS=false mvn -ntp -B test-compile failsafe:integration-test failsafe:verify
    ```
 
-The integration tests are in `src/test/java/edu/ucsb/cs/scaffold/web/`:
+The integration tests are in `src/test/java/edu/ucsb/cs/citelines/web/`:
 
 | Test class | What it verifies |
 |---|---|
 | `OauthWebIT` | User can log in and log out via mock OAuth |
-| `HomePageWebIT` | After login, the concept graph is visible on the home page |
+| `HomePageWebIT` | After login, the placeholder home page is visible |
+| `SwaggerWebIT` | The Swagger UI page loads correctly |
 
 #### Wiremock development mode
 
@@ -123,14 +124,6 @@ Spring is configured with:
 
 - `spring.jpa.hibernate.ddl-auto=none`
 - `spring.liquibase.change-log=db/migration/changelog-master.json`
-
-### Existing pin -> userid migration
-
-Current migrations include:
-
-- Initial schema creation for current tables.
-- Legacy migration from pin-based schema to userid-based schema.
-- Legacy PostgreSQL constraint-name normalization.
 
 ### Adding a new migration
 

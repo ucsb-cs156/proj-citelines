@@ -44,10 +44,10 @@ describe("LoginScreen", () => {
     });
   });
 
-  test("renders the Scaffold branding, prompt, and login button", () => {
+  test("renders the Citelines branding, prompt, and login button", () => {
     renderLoginScreen(systemInfoFixtures.showingNeither);
 
-    expect(screen.getByText("Welcome to Scaffold")).toBeInTheDocument();
+    expect(screen.getByText("Welcome to Citelines")).toBeInTheDocument();
     expect(screen.getByText("Sign in to continue.")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Log In with Google" }),

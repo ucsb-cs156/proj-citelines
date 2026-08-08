@@ -1,13 +1,13 @@
 import React from "react";
 import { HttpResponse, http } from "msw";
 import { expect, within } from "storybook/test";
-import AboutScaffold from "main/pages/Help/AboutScaffold";
+import AboutCitelines from "main/pages/Help/AboutCitelines";
 import { apiCurrentUserFixtures } from "fixtures/currentUserFixtures";
 import { systemInfoFixtures } from "fixtures/systemInfoFixtures";
 
 export default {
-  title: "pages/Help/AboutScaffold",
-  component: AboutScaffold,
+  title: "pages/Help/AboutCitelines",
+  component: AboutCitelines,
   parameters: {
     msw: {
       handlers: [
@@ -22,22 +22,13 @@ export default {
   },
 };
 
-const Template = () => <AboutScaffold />;
+const Template = () => <AboutCitelines />;
 
 export const Default = Template.bind({});
 
 Default.play = async ({ canvasElement }) => {
   const canvas = within(canvasElement);
   await expect(
-    await canvas.findByRole("heading", { level: 1, name: "About Scaffold" }),
-  ).toBeInTheDocument();
-  await expect(
-    canvas.getByRole("heading", { level: 2, name: "What Scaffold is for" }),
-  ).toBeInTheDocument();
-  await expect(
-    canvas.getByRole("heading", {
-      level: 2,
-      name: "Where did Scaffold come from",
-    }),
+    await canvas.findByRole("heading", { level: 1, name: "About Citelines" }),
   ).toBeInTheDocument();
 };
