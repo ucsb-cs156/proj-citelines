@@ -48,4 +48,15 @@ public class OauthWebIT extends WebTestCase {
     setupAdminUser();
     assertThat(page.getByText("Log Out")).isVisible();
   }
+
+  @Test
+  public void user_in_ADMIN_EMAILS_gets_admin_access_without_being_manually_added()
+      throws Exception {
+    // app.admin.emails=admingaucho@ucsb.edu in application-integration.properties; this user is
+    // never inserted into the admins table by this test, only by ScaffoldStartup at app startup.
+    setupUserWithEmail("admingaucho@ucsb.edu");
+
+    assertThat(page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Admin")))
+        .isVisible();
+  }
 }
