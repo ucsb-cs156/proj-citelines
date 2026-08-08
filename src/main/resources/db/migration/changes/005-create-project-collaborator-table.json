@@ -1,0 +1,35 @@
+{
+  "databaseChangeLog": [
+    {
+      "changeSet": {
+        "id": "005-create-project-collaborator-table",
+        "author": "pc",
+        "preConditions": [
+          { "onFail": "MARK_RAN" },
+          { "not": { "tableExists": { "tableName": "project_collaborator" } } }
+        ],
+        "changes": [
+          {
+            "createTable": {
+              "tableName": "project_collaborator",
+              "columns": [
+                {
+                  "column": {
+                    "name": "id",
+                    "type": "BIGINT",
+                    "autoIncrement": true,
+                    "constraints": { "nullable": false, "primaryKey": true }
+                  }
+                },
+                { "column": { "name": "first_name", "type": "VARCHAR(255)" } },
+                { "column": { "name": "last_name", "type": "VARCHAR(255)" } },
+                { "column": { "name": "email", "type": "VARCHAR(255)" } },
+                { "column": { "name": "project_id", "type": "BIGINT" } }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

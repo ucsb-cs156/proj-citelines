@@ -14,7 +14,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 /**
- * Verifies that a logged-in user sees the (placeholder) home page.
+ * Verifies that a logged-in user sees their home page, including the projects they own and/or
+ * collaborate on.
  *
  * <p>Prerequisites: the frontend must be built ({@code npm run build} inside {@code frontend/}) so
  * that {@code target/classes/public/index.html} exists. Run with:
@@ -32,8 +33,23 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 public class HomePageWebIT extends WebTestCase {
 
   @Test
-  public void logged_in_regular_user_sees_placeholder_home_page() throws Exception {
+  public void logged_in_regular_user_sees_home_page() throws Exception {
     setupRegularUser();
-    assertThat(page.getByText("This is a placeholder home page.")).isVisible();
+    assertThat(page.getByText("Projects You Collaborate On")).isVisible();
+    assertThat(page.getByText("You are not a collaborator on any projects yet.")).isVisible();
+  }
+
+  @Test
+  public void logged_in_researcher_can_create_a_project_and_see_it_listed() throws Exception {
+    setupResearcherUser();
+    assertThat(page.getByText("Your Projects")).isVisible();
+
+    page.getByText("Create Project").click();
+    page.locator("#name").fill("Citation Graphs");
+    page.locator("#description").fill("A project about citation graphs");
+    page.getByTestId("ProjectModal-submit").click();
+
+    assertThat(page.getByTestId("OwnerProjectTable-cell-row-0-col-name-link"))
+        .containsText("Citation Graphs");
   }
 }
