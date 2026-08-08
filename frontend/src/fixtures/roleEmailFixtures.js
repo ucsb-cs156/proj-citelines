@@ -1,21 +1,21 @@
 const roleEmailFixtures = {
   oneItem: {
-    email: "instructor1@example.com",
+    email: "researcher1@example.com",
   },
   threeItems: [
     {
-      email: "instructor1@example.com",
+      email: "researcher1@example.com",
     },
     {
       email: "admin1@example.com",
     },
     {
-      email: "instructor2@example.com",
+      email: "researcher2@example.com",
     },
   ],
   threeItemsWithIsInAdminEmailField: [
     {
-      email: "instructor1@example.com",
+      email: "researcher1@example.com",
       isInAdminEmails: true,
     },
     {
@@ -23,7 +23,7 @@ const roleEmailFixtures = {
       isInAdminEmails: false,
     },
     {
-      email: "instructor2@example.com",
+      email: "researcher2@example.com",
       isInAdminEmails: false,
     },
   ],

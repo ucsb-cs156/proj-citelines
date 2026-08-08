@@ -4,8 +4,6 @@ import type { SystemInfo } from "main/utils/systemInfo";
 import { Container, Nav, Navbar, NavDropdown } from "react-bootstrap";
 import GoogleLogin from "main/components/Nav/GoogleLogin";
 import AppNavbarLocalhost from "main/components/Nav/AppNavbarLocalhost";
-import ScaffoldBrand from "main/components/Scaffold/ScaffoldBrand";
-import CourseMenu from "main/components/Courses/CourseMenu";
 
 export default function AppNavbar({
   currentUser,
@@ -37,18 +35,13 @@ export default function AppNavbar({
       >
         <Container>
           <Navbar.Brand as={Link} to="/">
-            <ScaffoldBrand />
+            Citelines
           </Navbar.Brand>
 
           <Navbar.Toggle />
 
-          <>
-            {/* be sure that each NavDropdown has a unique id and data-testid  */}
-          </>
-
           <Navbar.Collapse className="justify-content-between">
             <Nav className="mr-auto">
-              <CourseMenu currentUser={currentUser} />
               {systemInfo?.showSwaggerUILink && (
                 <>
                   <Nav.Link href="/swagger-ui/index.html">Swagger</Nav.Link>
@@ -68,28 +61,14 @@ export default function AppNavbar({
                   <NavDropdown.Item as={Link} to="/admin/admins">
                     Admins
                   </NavDropdown.Item>
-                  <NavDropdown.Item as={Link} to="/admin/instructors">
-                    Instructors
+                  <NavDropdown.Item as={Link} to="/admin/researchers">
+                    Researchers
                   </NavDropdown.Item>
-                  <NavDropdown.Item as={Link} to="/admin/courses">
-                    Courses
+                  <NavDropdown.Item as={Link} to="/admin/jobs">
+                    Jobs
                   </NavDropdown.Item>
                   <NavDropdown.Item as={Link} to="/admin/developer">
                     Developer Info
-                  </NavDropdown.Item>
-                  <NavDropdown.Item as={Link} to="/LegacyHomePage">
-                    LegacyHomePage
-                  </NavDropdown.Item>
-                </NavDropdown>
-              )}
-              {hasRole(currentUser, "ROLE_INSTRUCTOR") && (
-                <NavDropdown
-                  title="Instructor"
-                  id="appnavbar-instructor-dropdown"
-                  data-testid="appnavbar-instructor-dropdown"
-                >
-                  <NavDropdown.Item as={Link} to="/courses">
-                    Courses
                   </NavDropdown.Item>
                 </NavDropdown>
               )}
