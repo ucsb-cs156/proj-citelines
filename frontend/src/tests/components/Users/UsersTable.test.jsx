@@ -20,7 +20,7 @@ describe("UserTable tests", () => {
       "Last Name",
       "Email",
       "Admin",
-      "Instructor",
+      "Researcher",
     ];
     const expectedFields = [
       "id",
@@ -28,7 +28,7 @@ describe("UserTable tests", () => {
       "familyName",
       "email",
       "admin",
-      "instructor",
+      "researcher",
     ];
     const testId = "UsersTable";
 
@@ -56,10 +56,10 @@ describe("UserTable tests", () => {
     ).toHaveTextContent("false");
 
     expect(
-      screen.getByTestId(`${testId}-cell-row-2-col-instructor`),
+      screen.getByTestId(`${testId}-cell-row-2-col-researcher`),
     ).toHaveTextContent("true");
     expect(
-      screen.getByTestId(`${testId}-cell-row-1-col-instructor`),
+      screen.getByTestId(`${testId}-cell-row-1-col-researcher`),
     ).toHaveTextContent("false");
   });
 });

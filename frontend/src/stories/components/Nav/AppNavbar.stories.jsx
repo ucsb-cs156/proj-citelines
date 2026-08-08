@@ -56,9 +56,9 @@ LoggedInAdmin.args = {
   },
 };
 
-export const LoggedInInstructor = Template.bind({});
-LoggedInInstructor.args = {
-  currentUser: currentUserFixtures.instructorUser,
+export const LoggedInResearcher = Template.bind({});
+LoggedInResearcher.args = {
+  currentUser: currentUserFixtures.researcherUser,
   systemInfo: {
     oauthLogin: "/oauth2/authorization/test", // This simulates the oauth login URL
   },

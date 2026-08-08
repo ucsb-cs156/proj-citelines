@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.servers.Server;
 @OpenAPIDefinition(
     info =
         @Info(
-            title = "Swagger: UCSB CS Scaffold",
+            title = "Swagger: UCSB CS Citelines",
             description =
                 """
     <p><a href='/'>Home Page</a></p>

@@ -10,12 +10,12 @@ export const apiCurrentUserFixtures = {
     roles: [
       { authority: "ROLE_USER" },
       { authority: "ROLE_ADMIN" },
-      { authority: "ROLE_INSTRUCTOR" },
+      { authority: "ROLE_RESEARCHER" },
     ],
   },
-  instructorUser: {
+  researcherUser: {
     user: { email: "diba@ucsb.edu", givenName: "Diba" },
-    roles: [{ authority: "ROLE_USER" }, { authority: "ROLE_INSTRUCTOR" }],
+    roles: [{ authority: "ROLE_USER" }, { authority: "ROLE_RESEARCHER" }],
   },
 } satisfies Record<string, ApiCurrentUser>;
 
@@ -32,14 +32,14 @@ export const currentUserFixtures = {
     loggedIn: true as const,
     root: {
       ...apiCurrentUserFixtures.adminUser,
-      rolesList: ["ROLE_USER", "ROLE_ADMIN", "ROLE_INSTRUCTOR"],
+      rolesList: ["ROLE_USER", "ROLE_ADMIN", "ROLE_RESEARCHER"],
     },
   },
-  instructorUser: {
+  researcherUser: {
     loggedIn: true as const,
     root: {
-      ...apiCurrentUserFixtures.instructorUser,
-      rolesList: ["ROLE_USER", "ROLE_INSTRUCTOR"],
+      ...apiCurrentUserFixtures.researcherUser,
+      rolesList: ["ROLE_USER", "ROLE_RESEARCHER"],
     },
   },
 } satisfies Record<string, CurrentUser>;

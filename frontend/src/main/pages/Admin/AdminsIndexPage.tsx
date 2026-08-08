@@ -6,7 +6,7 @@ import RoleEmailTable, {
 } from "main/components/Users/RoleEmailTable";
 
 export default function AdminsIndexPage(): React.JSX.Element {
-  const { data: instructors } = useBackend<RoleEmail[]>(
+  const { data: admins } = useBackend<RoleEmail[]>(
     ["/api/admin/all"],
     { method: "GET", url: "/api/admin/all" },
     // Stryker disable next-line all : don't test default value of empty list
@@ -31,7 +31,7 @@ export default function AdminsIndexPage(): React.JSX.Element {
         {createButton()}
         <h1>Admins</h1>
         <RoleEmailTable
-          data={instructors ?? []}
+          data={admins ?? []}
           deleteEndpoint="/api/admin/delete"
           getEndpoint="/api/admin/all"
           testIdPrefix="AdminsIndexPage"

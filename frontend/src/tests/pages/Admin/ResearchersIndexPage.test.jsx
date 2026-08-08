@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import AdminsIndexPage from "main/pages/Admin/AdminsIndexPage";
+import ResearchersIndexPage from "main/pages/Admin/ResearchersIndexPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 import mockConsole from "tests/testutils/mockConsole";
@@ -24,11 +24,8 @@ const axiosMock = new AxiosMockAdapter(axios);
 
 const useBackendSpy = vi.spyOn(useBackendModule, "useBackend");
 
-describe("AdminsIndexPage tests", () => {
-  const getEndpoint = "/api/admin/all";
-  const deleteEndpoint = "/api/admin/delete";
-
-  const testId = "AdminsIndexPage";
+describe("ResearchersIndexPage tests", () => {
+  const testId = "ResearchersIndexPage";
 
   const setupAdminUser = () => {
     axiosMock.reset();
@@ -47,34 +44,36 @@ describe("AdminsIndexPage tests", () => {
     useBackendSpy.mockClear();
   });
 
-  test("Renders with New Admin Button", async () => {
+  test("Renders with New Researcher Button", async () => {
     setupAdminUser();
-    axiosMock.onGet(getEndpoint).reply(200, []);
+    axiosMock.onGet("/api/admin/researchers/get").reply(200, []);
 
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <AdminsIndexPage />
+          <ResearchersIndexPage />
         </MemoryRouter>
       </QueryClientProvider>,
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/New Admin/)).toBeInTheDocument();
+      expect(screen.getByText(/New Researcher/)).toBeInTheDocument();
     });
-    const button = screen.getByText(/New Admin/);
-    expect(button).toHaveAttribute("href", "/admin/admins/create");
+    const button = screen.getByText(/New Researcher/);
+    expect(button).toHaveAttribute("href", "/admin/researchers/create");
     expect(button).toHaveAttribute("style", "float: right;");
   });
 
   test("renders three items correctly", async () => {
     setupAdminUser();
-    axiosMock.onGet(getEndpoint).reply(200, roleEmailFixtures.threeItems);
+    axiosMock
+      .onGet("/api/admin/researchers/get")
+      .reply(200, roleEmailFixtures.threeItems);
 
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <AdminsIndexPage />
+          <ResearchersIndexPage />
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -95,31 +94,19 @@ describe("AdminsIndexPage tests", () => {
     expect(
       screen.getByTestId(`${testId}-cell-row-0-col-delete-button`),
     ).toBeInTheDocument();
-
-    expect(
-      screen.getByText(/Note: Initial admins that are set in the /i),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/ADMIN_EMAILS/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        / configuration cannot be deleted through the application/i,
-      ),
-    ).toBeInTheDocument();
-
-    expect(screen.getByText("ADMIN_EMAILS").tagName).toBe("CODE");
   });
 
   test("renders empty table when backend unavailable", async () => {
     setupAdminUser();
 
-    axiosMock.onGet(getEndpoint).timeout();
+    axiosMock.onGet("/api/admin/researchers/get").timeout();
 
     const restoreConsole = mockConsole();
 
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <AdminsIndexPage />
+          <ResearchersIndexPage />
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -130,7 +117,7 @@ describe("AdminsIndexPage tests", () => {
 
     const errorMessage = console.error.mock.calls[0][0];
     expect(errorMessage).toMatch(
-      `Error communicating with backend via GET on ${getEndpoint}`,
+      "Error communicating with backend via GET on /api/admin/researchers/get",
     );
     restoreConsole();
   });
@@ -138,13 +125,17 @@ describe("AdminsIndexPage tests", () => {
   test("what happens when you click delete", async () => {
     setupAdminUser();
 
-    axiosMock.onGet(getEndpoint).reply(200, roleEmailFixtures.threeItems);
-    axiosMock.onDelete(deleteEndpoint).reply(200, "first researcher deleted");
+    axiosMock
+      .onGet("/api/admin/researchers/get")
+      .reply(200, roleEmailFixtures.threeItems);
+    axiosMock
+      .onDelete("/api/admin/researchers/delete")
+      .reply(200, "first researcher deleted");
 
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <AdminsIndexPage />
+          <ResearchersIndexPage />
         </MemoryRouter>
       </QueryClientProvider>,
     );
@@ -173,7 +164,9 @@ describe("AdminsIndexPage tests", () => {
     await waitFor(() => {
       expect(axiosMock.history.delete.length).toBe(1);
     });
-    expect(axiosMock.history.delete[0].url).toBe(deleteEndpoint);
+    expect(axiosMock.history.delete[0].url).toBe(
+      "/api/admin/researchers/delete",
+    );
     expect(axiosMock.history.delete[0].params).toEqual({
       email: "researcher1@example.com",
     });
@@ -182,14 +175,14 @@ describe("AdminsIndexPage tests", () => {
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <AdminsIndexPage />
+          <ResearchersIndexPage />
         </MemoryRouter>
       </QueryClientProvider>,
     );
 
     expect(useBackendSpy).toHaveBeenCalledWith(
-      [`/api/admin/all`],
-      { method: "GET", url: "/api/admin/all" },
+      [`/api/admin/researchers/get`],
+      { method: "GET", url: `/api/admin/researchers/get` },
       [],
     );
   });

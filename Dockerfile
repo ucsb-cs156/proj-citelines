@@ -42,4 +42,4 @@ COPY . /home/app
 RUN mvn --no-transfer-progress -B -Pproduction -DskipTests -f /home/app/pom.xml clean package
 
 RUN ["chmod", "+x", "/home/app/startup.sh"]
-ENTRYPOINT ["/home/app/startup.sh","/home/app/target/scaffold-0.0.1.jar"]
+ENTRYPOINT ["/home/app/startup.sh","/home/app/target/citelines-0.0.1.jar"]

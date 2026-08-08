@@ -1,6 +1,7 @@
 package edu.ucsb.cs.citelines.controller;
 
 import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
+import edu.ucsb.cs.citelines.errors.ForbiddenException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,5 +22,15 @@ public class DummyController extends ApiController {
   @GetMapping("/interceptorTest")
   public ResponseEntity<String> interceptorTest() {
     return ResponseEntity.ok("OK");
+  }
+
+  @GetMapping("/forbidden")
+  public String forbidden() {
+    throw new ForbiddenException("Forbidden!");
+  }
+
+  @GetMapping("/illegalArgument")
+  public String illegalArgument() {
+    throw new IllegalArgumentException("Bad argument!");
   }
 }

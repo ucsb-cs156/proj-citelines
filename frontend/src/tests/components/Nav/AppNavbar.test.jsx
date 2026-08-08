@@ -4,7 +4,6 @@ import { MemoryRouter } from "react-router";
 import AppNavbar from "main/components/Nav/AppNavbar";
 import { currentUserFixtures } from "fixtures/currentUserFixtures";
 import { systemInfoFixtures } from "fixtures/systemInfoFixtures";
-import courseMenuFixtures from "fixtures/courseMenuFixtures";
 import AxiosMockAdapter from "axios-mock-adapter";
 import axios from "axios";
 
@@ -34,7 +33,6 @@ describe("AppNavbar tests", () => {
     axiosMock
       .onGet("/api/systemInfo")
       .reply(200, systemInfoFixtures.showingNeither);
-    axiosMock.onGet("/api/courses/list").reply(200, []);
   });
 
   afterEach(() => {
@@ -100,12 +98,12 @@ describe("AppNavbar tests", () => {
     expect(screen.getByText("H2Console")).toBeInTheDocument();
   });
 
-  test("renders Scaffold brand link", () => {
+  test("renders Citelines brand link", () => {
     renderNavbar(
       currentUserFixtures.notLoggedIn,
       systemInfoFixtures.showingNeither,
     );
-    expect(screen.getByText("Scaffold")).toBeInTheDocument();
+    expect(screen.getByText("Citelines")).toBeInTheDocument();
   });
 
   test("renders Admin menu for admins", async () => {
@@ -121,12 +119,7 @@ describe("AppNavbar tests", () => {
     fireEvent.click(adminToggle);
 
     // Check that the Admin menu contains the expected items
-    const adminMenuItems = [
-      "Admins",
-      "Instructors",
-      "Developer Info",
-      "LegacyHomePage",
-    ];
+    const adminMenuItems = ["Admins", "Researchers", "Jobs", "Developer Info"];
 
     await waitFor(() => {
       adminMenuItems.forEach((item) => {
@@ -142,40 +135,5 @@ describe("AppNavbar tests", () => {
     );
     expect(screen.queryByText("Admin")).not.toBeInTheDocument();
     expect(screen.queryByText("Developer Info")).not.toBeInTheDocument();
-  });
-
-  test("does not render Courses menu when there are no courses", async () => {
-    renderNavbar(
-      currentUserFixtures.userOnly,
-      systemInfoFixtures.showingNeither,
-    );
-
-    await waitFor(() =>
-      expect(axiosMock.history.get.length).toBeGreaterThan(0),
-    );
-
-    expect(
-      screen.queryByTestId("appnavbar-courses-dropdown"),
-    ).not.toBeInTheDocument();
-  });
-
-  test("renders the Courses menu as the first nav item, before Admin", async () => {
-    axiosMock.onGet("/api/courses/list").reply(200, courseMenuFixtures.mixed);
-
-    renderNavbar(
-      currentUserFixtures.adminUser,
-      systemInfoFixtures.showingNeither,
-    );
-
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("appnavbar-courses-dropdown"),
-      ).toBeInTheDocument(),
-    );
-
-    const navItems = screen
-      .getAllByRole("button")
-      .filter((el) => ["Courses", "Admin"].includes(el.textContent));
-    expect(navItems.map((el) => el.textContent)).toEqual(["Courses", "Admin"]);
   });
 });

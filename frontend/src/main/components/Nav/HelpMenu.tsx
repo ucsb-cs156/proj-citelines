@@ -12,7 +12,7 @@ export default function HelpMenu(): React.JSX.Element {
         align="end" // Align the menu to the right
       >
         <NavDropdown.Item as={Link} to="/help/about">
-          About Scaffold
+          About Citelines
         </NavDropdown.Item>
       </NavDropdown>
     </>

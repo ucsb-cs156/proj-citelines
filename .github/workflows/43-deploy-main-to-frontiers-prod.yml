@@ -1,4 +1,4 @@
-name: 43-deploy-main-to-scaffold-prod.yml
+name: 43-deploy-main-to-citelines-prod.yml
 on:
   workflow_dispatch
 
@@ -7,10 +7,10 @@ env:
 
 jobs:
   has_deploy_label:
-    name: Launch Scaffold Deploy
+    name: Launch Citelines Deploy
     runs-on: ubuntu-latest
     steps:
-      - name: "Launch scaffold deploy"
+      - name: "Launch citelines deploy"
         run: |
             gh api \
             --method POST \

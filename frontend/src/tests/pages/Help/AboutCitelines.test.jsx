@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import HomePageLoggedOut from "main/pages/Home/HomePageLoggedOut";
+import AboutCitelines from "main/pages/Help/AboutCitelines";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router";
 
@@ -8,7 +8,7 @@ import { systemInfoFixtures } from "fixtures/systemInfoFixtures";
 import axios from "axios";
 import AxiosMockAdapter from "axios-mock-adapter";
 
-describe("HomePageLoggedOut tests", () => {
+describe("AboutCitelines tests", () => {
   const axiosMock = new AxiosMockAdapter(axios);
   axiosMock
     .onGet("/api/currentUser")
@@ -18,16 +18,25 @@ describe("HomePageLoggedOut tests", () => {
     .reply(200, systemInfoFixtures.showingNeither);
 
   const queryClient = new QueryClient();
-  test("renders without crashing", async () => {
+  test("renders expected content", async () => {
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
-          <HomePageLoggedOut />
+          <AboutCitelines />
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    await screen.findByText(/Welcome to Citelines/);
-    await screen.findByText(/Sign in to continue./);
-    await screen.findByText(/Log In with Google/);
+
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: "About Citelines",
+      }),
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole("link", { name: "proj-scaffold" })).toHaveAttribute(
+      "href",
+      "https://github.com/ucsb-cs156/proj-scaffold",
+    );
   });
 });

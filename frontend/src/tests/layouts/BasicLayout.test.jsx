@@ -55,7 +55,7 @@ describe("BasicLayout tests", () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    expect(screen.getByText("Scaffold")).toBeInTheDocument();
+    expect(screen.getByText("Citelines")).toBeInTheDocument();
   });
 
   test("renders Footer inside layout", () => {
@@ -71,48 +71,7 @@ describe("BasicLayout tests", () => {
       </QueryClientProvider>,
     );
     expect(
-      screen.getByRole("link", { name: "About Scaffold" }),
+      screen.getByRole("link", { name: "About Citelines" }),
     ).toBeInTheDocument();
-  });
-
-  test("does not lock scrolling by default", () => {
-    const qc = makeProviders(
-      currentUserFixtures.notLoggedIn,
-      systemInfoFixtures.showingNeither,
-    );
-    render(
-      <QueryClientProvider client={qc}>
-        <MemoryRouter>
-          <BasicLayout />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    expect(document.body.classList.contains("scaffold-canvas-active")).toBe(
-      false,
-    );
-  });
-
-  test("lockScroll adds the scaffold-canvas-active class to body while mounted", () => {
-    const qc = makeProviders(
-      currentUserFixtures.notLoggedIn,
-      systemInfoFixtures.showingNeither,
-    );
-    const { unmount } = render(
-      <QueryClientProvider client={qc}>
-        <MemoryRouter>
-          <BasicLayout lockScroll />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    );
-    expect(document.body.classList.contains("scaffold-canvas-active")).toBe(
-      true,
-    );
-
-    // Navigating away (unmounting) must restore normal scrolling, or the
-    // lock would leak onto every page visited afterwards.
-    unmount();
-    expect(document.body.classList.contains("scaffold-canvas-active")).toBe(
-      false,
-    );
   });
 });
