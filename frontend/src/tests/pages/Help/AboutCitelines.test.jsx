@@ -34,8 +34,9 @@ describe("AboutCitelines tests", () => {
       }),
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByRole("link", { name: "proj-scaffold" }),
-    ).toHaveAttribute("href", "https://github.com/ucsb-cs156/proj-scaffold");
+    expect(screen.getByRole("link", { name: "proj-scaffold" })).toHaveAttribute(
+      "href",
+      "https://github.com/ucsb-cs156/proj-scaffold",
+    );
   });
 });
