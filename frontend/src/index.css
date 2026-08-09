@@ -95,3 +95,11 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+/* Pasting a BibTeX entry needs a textarea as wide as the window reasonably
+   allows (BibTexEntryModal.jsx), rather than the default Bootstrap modal
+   width used elsewhere. */
+.bibtex-entry-modal {
+  max-width: 95vw;
+  margin: 24px auto;
+}

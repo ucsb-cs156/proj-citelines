@@ -9,6 +9,7 @@ import { apiCurrentUserFixtures } from "fixtures/currentUserFixtures";
 import { systemInfoFixtures } from "fixtures/systemInfoFixtures";
 import projectsFixtures from "fixtures/projectsFixtures";
 import { projectCollaboratorsFixtures } from "fixtures/projectCollaboratorsFixtures";
+import bibTexEntriesFixtures from "fixtures/bibTexEntriesFixtures";
 
 function renderAtProject1(queryClient = new QueryClient()) {
   return render(
@@ -44,6 +45,9 @@ describe("ResearcherProjectShowPage tests", () => {
     axiosMock
       .onGet("/api/projectcollaborators/project?projectId=1")
       .reply(200, projectCollaboratorsFixtures.threeCollaborators);
+    axiosMock
+      .onGet("/api/bibtexentries/project?projectId=1")
+      .reply(200, bibTexEntriesFixtures.threeEntries);
 
     renderAtProject1();
 
@@ -70,6 +74,18 @@ describe("ResearcherProjectShowPage tests", () => {
     expect(
       screen.getByTestId("ResearcherProjectShowPage-post-button"),
     ).toBeInTheDocument();
+
+    expect(screen.getByText("Citations")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          "ResearcherProjectShowPage-Citations-CitationTable-cell-row-0-col-citeKey",
+        ),
+      ).toHaveTextContent("smith2020");
+    });
+    expect(
+      screen.getByTestId("ResearcherProjectShowPage-Citations-post-button"),
+    ).toBeInTheDocument();
   });
 
   test("a collaborator (non-owner) does not see the Add Collaborator button", async () => {
@@ -80,6 +96,9 @@ describe("ResearcherProjectShowPage tests", () => {
     axiosMock
       .onGet("/api/projectcollaborators/project?projectId=1")
       .reply(200, projectCollaboratorsFixtures.threeCollaborators);
+    axiosMock
+      .onGet("/api/bibtexentries/project?projectId=1")
+      .reply(200, bibTexEntriesFixtures.threeEntries);
 
     renderAtProject1();
 
