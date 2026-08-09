@@ -150,6 +150,14 @@
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
     </dependency>
+
+    <!-- JBibTeX for parsing/formatting BibTeX bibliography entries -->
+    <dependency>
+      <groupId>org.jbibtex</groupId>
+      <artifactId>jbibtex</artifactId>
+      <version>1.0.20</version>
+    </dependency>
+
     <!-- Shared async jobs system: https://github.com/ucsb-cs156/lib-jobs -->
     <dependency>
       <groupId>com.github.ucsb-cs156</groupId>
