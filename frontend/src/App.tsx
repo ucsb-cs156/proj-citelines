@@ -17,6 +17,7 @@ import AdminDeveloperPage from "main/pages/Admin/AdminDeveloperPage";
 import HomePageLoggedIn from "main/pages/Home/HomePageLoggedIn";
 import HomePageLoggedOut from "main/pages/Home/HomePageLoggedOut";
 import AdminJobsPage from "main/pages/Admin/AdminJobsPage";
+import ResearcherProjectShowPage from "main/pages/Projects/ResearcherProjectShowPage";
 
 export default function App() {
   const currentUser = useCurrentUser();
@@ -92,6 +93,27 @@ export default function App() {
             <ProtectedPage
               component={<AdminJobsPage />}
               enforceRole={"ROLE_ADMIN"}
+              currentUser={currentUser}
+            />
+          }
+        />
+
+        <Route
+          path="/project/:id"
+          element={
+            <ProtectedPage
+              component={<ResearcherProjectShowPage />}
+              enforceRole={"ROLE_RESEARCHER"}
+              currentUser={currentUser}
+            />
+          }
+        />
+        <Route
+          path="/project/:id/settings"
+          element={
+            <ProtectedPage
+              component={<ResearcherProjectShowPage />}
+              enforceRole={"ROLE_RESEARCHER"}
               currentUser={currentUser}
             />
           }

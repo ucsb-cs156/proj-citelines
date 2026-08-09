@@ -1,0 +1,35 @@
+{
+  "databaseChangeLog": [
+    {
+      "changeSet": {
+        "id": "004-create-projects-table",
+        "author": "pc",
+        "preConditions": [
+          { "onFail": "MARK_RAN" },
+          { "not": { "tableExists": { "tableName": "project" } } }
+        ],
+        "changes": [
+          {
+            "createTable": {
+              "tableName": "project",
+              "columns": [
+                {
+                  "column": {
+                    "name": "id",
+                    "type": "BIGINT",
+                    "autoIncrement": true,
+                    "constraints": { "nullable": false, "primaryKey": true }
+                  }
+                },
+                { "column": { "name": "name", "type": "VARCHAR(255)" } },
+                { "column": { "name": "description", "type": "VARCHAR(2048)" } },
+                { "column": { "name": "date_created", "type": "TIMESTAMP" } },
+                { "column": { "name": "owner", "type": "VARCHAR(255)" } }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
