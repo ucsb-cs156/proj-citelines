@@ -1,4 +1,5 @@
 edu.ucsb.cs.citelines
+edu.ucsb.cs.citelines.collections
 edu.ucsb.cs.citelines.config
 edu.ucsb.cs.citelines.controller
 edu.ucsb.cs.citelines.entity
