@@ -11,8 +11,8 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 
 /**
  * Production MongoDB configuration. Connects to the real MongoDB instance configured via {@code
- * spring.data.mongodb.uri} (see application-production.properties), which is expected to be set
- * up on Dokku the same way as the Postgres database (see docs/mongodb.md).
+ * spring.data.mongodb.uri} (see application-production.properties), which is expected to be set up
+ * on Dokku the same way as the Postgres database (see docs/mongodb.md).
  */
 @Profile("production")
 @Configuration
