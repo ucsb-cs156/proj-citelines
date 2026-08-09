@@ -45,6 +45,30 @@
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
 
+    <!--
+    https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-data-mongodb -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-mongodb</artifactId>
+    </dependency>
+
+    <!-- Embedded in-memory MongoDB for localhost/testing/integration tests -->
+    <dependency>
+      <groupId>de.flapdoodle.embed</groupId>
+      <artifactId>de.flapdoodle.embed.mongo.spring3x</artifactId>
+      <version>4.24.0</version>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- Embedded Mongo pulls in commons-compress 1.28.0 (to extract the downloaded MongoDB
+    binary), which requires commons-io 2.20.0; Spring Boot's managed version is older and causes
+    an IllegalAccessError at runtime, so pin it explicitly here. -->
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.20.0</version>
+    </dependency>
+
     <dependency>
       <groupId>me.paulschwarz</groupId>
       <artifactId>spring-dotenv</artifactId>
@@ -334,6 +358,8 @@
             <param>${app.package}.config.CorsConfig</param>
             <param>${app.package}.config.SpaCsrfTokenRequestHandler</param>
             <param>${app.package}.config.CsrfCookieFilter</param>
+            <param>${app.package}.config.MongoConfig</param>
+            <param>${app.package}.config.MongoDevConfig</param>
             <param>${app.package}.controller.FrontendController</param>
             <param>${app.package}.controller.FrontendProxyController</param>
             <param>${app.package}.services.CurrentUserServiceImpl</param>

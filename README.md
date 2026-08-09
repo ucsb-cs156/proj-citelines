@@ -18,6 +18,11 @@ Then fill in the values in `.env`:
 
 See [`docs/oauth.md`](docs/oauth.md) for full setup instructions, including Dokku deployment.
 
+This app also uses MongoDB, in addition to PostgreSQL, to store BibTeX
+bibliography entries. On localhost, and for tests, an embedded in-memory
+MongoDB instance is used automatically, so no setup is required. See
+[`docs/mongodb.md`](docs/mongodb.md) for details, including Dokku deployment.
+
 ## Getting started on localhost
 
 Open two terminal windows:
