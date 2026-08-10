@@ -8,6 +8,7 @@ import { useNavigate, useParams } from "react-router";
 import Modal from "react-bootstrap/Modal";
 import { Button, Tab, Tabs } from "react-bootstrap";
 import CollaboratorsTabComponent from "main/components/Projects/TabComponent/CollaboratorsTabComponent";
+import CitationsTabComponent from "main/components/Citations/TabComponent/CitationsTabComponent";
 import { GraphIcon } from "main/components/Common/Icons";
 
 export default function ResearcherProjectShowPage({
@@ -96,6 +97,12 @@ export default function ResearcherProjectShowPage({
                 projectId={projectId}
                 testIdPrefix={testId}
                 isOwner={isOwner}
+              />
+            </Tab>
+            <Tab eventKey={"citations"} title={"Citations"} className="pt-2">
+              <CitationsTabComponent
+                projectId={projectId}
+                testIdPrefix={`${testId}-Citations`}
               />
             </Tab>
           </Tabs>
