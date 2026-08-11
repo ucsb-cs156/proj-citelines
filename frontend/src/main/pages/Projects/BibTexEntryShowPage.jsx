@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useBackend, useBackendMutation } from "main/utils/useBackend";
 
 import BasicLayout from "main/layouts/BasicLayout/BasicLayout";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 import Modal from "react-bootstrap/Modal";
 import { Button, OverlayTrigger, Row, Tooltip } from "react-bootstrap";
@@ -130,6 +130,14 @@ export default function BibTexEntryShowPage({
 
           <Row className="mb-3">
             <div className="d-flex gap-2">
+              <Button
+                as={Link}
+                to={`/project/${projectId}`}
+                variant="outline-secondary"
+                data-testid={`${testId}-go-to-project-button`}
+              >
+                Go to Project
+              </Button>
               <OverlayTrigger
                 placement="top"
                 overlay={
@@ -170,7 +178,9 @@ export default function BibTexEntryShowPage({
             {rawBibtex}
           </pre>
 
-          <h4 className="mt-4">References</h4>
+          <h4 className="mt-4" data-testid={`${testId}-references-heading`}>
+            References ({references.length})
+          </h4>
           <CitationTable
             readOnly
             citations={references}
@@ -178,7 +188,9 @@ export default function BibTexEntryShowPage({
             testId={`${testId}-ReferencesTable`}
           />
 
-          <h4 className="mt-4">Citations</h4>
+          <h4 className="mt-4" data-testid={`${testId}-citations-heading`}>
+            Citations ({citations.length})
+          </h4>
           <CitationTable
             readOnly
             citations={citations}
