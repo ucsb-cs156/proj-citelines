@@ -95,6 +95,32 @@ describe("BibTexEntryShowPage tests", () => {
     expect(goToProjectButton).toHaveAttribute("href", "/project/1");
   });
 
+  test("strips CITELINES_ fields out of the displayed bibtex text", async () => {
+    axiosMock.reset();
+    axiosMock
+      .onGet("/api/bibtexentries/entry")
+      .reply(200, bibTexEntriesFixtures.oneEntry);
+    axiosMock
+      .onGet("/api/bibtexentries/export")
+      .reply(
+        200,
+        '@article{smith2020,\n\ttitle = "A Very Long Title",\n\tcitelines_relevance = "High"\n}',
+      );
+    axiosMock.onGet("/api/citationedges/references").reply(200, []);
+    axiosMock.onGet("/api/citationedges/citations").reply(200, []);
+
+    renderAtSmith2020();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("BibTexEntryShowPage-bibtex"),
+      ).toHaveTextContent('title = "A Very Long Title"');
+    });
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-bibtex"),
+    ).not.toHaveTextContent("citelines");
+  });
+
   test("hovering Get References shows its tooltip text", async () => {
     renderAtSmith2020();
     await screen.findByTestId("BibTexEntryShowPage-get-references-button");

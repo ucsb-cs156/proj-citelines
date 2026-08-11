@@ -8,6 +8,7 @@ import Modal from "react-bootstrap/Modal";
 import { Button, OverlayTrigger, Row, Tooltip } from "react-bootstrap";
 import { toast } from "react-toastify";
 import CitationTable from "main/components/Citations/CitationTable";
+import { extractCitelinesFields } from "main/utils/citelinesFields";
 
 export default function BibTexEntryShowPage({
   testId = "BibTexEntryShowPage",
@@ -175,7 +176,7 @@ export default function BibTexEntryShowPage({
             data-testid={`${testId}-bibtex`}
             className="border rounded-3 p-3"
           >
-            {rawBibtex}
+            {extractCitelinesFields(rawBibtex).strippedBibtex}
           </pre>
 
           <h4 className="mt-4" data-testid={`${testId}-references-heading`}>
