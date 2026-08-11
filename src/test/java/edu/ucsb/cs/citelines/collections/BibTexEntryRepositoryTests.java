@@ -1,10 +1,12 @@
 package edu.ucsb.cs.citelines.collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
@@ -54,5 +56,26 @@ class BibTexEntryRepositoryTests {
     assertTrue(saved.getId() != null && !saved.getId().isEmpty());
 
     assertTrue(bibTexEntryRepository.findByProjectId(12345).isEmpty());
+  }
+
+  @Test
+  void finds_an_entry_by_project_id_and_cite_key() {
+    bibTexEntryRepository.deleteAll();
+
+    BibTexEntry entry =
+        BibTexEntry.builder()
+            .projectId(42)
+            .entryType("article")
+            .citeKey("smith2020")
+            .keyValuePairs(Map.of("title", "A Great Paper"))
+            .build();
+    bibTexEntryRepository.save(entry);
+
+    Optional<BibTexEntry> found = bibTexEntryRepository.findByProjectIdAndCiteKey(42, "smith2020");
+    assertTrue(found.isPresent());
+    assertEquals("A Great Paper", found.get().getKeyValuePairs().get("title"));
+
+    assertFalse(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "nonexistent").isPresent());
+    assertFalse(bibTexEntryRepository.findByProjectIdAndCiteKey(99, "smith2020").isPresent());
   }
 }
