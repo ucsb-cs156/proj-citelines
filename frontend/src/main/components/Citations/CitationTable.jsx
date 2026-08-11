@@ -71,23 +71,36 @@ export default function CitationTable({
       ),
     },
     {
-      header: "DOI",
-      id: "doi",
+      header: "Link",
+      id: "link",
       cell: ({ cell }) => {
         const doi = cell.row.original.keyValuePairs?.doi;
-        if (!doi) {
-          return null;
+        if (doi) {
+          return (
+            <a
+              href={`https://doi.org/${doi}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid={`${testId}-cell-row-${cell.row.index}-col-doi-link`}
+            >
+              doi
+            </a>
+          );
         }
-        return (
-          <a
-            href={`https://doi.org/${doi}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-testid={`${testId}-cell-row-${cell.row.index}-col-doi-link`}
-          >
-            doi
-          </a>
-        );
+        const url = cell.row.original.keyValuePairs?.url;
+        if (url) {
+          return (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid={`${testId}-cell-row-${cell.row.index}-col-url-link`}
+            >
+              url
+            </a>
+          );
+        }
+        return null;
       },
     },
     {
