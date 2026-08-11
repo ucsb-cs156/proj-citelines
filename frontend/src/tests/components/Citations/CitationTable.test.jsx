@@ -40,26 +40,27 @@ describe("CitationTable tests", () => {
     renderTable({ citations: [] });
   });
 
-  test("renders expected columns, truncated author/title, and a doi link", () => {
+  test("renders expected columns, truncated citekey/author/title, year, and a doi link", () => {
     renderTable({ citations: bibTexEntriesFixtures.threeEntries });
 
-    [
-      "citeKey",
-      "doi",
-      "entryType",
-      "author",
-      "title",
-      "edit",
-      "delete",
-    ].forEach((colId) =>
-      expect(
-        screen.getByTestId(`CitationTable-header-${colId}`),
-      ).toBeInTheDocument(),
+    ["citeKey", "doi", "year", "author", "title", "edit", "delete"].forEach(
+      (colId) =>
+        expect(
+          screen.getByTestId(`CitationTable-header-${colId}`),
+        ).toBeInTheDocument(),
     );
-
     expect(
-      screen.getByTestId("CitationTable-cell-row-0-col-citeKey"),
-    ).toHaveTextContent("smith2020");
+      screen.queryByTestId("CitationTable-header-entryType"),
+    ).not.toBeInTheDocument();
+
+    const citeKeyLink = screen.getByTestId(
+      "CitationTable-cell-row-0-col-citeKey-link",
+    );
+    expect(citeKeyLink).toHaveTextContent("smith202...");
+    expect(citeKeyLink).toHaveAttribute("href", "/project/1/bibtex/smith2020");
+    expect(
+      screen.getByTestId("CitationTable-cell-row-0-col-year"),
+    ).toHaveTextContent("2020");
     expect(
       screen.getByTestId("CitationTable-cell-row-0-col-author"),
     ).toHaveTextContent("Jane Q. Smith a...");
@@ -74,6 +75,34 @@ describe("CitationTable tests", () => {
       "https://doi.org/10.1038/s41586-020-2649-2",
     );
     expect(doiLink).toHaveAttribute("target", "_blank");
+  });
+
+  test("a short citekey is not truncated or given an ellipsis", () => {
+    renderTable({ citations: [bibTexEntriesFixtures.threeEntries[2]] });
+
+    expect(
+      screen.getByTestId("CitationTable-cell-row-0-col-citeKey-link"),
+    ).toHaveTextContent("lee2021");
+  });
+
+  test("readOnly mode hides the Edit/Delete columns and buttons", () => {
+    renderTable({
+      citations: bibTexEntriesFixtures.threeEntries,
+      readOnly: true,
+    });
+
+    expect(
+      screen.queryByTestId("CitationTable-header-edit"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("CitationTable-header-delete"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("CitationTable-cell-row-0-col-edit-button"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("CitationTable-cell-row-0-col-delete-button"),
+    ).not.toBeInTheDocument();
   });
 
   test("renders no doi link when the entry has no doi field", () => {

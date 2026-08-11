@@ -51,7 +51,7 @@ describe("CitationsTabComponent tests", () => {
         screen.getByTestId(
           "CitationsTabComponent-CitationTable-cell-row-0-col-citeKey",
         ),
-      ).toHaveTextContent("smith2020");
+      ).toHaveTextContent("smith202...");
     });
   });
 

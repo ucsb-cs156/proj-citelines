@@ -72,6 +72,24 @@ public class BibTexEntriesController extends ApiController {
   }
 
   /**
+   * Looks up a single BibTeX entry by its citeKey, e.g. for the BibTexEntryShowPage.
+   *
+   * @param projectId the project the entry belongs to
+   * @param citeKey the citeKey of the entry
+   * @return the entry
+   */
+  @Operation(summary = "Get a single BibTeX entry by citeKey")
+  @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
+  @GetMapping("/entry")
+  public BibTexEntry bibTexEntryByCiteKey(
+      @Parameter(name = "projectId") @RequestParam Long projectId,
+      @Parameter(name = "citeKey") @RequestParam String citeKey) {
+    return bibTexEntryRepository
+        .findByProjectIdAndCiteKey(projectId.intValue(), citeKey)
+        .orElseThrow(() -> new EntityNotFoundException(BibTexEntry.class, citeKey));
+  }
+
+  /**
    * Converts a stored entry back into raw BibTeX text, e.g. to pre-fill an edit form.
    *
    * @param id the id of the entry to export

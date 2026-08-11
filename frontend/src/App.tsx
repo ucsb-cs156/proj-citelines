@@ -18,6 +18,7 @@ import HomePageLoggedIn from "main/pages/Home/HomePageLoggedIn";
 import HomePageLoggedOut from "main/pages/Home/HomePageLoggedOut";
 import AdminJobsPage from "main/pages/Admin/AdminJobsPage";
 import ResearcherProjectShowPage from "main/pages/Projects/ResearcherProjectShowPage";
+import BibTexEntryShowPage from "main/pages/Projects/BibTexEntryShowPage";
 
 export default function App() {
   const currentUser = useCurrentUser();
@@ -113,6 +114,16 @@ export default function App() {
           element={
             <ProtectedPage
               component={<ResearcherProjectShowPage />}
+              enforceRole={"ROLE_RESEARCHER"}
+              currentUser={currentUser}
+            />
+          }
+        />
+        <Route
+          path="/project/:id/bibtex/:citekey"
+          element={
+            <ProtectedPage
+              component={<BibTexEntryShowPage />}
               enforceRole={"ROLE_RESEARCHER"}
               currentUser={currentUser}
             />

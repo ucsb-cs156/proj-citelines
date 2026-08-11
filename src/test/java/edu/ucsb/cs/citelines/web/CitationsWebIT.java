@@ -59,8 +59,8 @@ public class CitationsWebIT extends WebTestCase {
 
     assertThat(
             page.getByTestId(
-                "ResearcherProjectShowPage-Citations-CitationTable-cell-row-0-col-citeKey"))
-        .containsText("smith2020");
+                "ResearcherProjectShowPage-Citations-CitationTable-cell-row-0-col-citeKey-link"))
+        .containsText("smith202...");
     assertThat(
             page.getByTestId(
                 "ResearcherProjectShowPage-Citations-CitationTable-cell-row-0-col-doi-link"))

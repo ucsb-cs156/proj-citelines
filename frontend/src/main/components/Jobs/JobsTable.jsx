@@ -17,10 +17,10 @@ export default function JobsTable({ jobs }) {
       accessorKey: "createdByEmail",
     },
     {
-      header: "Course Id",
+      header: "Scope",
       accessorFn: (row) =>
-        row.scopeType === "course" ? String(row.scopeId) : "",
-      id: "courseId",
+        row.scopeType ? `${row.scopeType}:${row.scopeId}` : "",
+      id: "scope",
     },
     {
       header: "Created",

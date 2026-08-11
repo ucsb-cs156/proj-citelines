@@ -58,7 +58,7 @@ describe("JobsTable tests", () => {
     expect(screen.getByText("id")).toBeInTheDocument();
     expect(screen.getByText("Job Name")).toBeInTheDocument();
     expect(screen.getByText("User Email")).toBeInTheDocument();
-    expect(screen.getByText("Course Id")).toBeInTheDocument();
+    expect(screen.getByText("Scope")).toBeInTheDocument();
     expect(screen.getByText("Created")).toBeInTheDocument();
     expect(screen.getByText("Updated")).toBeInTheDocument();
     expect(screen.getByText("Status")).toBeInTheDocument();
@@ -68,7 +68,7 @@ describe("JobsTable tests", () => {
     expect(screen.getByText("1")).toBeInTheDocument();
     expect(screen.getByText("Test Job")).toBeInTheDocument();
     expect(screen.getByText("user1@example.com")).toBeInTheDocument();
-    expect(screen.getByText("101")).toBeInTheDocument();
+    expect(screen.getByText("course:101")).toBeInTheDocument();
     expect(screen.getByText("2023-01-01 10:00:00")).toBeInTheDocument();
     expect(screen.getByText("2023-01-01 10:05:00")).toBeInTheDocument();
     expect(screen.getByText("complete")).toBeInTheDocument();
@@ -87,7 +87,7 @@ describe("JobsTable tests", () => {
     expect(formatTime).toHaveBeenNthCalledWith(2, "2023-01-01T10:05:00");
   });
 
-  test("renders empty string for Course Id when the job is unscoped", () => {
+  test("renders empty string for Scope when the job is unscoped", () => {
     formatTime
       .mockReturnValueOnce("2023-01-01 10:00:00")
       .mockReturnValueOnce("2023-01-01 10:05:00");
@@ -118,7 +118,7 @@ describe("JobsTable tests", () => {
     expect(screen.getByText("id")).toBeInTheDocument();
     expect(screen.getByText("Job Name")).toBeInTheDocument();
     expect(screen.getByText("User Email")).toBeInTheDocument();
-    expect(screen.getByText("Course Id")).toBeInTheDocument();
+    expect(screen.getByText("Scope")).toBeInTheDocument();
     expect(screen.getByText("Created")).toBeInTheDocument();
     expect(screen.getByText("Updated")).toBeInTheDocument();
     expect(screen.getByText("Status")).toBeInTheDocument();
@@ -128,9 +128,9 @@ describe("JobsTable tests", () => {
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText("No Course Job")).toBeInTheDocument();
     expect(screen.getByText("user2@example.com")).toBeInTheDocument();
-    const courseCell = screen.getByTestId("JobsTable-cell-row-0-col-courseId");
+    const scopeCell = screen.getByTestId("JobsTable-cell-row-0-col-scope");
 
-    expect(courseCell).toBeEmptyDOMElement();
+    expect(scopeCell).toBeEmptyDOMElement();
     expect(screen.getByText("2023-01-01 10:00:00")).toBeInTheDocument();
     expect(screen.getByText("2023-01-01 10:05:00")).toBeInTheDocument();
     expect(screen.getByText("complete")).toBeInTheDocument();
