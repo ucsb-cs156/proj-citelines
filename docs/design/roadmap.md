@@ -21,7 +21,7 @@ It might also be helpful to be have a job that does a duplicate check of an enti
 
 When doing a sweep through references and citations, it's helpful to be able to mark them as high, medium, low, no relevance and unreviewed.
 
-We can use a custom BibTex field to store this.
+We can use a custom BibTex field to store this (see below)
 
 We should probably also allow the user to specify a relevance level when first entering the citation.
 
@@ -40,3 +40,27 @@ Long term, perhaps allow defining custom schemes scoped per project, giving them
 ## Adding tags
 
 Add the ability to add custom tags, and tag references with them.   User can select a short name, color, and long name for each tag.
+
+# Notes
+
+## About Custom BibTeX fields
+
+Standard BibTeX silently ignores any field it doesn't recognize. BibTeX parsers do not choke on unknown fields, provided the syntax of the entry itself is valid.
+
+When BibTeX parses an entry in a `.bib` file, it reads every field-value pair into memory. During document compilation, it checks the active bibliography style file (`.bst`).
+
+* **If the field is defined in the `.bst` file** (e.g., `author`, `title`, `year`), BibTeX formats and includes it in your reference list.
+* **If the field is unrecognized** (e.g., `my_custom_note`, `rating`, `file`), BibTeX simply ignores it when generating the `.bbl` output file.
+
+This behavior is why reference managers (like Zotero, JabRef, and Mendeley) can safely inject custom metadata—such as `abstract`, `file`, `keywords`, or internal database IDs—into standard `.bib` files without breaking your LaTeX compilation.
+
+
+### Key Considerations
+
+1. **Syntax rules still apply:** Even if a field name is ignored, the parser must still be able to parse it.
+* Field names should use basic alphanumeric characters, hyphens, or underscores (avoid spaces or special characters).
+* Values must be properly enclosed in curly braces `{...}` or double quotes `"..."`.
+* Unescaped string concatenation operators (`#`) or mismatched braces inside the custom field will still trigger compilation errors.
+
+
+2. **Accessing custom fields in BibLaTeX:** If you use `biblatex` with `biber` instead of traditional `bibtex`, unknown fields are also ignored by default. However, `biblatex` gives you the ability to map or print custom fields in your references using `\DeclareFieldFormat` and custom drivers if you ever decide you want them visible.
