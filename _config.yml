@@ -20,4 +20,4 @@ repo_name: "TBD"
 repo: ucsb-cs156/proj-citelines
 owner: ucsb-cs156
 repo_name: proj-citelines
-pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue13","number":14,"title":"Add references/citations graph, BibTexEntryShowPage, and project-scoped Jobs (#13)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/14"}]
+pull_requests: []
