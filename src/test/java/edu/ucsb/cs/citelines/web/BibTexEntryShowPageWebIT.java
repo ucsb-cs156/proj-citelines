@@ -67,6 +67,15 @@ public class BibTexEntryShowPageWebIT extends WebTestCase {
 
     assertThat(page.getByTestId("BibTexEntryShowPage-title")).containsText("smith2020");
     assertThat(page.getByTestId("BibTexEntryShowPage-bibtex")).containsText("A Study With No DOI");
+    assertThat(page.getByTestId("BibTexEntryShowPage-references-heading"))
+        .containsText("References (0)");
+    assertThat(page.getByTestId("BibTexEntryShowPage-citations-heading"))
+        .containsText("Citations (0)");
+
+    page.getByTestId("BibTexEntryShowPage-go-to-project-button").click();
+    assertThat(page.getByTestId("ResearcherProjectShowPage-title")).isVisible();
+    page.goBack();
+    assertThat(page.getByTestId("BibTexEntryShowPage-title")).containsText("smith2020");
 
     page.getByTestId("BibTexEntryShowPage-get-references-button").hover();
     assertThat(page.getByText("Get all papers that this paper cites")).isVisible();

@@ -73,13 +73,26 @@ describe("BibTexEntryShowPage tests", () => {
     expect(
       screen.getByTestId("BibTexEntryShowPage-get-citations-button"),
     ).toBeInTheDocument();
-    expect(screen.getByText("References")).toBeInTheDocument();
-    expect(screen.getByText("Citations")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-references-heading"),
+    ).toHaveTextContent("References (0)");
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-citations-heading"),
+    ).toHaveTextContent("Citations (0)");
 
     expect(
       axiosMock.history.get.find((r) => r.url === "/api/bibtexentries/entry")
         .params,
     ).toEqual({ projectId: "1", citeKey: "smith2020" });
+  });
+
+  test("shows a Go to Project button linking back to the project page", async () => {
+    renderAtSmith2020();
+
+    const goToProjectButton = await screen.findByTestId(
+      "BibTexEntryShowPage-go-to-project-button",
+    );
+    expect(goToProjectButton).toHaveAttribute("href", "/project/1");
   });
 
   test("hovering Get References shows its tooltip text", async () => {
@@ -189,6 +202,12 @@ describe("BibTexEntryShowPage tests", () => {
         "BibTexEntryShowPage-CitationsTable-cell-row-0-col-citeKey-link",
       ),
     ).toHaveTextContent("lee2021");
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-references-heading"),
+    ).toHaveTextContent("References (1)");
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-citations-heading"),
+    ).toHaveTextContent("Citations (1)");
 
     expect(
       screen.queryByTestId(
