@@ -33,6 +33,7 @@ const bibTexEntriesFixtures = {
         author: "Robert Jones",
         title: "A Different Book",
         year: "2019",
+        url: "https://example.org/jones2019",
       },
     },
     {

@@ -43,7 +43,7 @@ describe("CitationTable tests", () => {
   test("renders expected columns, truncated citekey/author/title, year, and a doi link", () => {
     renderTable({ citations: bibTexEntriesFixtures.threeEntries });
 
-    ["citeKey", "doi", "year", "author", "title", "edit", "delete"].forEach(
+    ["citeKey", "link", "year", "author", "title", "edit", "delete"].forEach(
       (colId) =>
         expect(
           screen.getByTestId(`CitationTable-header-${colId}`),
@@ -105,11 +105,34 @@ describe("CitationTable tests", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("renders no doi link when the entry has no doi field", () => {
+  test("renders no doi link when the entry has no doi field but shows a url link when url is present", () => {
     renderTable({ citations: [bibTexEntriesFixtures.threeEntries[1]] });
 
     expect(
       screen.queryByTestId("CitationTable-cell-row-0-col-doi-link"),
+    ).not.toBeInTheDocument();
+
+    const urlLink = screen.getByTestId("CitationTable-cell-row-0-col-url-link");
+    expect(urlLink).toHaveTextContent("url");
+    expect(urlLink).toHaveAttribute("href", "https://example.org/jones2019");
+    expect(urlLink).toHaveAttribute("target", "_blank");
+  });
+
+  test("renders no doi or url link when neither field is present", () => {
+    const entryWithoutDoiOrUrl = {
+      ...bibTexEntriesFixtures.threeEntries[1],
+      keyValuePairs: {
+        ...bibTexEntriesFixtures.threeEntries[1].keyValuePairs,
+        url: undefined,
+      },
+    };
+    renderTable({ citations: [entryWithoutDoiOrUrl] });
+
+    expect(
+      screen.queryByTestId("CitationTable-cell-row-0-col-doi-link"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("CitationTable-cell-row-0-col-url-link"),
     ).not.toBeInTheDocument();
   });
 
