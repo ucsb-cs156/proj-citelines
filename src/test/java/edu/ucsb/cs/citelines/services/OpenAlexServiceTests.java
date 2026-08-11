@@ -139,6 +139,37 @@ public class OpenAlexServiceTests {
   }
 
   @Test
+  void the_batch_id_filters_pipe_delimiter_is_never_percent_encoded() {
+    // Regression test: UriComponentsBuilder percent-encodes "|" to "%7C", which OpenAlex's filter
+    // parser does not handle — it silently returns only the first id's match instead of an error,
+    // confirmed against the live API while building this service. A literal "|" is required.
+    when(restTemplate.getForObject(contains("ids.openalex:W1|W2"), eq(String.class)))
+        .thenReturn(WORKS_LIST_JSON);
+
+    openAlexService.getWorksByIds(List.of("W1", "W2"));
+
+    verify(restTemplate)
+        .getForObject(
+            org.mockito.ArgumentMatchers.argThat((String u) -> !u.contains("%7C")),
+            eq(String.class));
+  }
+
+  @Test
+  void the_citing_works_filter_url_is_never_percent_encoded() {
+    when(restTemplate.getForObject(contains("filter=cites:W1"), eq(String.class)))
+        .thenReturn(WORKS_LIST_JSON);
+
+    openAlexService.getWorksCiting("W1", 10);
+
+    verify(restTemplate)
+        .getForObject(
+            org.mockito.ArgumentMatchers.argThat(
+                (String u) ->
+                    u.equals("https://api.openalex.org/works?filter=cites:W1&per_page=10")),
+            eq(String.class));
+  }
+
+  @Test
   void mailto_is_appended_when_configured() {
     OpenAlexService withMailto =
         new OpenAlexService(restTemplate, new DOIService(), 0, "test@example.com");

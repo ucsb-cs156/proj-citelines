@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * Client for the OpenAlex API (https://api.openalex.org, no API key required), used to discover a
@@ -55,7 +54,7 @@ public class OpenAlexService {
 
   /** Looks up a single work by DOI. Empty if OpenAlex has no record for that DOI. */
   public Optional<OpenAlexWork> getWorkByDoi(String doi) {
-    String url = urlBuilder(BASE_URL + "/works/doi:" + doi).toUriString();
+    String url = BASE_URL + "/works/doi:" + doi + mailtoSuffix("?");
     try {
       String body =
           retryHelper.execute(
@@ -72,10 +71,12 @@ public class OpenAlexService {
   public List<OpenAlexWork> getWorksCiting(String openAlexId, int maxResults) {
     int perPage = Math.max(1, Math.min(maxResults, 200));
     String url =
-        urlBuilder(BASE_URL + "/works")
-            .queryParam("filter", "cites:" + stripPrefix(openAlexId))
-            .queryParam("per_page", perPage)
-            .toUriString();
+        BASE_URL
+            + "/works?filter=cites:"
+            + stripPrefix(openAlexId)
+            + "&per_page="
+            + perPage
+            + mailtoSuffix("&");
     String body =
         retryHelper.execute(
             "GET /works?filter=cites:" + openAlexId,
@@ -91,10 +92,12 @@ public class OpenAlexService {
           openAlexIds.subList(start, Math.min(start + BATCH_SIZE, openAlexIds.size()));
       String idFilter = String.join("|", batch.stream().map(OpenAlexService::stripPrefix).toList());
       String url =
-          urlBuilder(BASE_URL + "/works")
-              .queryParam("filter", "ids.openalex:" + idFilter)
-              .queryParam("per_page", batch.size())
-              .toUriString();
+          BASE_URL
+              + "/works?filter=ids.openalex:"
+              + idFilter
+              + "&per_page="
+              + batch.size()
+              + mailtoSuffix("&");
       String body =
           retryHelper.execute(
               "GET /works?filter=ids.openalex:(batch of %d)".formatted(batch.size()),
@@ -104,12 +107,18 @@ public class OpenAlexService {
     return results;
   }
 
-  private UriComponentsBuilder urlBuilder(String url) {
-    UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(url);
-    if (mailto != null && !mailto.isBlank()) {
-      builder.queryParam("mailto", mailto);
-    }
-    return builder;
+  /**
+   * URLs are built by plain string concatenation, not {@link
+   * org.springframework.web.util.UriComponentsBuilder}: OpenAlex's {@code filter} query parameter
+   * uses {@code |} as an OR-delimiter, but its parser does not correctly handle that character
+   * percent-encoded (as {@code UriComponentsBuilder} would produce) — a batch id filter silently
+   * returns only its first match instead of all of them. A literal, unencoded {@code |} (as {@link
+   * RestTemplate#getForObject(String, Class, Object...)} sends when handed a plain string with no
+   * {@code {template}} placeholders) works correctly. Confirmed against the live API while building
+   * this service.
+   */
+  private String mailtoSuffix(String separator) {
+    return mailto != null && !mailto.isBlank() ? separator + "mailto=" + mailto : "";
   }
 
   private List<OpenAlexWork> parseWorksList(JsonNode root) {
