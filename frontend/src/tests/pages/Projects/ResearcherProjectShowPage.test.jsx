@@ -10,6 +10,7 @@ import { systemInfoFixtures } from "fixtures/systemInfoFixtures";
 import projectsFixtures from "fixtures/projectsFixtures";
 import { projectCollaboratorsFixtures } from "fixtures/projectCollaboratorsFixtures";
 import bibTexEntriesFixtures from "fixtures/bibTexEntriesFixtures";
+import { jobsFixtures } from "fixtures/jobsFixtures";
 
 function renderAtProject1(queryClient = new QueryClient()) {
   return render(
@@ -48,6 +49,9 @@ describe("ResearcherProjectShowPage tests", () => {
     axiosMock
       .onGet("/api/bibtexentries/project?projectId=1")
       .reply(200, bibTexEntriesFixtures.threeEntries);
+    axiosMock
+      .onGet("/api/jobs/project?projectId=1")
+      .reply(200, jobsFixtures.threeJobs);
 
     renderAtProject1();
 
@@ -81,11 +85,18 @@ describe("ResearcherProjectShowPage tests", () => {
         screen.getByTestId(
           "ResearcherProjectShowPage-Citations-CitationTable-cell-row-0-col-citeKey",
         ),
-      ).toHaveTextContent("smith2020");
+      ).toHaveTextContent("smith202...");
     });
     expect(
       screen.getByTestId("ResearcherProjectShowPage-Citations-post-button"),
     ).toBeInTheDocument();
+
+    expect(screen.getByText("Jobs")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("JobsTable-cell-row-0-col-jobName"),
+      ).toHaveTextContent("MembershipAuditJob");
+    });
   });
 
   test("a collaborator (non-owner) does not see the Add Collaborator button", async () => {
@@ -99,6 +110,9 @@ describe("ResearcherProjectShowPage tests", () => {
     axiosMock
       .onGet("/api/bibtexentries/project?projectId=1")
       .reply(200, bibTexEntriesFixtures.threeEntries);
+    axiosMock
+      .onGet("/api/jobs/project?projectId=1")
+      .reply(200, jobsFixtures.threeJobs);
 
     renderAtProject1();
 

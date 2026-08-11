@@ -9,6 +9,7 @@ import Modal from "react-bootstrap/Modal";
 import { Button, Tab, Tabs } from "react-bootstrap";
 import CollaboratorsTabComponent from "main/components/Projects/TabComponent/CollaboratorsTabComponent";
 import CitationsTabComponent from "main/components/Citations/TabComponent/CitationsTabComponent";
+import JobsTabComponent from "main/components/Projects/TabComponent/JobsTabComponent";
 import { GraphIcon } from "main/components/Common/Icons";
 
 export default function ResearcherProjectShowPage({
@@ -103,6 +104,12 @@ export default function ResearcherProjectShowPage({
               <CitationsTabComponent
                 projectId={projectId}
                 testIdPrefix={`${testId}-Citations`}
+              />
+            </Tab>
+            <Tab eventKey={"jobs"} title={"Jobs"} className="pt-2">
+              <JobsTabComponent
+                projectId={projectId}
+                testIdPrefix={`${testId}-Jobs`}
               />
             </Tab>
           </Tabs>
