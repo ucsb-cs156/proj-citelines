@@ -139,6 +139,22 @@ public class OpenAlexServiceTests {
   }
 
   @Test
+  void getWorksByIds_makes_exactly_one_request_for_exactly_50_ids() {
+    when(restTemplate.getForObject(contains("ids.openalex:"), eq(String.class)))
+        .thenReturn(WORKS_LIST_JSON);
+
+    List<String> ids = new java.util.ArrayList<>();
+    for (int i = 0; i < 50; i++) {
+      ids.add("W" + i);
+    }
+
+    openAlexService.getWorksByIds(ids);
+
+    verify(restTemplate, org.mockito.Mockito.times(1))
+        .getForObject(contains("ids.openalex:"), eq(String.class));
+  }
+
+  @Test
   void the_batch_id_filters_pipe_delimiter_is_never_percent_encoded() {
     // Regression test: UriComponentsBuilder percent-encodes "|" to "%7C", which OpenAlex's filter
     // parser does not handle — it silently returns only the first id's match instead of an error,

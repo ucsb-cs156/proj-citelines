@@ -170,6 +170,18 @@ public class BibTexSynthesisServiceTests {
   }
 
   @Test
+  void generateUniqueCiteKey_tries_the_letter_z_before_falling_back_to_numbers() {
+    Set<String> taken = new java.util.HashSet<>();
+    taken.add("harris2020");
+    for (char c = 'a'; c < 'z'; c++) {
+      taken.add("harris2020" + c);
+    }
+    // only 'z' remains free among the 26 letters
+    String citeKey = synthesisService.generateUniqueCiteKey(article(), taken);
+    assertEquals("harris2020z", citeKey);
+  }
+
+  @Test
   void generateUniqueCiteKey_falls_back_to_entry_and_no_year_when_both_are_missing() {
     OpenAlexWork work =
         new OpenAlexWork("W1", null, "Title", null, "article", List.of(), null, List.of());

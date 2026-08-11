@@ -117,7 +117,7 @@ public class BibTexSynthesisService {
   private static String formatAuthorName(String fullName) {
     String trimmed = fullName.trim();
     int lastSpace = trimmed.lastIndexOf(' ');
-    if (lastSpace < 0) {
+    if (lastSpace == -1) {
       return trimmed;
     }
     return trimmed.substring(lastSpace + 1) + ", " + trimmed.substring(0, lastSpace);

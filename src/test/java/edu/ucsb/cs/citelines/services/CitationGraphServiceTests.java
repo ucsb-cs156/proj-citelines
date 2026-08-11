@@ -112,6 +112,9 @@ public class CitationGraphServiceTests {
     assertEquals("harris2020", savedEdge.getValue().getCitingCiteKey());
     assertEquals("author2015", savedEdge.getValue().getCitedCiteKey());
 
+    assertTrue(job.getLog().contains("Starting Get References for harris2020 in project 42"));
+    assertTrue(
+        job.getLog().contains("Found source work on OpenAlex: Array programming with NumPy"));
     assertTrue(job.getLog().contains("Added new entry author2015"));
     assertTrue(
         job.getLog()
@@ -155,6 +158,9 @@ public class CitationGraphServiceTests {
     verify(citationEdgeRepository).save(savedEdge.capture());
     assertEquals("existingkey2015", savedEdge.getValue().getCitedCiteKey());
     assertTrue(job.getLog().contains("Linking to existing entry existingkey2015"));
+    assertTrue(
+        job.getLog()
+            .contains("Done: 0 new entries added, 1 linked to existing entries, 0 unresolved."));
   }
 
   @Test
@@ -188,6 +194,7 @@ public class CitationGraphServiceTests {
     assertEquals("W2", unresolvedCaptor.getValue().getOpenAlexWorkId());
     assertEquals("reference", unresolvedCaptor.getValue().getDirection());
     assertEquals("harris2020", unresolvedCaptor.getValue().getSourceCiteKey());
+    assertTrue(job.getLog().contains("Could not resolve reference W2 in OpenAlex."));
   }
 
   @Test
@@ -210,6 +217,7 @@ public class CitationGraphServiceTests {
         ArgumentCaptor.forClass(UnresolvedCitation.class);
     verify(unresolvedCitationRepository).save(unresolvedCaptor.capture());
     assertEquals("missing_title", unresolvedCaptor.getValue().getReason());
+    assertTrue(job.getLog().contains("Skipping W1: no title available."));
     assertTrue(
         job.getLog()
             .contains("Done: 0 new entries added, 0 linked to existing entries, 1 unresolved."));
@@ -267,6 +275,28 @@ public class CitationGraphServiceTests {
   }
 
   @Test
+  void fetchReferences_does_not_truncate_at_exactly_the_200_reference_cap() {
+    List<String> exactlyMax = new ArrayList<>();
+    for (int i = 0; i < 200; i++) {
+      exactlyMax.add("W" + i);
+    }
+    when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
+        .thenReturn(Optional.of(sourceEntry()));
+    when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
+    when(openAlexService.getWorkByDoi("10.1038/s41586-020-2649-2"))
+        .thenReturn(Optional.of(sourceWork(exactlyMax)));
+    when(openAlexService.getWorksByIds(any())).thenReturn(List.of());
+
+    Job job = newJob();
+    JobContext ctx = new JobContext(null, job);
+    citationGraphService.fetchReferences(42, "harris2020", ctx);
+
+    assertTrue(job.getLog().contains("Found 200 references."));
+    assertTrue(!job.getLog().contains("fetching only the first"));
+    verify(openAlexService).getWorksByIds(eq(exactlyMax));
+  }
+
+  @Test
   void fetchCitations_fetches_via_works_citing_and_links_edges_in_the_other_direction() {
     when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
         .thenReturn(Optional.of(sourceEntry()));
@@ -294,6 +324,7 @@ public class CitationGraphServiceTests {
     verify(citationEdgeRepository).save(savedEdge.capture());
     assertEquals("author2022", savedEdge.getValue().getCitingCiteKey());
     assertEquals("harris2020", savedEdge.getValue().getCitedCiteKey());
+    assertTrue(job.getLog().contains("Found 1 citations (capped at 200)."));
   }
 
   @Test
