@@ -21,7 +21,7 @@ citelines,edu.ucsb.cs.citelines.services,SystemInfoServiceImpl,0,58,0,4,0,15,0,5
 citelines,edu.ucsb.cs.citelines.services,BibTexConverterService,0,182,0,10,0,47,0,14,0,9
 citelines,edu.ucsb.cs.citelines.services,DOIService,0,47,0,6,0,14,0,6,0,3
 citelines,edu.ucsb.cs.citelines.services,ApiRetryHelper.ApiUnavailableException,0,4,0,0,0,2,0,1,0,1
-citelines,edu.ucsb.cs.citelines.services,BibTexSynthesisService,0,280,0,38,0,55,0,28,0,9
+citelines,edu.ucsb.cs.citelines.services,BibTexSynthesisService,0,281,0,38,0,55,0,28,0,9
 citelines,edu.ucsb.cs.citelines.services,CitationGraphService.Direction,0,30,0,0,0,7,0,2,0,2
 citelines,edu.ucsb.cs.citelines.services,JobUserProviderImpl,0,26,0,4,0,5,0,5,0,3
 citelines,edu.ucsb.cs.citelines.services,CitationGraphService,0,537,0,40,0,103,0,31,0,11

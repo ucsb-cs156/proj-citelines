@@ -117,7 +117,7 @@ import org.springframework.stereotype.Service;
   private static String formatAuthorName(String fullName) {
 <span class="fc" id="L118">    String trimmed = fullName.trim();</span>
 <span class="fc" id="L119">    int lastSpace = trimmed.lastIndexOf(' ');</span>
-<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (lastSpace &lt; 0) {</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (lastSpace == -1) {</span>
 <span class="fc" id="L121">      return trimmed;</span>
     }
 <span class="fc" id="L123">    return trimmed.substring(lastSpace + 1) + &quot;, &quot; + trimmed.substring(0, lastSpace);</span>
