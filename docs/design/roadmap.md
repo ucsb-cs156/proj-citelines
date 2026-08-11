@@ -28,3 +28,15 @@ We should probably also allow the user to specify a relevance level when first e
 ## Adding a place for custom comments
 
 It would help to add a place for custom comments in Markdown that can be displayed as HTML in the browser.
+
+## Adding the citation graph
+
+Make a citation graph, with older references higher, and newer ones lower.
+
+Make a color scheme for high, medium, low, no, and unchecked.  Have a default, but allow the scheme to be modfied by the user.
+
+Long term, perhaps allow defining custom schemes scoped per project, giving them names, and importing them from other projects.
+
+## Adding tags
+
+Add the ability to add custom tags, and tag references with them.   User can select a short name, color, and long name for each tag.
