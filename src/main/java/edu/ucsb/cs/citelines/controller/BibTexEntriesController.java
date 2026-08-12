@@ -47,12 +47,12 @@ public class BibTexEntriesController extends ApiController {
    * Parses pasted BibTeX text (which may contain more than one entry) and saves the resulting
    * entries.
    *
-   * <p>If {@code relatedCiteKey} and {@code relationship} are both provided, a {@link
-   * CitationEdge} is also recorded between {@code relatedCiteKey} and each newly saved entry, so
-   * that a citation the external APIs failed to find can be entered manually from the
-   * BibTexEntryShowPage (see issue #24). When {@code relationship} is {@code "reference"} the
-   * related entry is treated as citing the new entries; when it is {@code "citation"} the new
-   * entries are treated as citing the related entry.
+   * <p>If {@code relatedCiteKey} and {@code relationship} are both provided, a {@link CitationEdge}
+   * is also recorded between {@code relatedCiteKey} and each newly saved entry, so that a citation
+   * the external APIs failed to find can be entered manually from the BibTexEntryShowPage (see
+   * issue #24). When {@code relationship} is {@code "reference"} the related entry is treated as
+   * citing the new entries; when it is {@code "citation"} the new entries are treated as citing the
+   * related entry.
    *
    * @param projectId the project the entries belong to
    * @param relatedCiteKey the citeKey of the entry to link the new entries to, if any
