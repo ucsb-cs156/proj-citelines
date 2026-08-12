@@ -2,6 +2,8 @@ package edu.ucsb.cs.citelines.controller;
 
 import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
+import edu.ucsb.cs.citelines.collections.CitationEdge;
+import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
 import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
 import edu.ucsb.cs.citelines.services.BibTexConverterService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,11 +41,22 @@ public class BibTexEntriesController extends ApiController {
 
   @Autowired private BibTexConverterService bibTexConverterService;
 
+  @Autowired private CitationEdgeRepository citationEdgeRepository;
+
   /**
    * Parses pasted BibTeX text (which may contain more than one entry) and saves the resulting
    * entries.
    *
+   * <p>If {@code relatedCiteKey} and {@code relationship} are both provided, a {@link
+   * CitationEdge} is also recorded between {@code relatedCiteKey} and each newly saved entry, so
+   * that a citation the external APIs failed to find can be entered manually from the
+   * BibTexEntryShowPage (see issue #24). When {@code relationship} is {@code "reference"} the
+   * related entry is treated as citing the new entries; when it is {@code "citation"} the new
+   * entries are treated as citing the related entry.
+   *
    * @param projectId the project the entries belong to
+   * @param relatedCiteKey the citeKey of the entry to link the new entries to, if any
+   * @param relationship {@code "reference"} or {@code "citation"}, if linking to a related entry
    * @param rawBibTex the pasted BibTeX text
    * @return the saved entries
    */
@@ -51,10 +64,35 @@ public class BibTexEntriesController extends ApiController {
   @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
   @PostMapping("/post")
   public List<BibTexEntry> postBibTexEntries(
-      @Parameter(name = "projectId") @RequestParam Long projectId, @RequestBody String rawBibTex) {
+      @Parameter(name = "projectId") @RequestParam Long projectId,
+      @Parameter(name = "relatedCiteKey") @RequestParam(required = false) String relatedCiteKey,
+      @Parameter(name = "relationship") @RequestParam(required = false) String relationship,
+      @RequestBody String rawBibTex) {
     List<BibTexEntry> entries =
         bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());
-    return bibTexEntryRepository.saveAll(entries);
+    List<BibTexEntry> saved = bibTexEntryRepository.saveAll(entries);
+
+    if (relatedCiteKey != null && relationship != null) {
+      for (BibTexEntry entry : saved) {
+        citationEdgeRepository.save(
+            makeCitationEdge(projectId.intValue(), relatedCiteKey, relationship, entry));
+      }
+    }
+
+    return saved;
+  }
+
+  private static CitationEdge makeCitationEdge(
+      int projectId, String relatedCiteKey, String relationship, BibTexEntry entry) {
+    boolean isReference = "reference".equals(relationship);
+    String citingCiteKey = isReference ? relatedCiteKey : entry.getCiteKey();
+    String citedCiteKey = isReference ? entry.getCiteKey() : relatedCiteKey;
+    return CitationEdge.builder()
+        .id(CitationEdge.makeId(projectId, citingCiteKey, citedCiteKey))
+        .projectId(projectId)
+        .citingCiteKey(citingCiteKey)
+        .citedCiteKey(citedCiteKey)
+        .build();
   }
 
   /**
