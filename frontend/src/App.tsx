@@ -120,7 +120,7 @@ export default function App() {
           }
         />
         <Route
-          path="/project/:id/bibtex/:citekey"
+          path="/project/:id/bibtex/:entryId"
           element={
             <ProtectedPage
               component={<BibTexEntryShowPage />}

@@ -71,7 +71,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
   @Test
   public void logged_out_users_cannot_get_a_single_entry() throws Exception {
     mockMvc
-        .perform(get("/api/bibtexentries/entry?projectId=1&citeKey=smith2020"))
+        .perform(get("/api/bibtexentries/entry?projectId=1&id=abc123"))
         .andExpect(status().is(403));
   }
 
@@ -208,7 +208,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
       username = "phtcon",
       roles = {"RESEARCHER"})
   @Test
-  public void owner_can_get_a_single_entry_by_citekey() throws Exception {
+  public void owner_can_get_a_single_entry_by_id() throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     BibTexEntry entry =
         BibTexEntry.builder()
@@ -219,12 +219,11 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
             .keyValuePairs(Map.of("title", "A Great Paper"))
             .build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-    when(bibTexEntryRepository.findByProjectIdAndCiteKey(1, "smith2020"))
-        .thenReturn(Optional.of(entry));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(entry));
 
     MvcResult response =
         mockMvc
-            .perform(get("/api/bibtexentries/entry?projectId=1&citeKey=smith2020"))
+            .perform(get("/api/bibtexentries/entry?projectId=1&id=abc123"))
             .andExpect(status().isOk())
             .andReturn();
 
@@ -235,14 +234,39 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
       username = "phtcon",
       roles = {"RESEARCHER"})
   @Test
-  public void get_single_entry_throws_not_found_for_nonexistent_citekey() throws Exception {
+  public void owner_can_get_a_single_entry_by_id_when_citekey_contains_a_slash() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry entry =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .entryType("inproceedings")
+            .citeKey("10.1145/3770762.3772609")
+            .keyValuePairs(Map.of("title", "A Pedagogy for Assessing"))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(entry));
+
+    MvcResult response =
+        mockMvc
+            .perform(get("/api/bibtexentries/entry?projectId=1&id=abc123"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    assertEquals(mapper.writeValueAsString(entry), response.getResponse().getContentAsString());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void get_single_entry_throws_not_found_for_nonexistent_id() throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-    when(bibTexEntryRepository.findByProjectIdAndCiteKey(1, "missing"))
-        .thenReturn(Optional.empty());
+    when(bibTexEntryRepository.findById("missing")).thenReturn(Optional.empty());
 
     mockMvc
-        .perform(get("/api/bibtexentries/entry?projectId=1&citeKey=missing"))
+        .perform(get("/api/bibtexentries/entry?projectId=1&id=missing"))
         .andExpect(status().isNotFound());
   }
 

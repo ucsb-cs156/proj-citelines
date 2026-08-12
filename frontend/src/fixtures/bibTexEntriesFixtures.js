@@ -49,6 +49,18 @@ const bibTexEntriesFixtures = {
       },
     },
   ],
+  entryWithSlashInCiteKey: {
+    id: "64f1b2c3d4e5f6a7b8c9d0e4",
+    projectId: 1,
+    entryType: "inproceedings",
+    citeKey: "10.1145/3770762.3772609",
+    keyValuePairs: {
+      author: "Yolanda Reimer and Christopher Hundhausen",
+      title: "A Pedagogy for Assessing Individual Contributions",
+      year: "2026",
+      doi: "10.1145/3770762.3772609",
+    },
+  },
 };
 
 export default bibTexEntriesFixtures;

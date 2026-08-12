@@ -63,7 +63,7 @@ export default function CitationTable({
       id: "citeKey",
       cell: ({ cell }) => (
         <Link
-          to={`/project/${projectId}/bibtex/${cell.row.original.citeKey}`}
+          to={`/project/${projectId}/bibtex/${cell.row.original.id}`}
           data-testid={`${testId}-cell-row-${cell.row.index}-col-citeKey-link`}
         >
           {truncate(cell.row.original.citeKey, CITEKEY_MAX_LENGTH)}

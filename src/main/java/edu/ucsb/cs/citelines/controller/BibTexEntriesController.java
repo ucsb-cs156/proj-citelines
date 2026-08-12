@@ -72,21 +72,25 @@ public class BibTexEntriesController extends ApiController {
   }
 
   /**
-   * Looks up a single BibTeX entry by its citeKey, e.g. for the BibTexEntryShowPage.
+   * Looks up a single BibTeX entry by its (Mongo) id, e.g. for the BibTexEntryShowPage.
+   *
+   * <p>Looked up by id rather than citeKey since a citeKey may itself contain a {@code /} (e.g. a
+   * DOI-derived key like {@code 10.1145/3770762.3772609}), which breaks when used as a path segment
+   * in the frontend's route — see issue #24.
    *
    * @param projectId the project the entry belongs to
-   * @param citeKey the citeKey of the entry
+   * @param id the id of the entry
    * @return the entry
    */
-  @Operation(summary = "Get a single BibTeX entry by citeKey")
+  @Operation(summary = "Get a single BibTeX entry by id")
   @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
   @GetMapping("/entry")
-  public BibTexEntry bibTexEntryByCiteKey(
+  public BibTexEntry bibTexEntryById(
       @Parameter(name = "projectId") @RequestParam Long projectId,
-      @Parameter(name = "citeKey") @RequestParam String citeKey) {
+      @Parameter(name = "id") @RequestParam String id) {
     return bibTexEntryRepository
-        .findByProjectIdAndCiteKey(projectId.intValue(), citeKey)
-        .orElseThrow(() -> new EntityNotFoundException(BibTexEntry.class, citeKey));
+        .findById(id)
+        .orElseThrow(() -> new EntityNotFoundException(BibTexEntry.class, id));
   }
 
   /**
