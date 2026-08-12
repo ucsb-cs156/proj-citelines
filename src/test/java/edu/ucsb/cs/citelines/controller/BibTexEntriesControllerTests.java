@@ -232,6 +232,26 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
       username = "phtcon",
       roles = {"RESEARCHER"})
   @Test
+  public void posting_bibtex_with_relatedCiteKey_but_no_relationship_does_not_create_an_edge()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021")
+                .content(RAW_BIBTEX)
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    verify(citationEdgeRepository, times(0)).save(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
   public void posting_bibtex_with_an_invalid_relationship_returns_a_bad_request() throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
