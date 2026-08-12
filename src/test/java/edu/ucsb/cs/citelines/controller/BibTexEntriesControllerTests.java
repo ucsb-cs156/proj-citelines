@@ -252,6 +252,41 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
       username = "phtcon",
       roles = {"RESEARCHER"})
   @Test
+  public void
+      posting_bibtex_that_matches_an_existing_citeKey_updates_it_instead_of_creating_a_duplicate()
+          throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    BibTexEntry existing =
+        BibTexEntry.builder()
+            .id("existing-id")
+            .projectId(1)
+            .citeKey("smith2020")
+            .keyValuePairs(Map.of("author", "Someone Else"))
+            .build();
+    when(bibTexEntryRepository.findByProjectIdAndCiteKey(1, "smith2020"))
+        .thenReturn(Optional.of(existing));
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021"
+                    + "&relationship=citation")
+                .content(RAW_BIBTEX)
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<List<BibTexEntry>> captor =
+        org.mockito.ArgumentCaptor.forClass(List.class);
+    verify(bibTexEntryRepository, times(1)).saveAll(captor.capture());
+    assertEquals(1, captor.getValue().size());
+    assertEquals("existing-id", captor.getValue().get(0).getId());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
   public void posting_bibtex_with_an_invalid_relationship_returns_a_bad_request() throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));

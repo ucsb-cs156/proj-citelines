@@ -45,7 +45,8 @@ public class BibTexEntriesController extends ApiController {
 
   /**
    * Parses pasted BibTeX text (which may contain more than one entry) and saves the resulting
-   * entries.
+   * entries. An entry whose citeKey already exists for this project updates that entry rather than
+   * creating a duplicate (see {@link #reuseExistingIdIfPresent}).
    *
    * <p>If {@code relatedCiteKey} and {@code relationship} are both provided, a {@link CitationEdge}
    * is also recorded between {@code relatedCiteKey} and each newly saved entry, so that a citation
@@ -78,6 +79,7 @@ public class BibTexEntriesController extends ApiController {
 
     List<BibTexEntry> entries =
         bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());
+    entries.forEach(entry -> reuseExistingIdIfPresent(projectId.intValue(), entry));
     List<BibTexEntry> saved = bibTexEntryRepository.saveAll(entries);
 
     if (relatedCiteKey != null && relationship != null) {
@@ -88,6 +90,17 @@ public class BibTexEntriesController extends ApiController {
     }
 
     return saved;
+  }
+
+  // A pasted entry may share a citeKey with one already stored for this project (e.g. a paper
+  // already recorded via the "Get References"/"Get Citations" jobs, or re-pasted by mistake).
+  // Reusing the existing id makes save() overwrite that entry instead of inserting a duplicate,
+  // which would otherwise break the assumption (relied on throughout, e.g. by
+  // CitationEdgesController) that a project has at most one entry per citeKey.
+  private void reuseExistingIdIfPresent(int projectId, BibTexEntry entry) {
+    bibTexEntryRepository
+        .findByProjectIdAndCiteKey(projectId, entry.getCiteKey())
+        .ifPresent(existing -> entry.setId(existing.getId()));
   }
 
   private static CitationEdge makeCitationEdge(
