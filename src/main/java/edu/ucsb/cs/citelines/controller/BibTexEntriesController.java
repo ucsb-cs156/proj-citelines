@@ -68,6 +68,14 @@ public class BibTexEntriesController extends ApiController {
       @Parameter(name = "relatedCiteKey") @RequestParam(required = false) String relatedCiteKey,
       @Parameter(name = "relationship") @RequestParam(required = false) String relationship,
       @RequestBody String rawBibTex) {
+    if (relatedCiteKey != null
+        && relationship != null
+        && !"reference".equals(relationship)
+        && !"citation".equals(relationship)) {
+      throw new IllegalArgumentException(
+          "relationship must be 'reference' or 'citation', but was: " + relationship);
+    }
+
     List<BibTexEntry> entries =
         bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());
     List<BibTexEntry> saved = bibTexEntryRepository.saveAll(entries);

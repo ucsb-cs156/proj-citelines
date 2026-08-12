@@ -232,6 +232,25 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
       username = "phtcon",
       roles = {"RESEARCHER"})
   @Test
+  public void posting_bibtex_with_an_invalid_relationship_returns_a_bad_request() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021"
+                    + "&relationship=bogus")
+                .content(RAW_BIBTEX)
+                .with(csrf()))
+        .andExpect(status().isBadRequest());
+
+    verify(citationEdgeRepository, times(0)).save(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
   public void post_with_malformed_bibtex_returns_a_useful_error() throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
