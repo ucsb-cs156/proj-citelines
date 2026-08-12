@@ -68,31 +68,39 @@ import org.springframework.web.bind.annotation.RestController;
       @Parameter(name = &quot;relatedCiteKey&quot;) @RequestParam(required = false) String relatedCiteKey,
       @Parameter(name = &quot;relationship&quot;) @RequestParam(required = false) String relationship,
       @RequestBody String rawBibTex) {
-<span class="fc" id="L71">    List&lt;BibTexEntry&gt; entries =</span>
-<span class="fc" id="L72">        bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());</span>
-<span class="fc" id="L73">    List&lt;BibTexEntry&gt; saved = bibTexEntryRepository.saveAll(entries);</span>
-
-<span class="pc bpc" id="L75" title="1 of 4 branches missed.">    if (relatedCiteKey != null &amp;&amp; relationship != null) {</span>
-<span class="fc bfc" id="L76" title="All 2 branches covered.">      for (BibTexEntry entry : saved) {</span>
-<span class="fc" id="L77">        citationEdgeRepository.save(</span>
-<span class="fc" id="L78">            makeCitationEdge(projectId.intValue(), relatedCiteKey, relationship, entry));</span>
-<span class="fc" id="L79">      }</span>
+<span class="pc bpc" id="L71" title="1 of 4 branches missed.">    if (relatedCiteKey != null</span>
+        &amp;&amp; relationship != null
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        &amp;&amp; !&quot;reference&quot;.equals(relationship)</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">        &amp;&amp; !&quot;citation&quot;.equals(relationship)) {</span>
+<span class="fc" id="L75">      throw new IllegalArgumentException(</span>
+          &quot;relationship must be 'reference' or 'citation', but was: &quot; + relationship);
     }
 
-<span class="fc" id="L82">    return saved;</span>
+<span class="fc" id="L79">    List&lt;BibTexEntry&gt; entries =</span>
+<span class="fc" id="L80">        bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());</span>
+<span class="fc" id="L81">    List&lt;BibTexEntry&gt; saved = bibTexEntryRepository.saveAll(entries);</span>
+
+<span class="pc bpc" id="L83" title="1 of 4 branches missed.">    if (relatedCiteKey != null &amp;&amp; relationship != null) {</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">      for (BibTexEntry entry : saved) {</span>
+<span class="fc" id="L85">        citationEdgeRepository.save(</span>
+<span class="fc" id="L86">            makeCitationEdge(projectId.intValue(), relatedCiteKey, relationship, entry));</span>
+<span class="fc" id="L87">      }</span>
+    }
+
+<span class="fc" id="L90">    return saved;</span>
   }
 
   private static CitationEdge makeCitationEdge(
       int projectId, String relatedCiteKey, String relationship, BibTexEntry entry) {
-<span class="fc" id="L87">    boolean isReference = &quot;reference&quot;.equals(relationship);</span>
-<span class="fc bfc" id="L88" title="All 2 branches covered.">    String citingCiteKey = isReference ? relatedCiteKey : entry.getCiteKey();</span>
-<span class="fc bfc" id="L89" title="All 2 branches covered.">    String citedCiteKey = isReference ? entry.getCiteKey() : relatedCiteKey;</span>
-<span class="fc" id="L90">    return CitationEdge.builder()</span>
-<span class="fc" id="L91">        .id(CitationEdge.makeId(projectId, citingCiteKey, citedCiteKey))</span>
-<span class="fc" id="L92">        .projectId(projectId)</span>
-<span class="fc" id="L93">        .citingCiteKey(citingCiteKey)</span>
-<span class="fc" id="L94">        .citedCiteKey(citedCiteKey)</span>
-<span class="fc" id="L95">        .build();</span>
+<span class="fc" id="L95">    boolean isReference = &quot;reference&quot;.equals(relationship);</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">    String citingCiteKey = isReference ? relatedCiteKey : entry.getCiteKey();</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">    String citedCiteKey = isReference ? entry.getCiteKey() : relatedCiteKey;</span>
+<span class="fc" id="L98">    return CitationEdge.builder()</span>
+<span class="fc" id="L99">        .id(CitationEdge.makeId(projectId, citingCiteKey, citedCiteKey))</span>
+<span class="fc" id="L100">        .projectId(projectId)</span>
+<span class="fc" id="L101">        .citingCiteKey(citingCiteKey)</span>
+<span class="fc" id="L102">        .citedCiteKey(citedCiteKey)</span>
+<span class="fc" id="L103">        .build();</span>
   }
 
   /**
@@ -106,7 +114,7 @@ import org.springframework.web.bind.annotation.RestController;
   @GetMapping(&quot;/project&quot;)
   public List&lt;BibTexEntry&gt; bibTexEntriesForProject(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) {
-<span class="fc" id="L109">    return bibTexEntryRepository.findByProjectId(projectId.intValue());</span>
+<span class="fc" id="L117">    return bibTexEntryRepository.findByProjectId(projectId.intValue());</span>
   }
 
   /**
@@ -126,9 +134,9 @@ import org.springframework.web.bind.annotation.RestController;
   public BibTexEntry bibTexEntryById(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;id&quot;) @RequestParam String id) {
-<span class="fc" id="L129">    return bibTexEntryRepository</span>
-<span class="fc" id="L130">        .findById(id)</span>
-<span class="fc" id="L131">        .orElseThrow(() -&gt; new EntityNotFoundException(BibTexEntry.class, id));</span>
+<span class="fc" id="L137">    return bibTexEntryRepository</span>
+<span class="fc" id="L138">        .findById(id)</span>
+<span class="fc" id="L139">        .orElseThrow(() -&gt; new EntityNotFoundException(BibTexEntry.class, id));</span>
   }
 
   /**
@@ -145,12 +153,12 @@ import org.springframework.web.bind.annotation.RestController;
       @Parameter(name = &quot;id&quot;) @RequestParam String id,
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId)
       throws IOException {
-<span class="fc" id="L148">    BibTexEntry entry =</span>
+<span class="fc" id="L156">    BibTexEntry entry =</span>
         bibTexEntryRepository
-<span class="fc" id="L150">            .findById(id)</span>
-<span class="fc" id="L151">            .orElseThrow(() -&gt; new EntityNotFoundException(BibTexEntry.class, id));</span>
-<span class="fc" id="L152">    String bibtex = bibTexConverterService.convertEntryToBibTexString(entry);</span>
-<span class="fc" id="L153">    return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(bibtex);</span>
+<span class="fc" id="L158">            .findById(id)</span>
+<span class="fc" id="L159">            .orElseThrow(() -&gt; new EntityNotFoundException(BibTexEntry.class, id));</span>
+<span class="fc" id="L160">    String bibtex = bibTexConverterService.convertEntryToBibTexString(entry);</span>
+<span class="fc" id="L161">    return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(bibtex);</span>
   }
 
   /**
@@ -169,25 +177,25 @@ import org.springframework.web.bind.annotation.RestController;
       @Parameter(name = &quot;id&quot;) @RequestParam String id,
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @RequestBody String rawBibTex) {
-<span class="fc" id="L172">    BibTexEntry existing =</span>
+<span class="fc" id="L180">    BibTexEntry existing =</span>
         bibTexEntryRepository
-<span class="fc" id="L174">            .findById(id)</span>
-<span class="fc" id="L175">            .orElseThrow(() -&gt; new EntityNotFoundException(BibTexEntry.class, id));</span>
+<span class="fc" id="L182">            .findById(id)</span>
+<span class="fc" id="L183">            .orElseThrow(() -&gt; new EntityNotFoundException(BibTexEntry.class, id));</span>
 
-<span class="fc" id="L177">    List&lt;BibTexEntry&gt; parsed =</span>
-<span class="fc" id="L178">        bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());</span>
-<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (parsed.size() != 1) {</span>
-<span class="fc" id="L180">      throw new IllegalArgumentException(</span>
+<span class="fc" id="L185">    List&lt;BibTexEntry&gt; parsed =</span>
+<span class="fc" id="L186">        bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">    if (parsed.size() != 1) {</span>
+<span class="fc" id="L188">      throw new IllegalArgumentException(</span>
           &quot;Please provide exactly one BibTeX entry when editing (found %d).&quot;
-<span class="fc" id="L182">              .formatted(parsed.size()));</span>
+<span class="fc" id="L190">              .formatted(parsed.size()));</span>
     }
 
-<span class="fc" id="L185">    BibTexEntry updated = parsed.get(0);</span>
-<span class="fc" id="L186">    existing.setEntryType(updated.getEntryType());</span>
-<span class="fc" id="L187">    existing.setCiteKey(updated.getCiteKey());</span>
-<span class="fc" id="L188">    existing.setKeyValuePairs(updated.getKeyValuePairs());</span>
+<span class="fc" id="L193">    BibTexEntry updated = parsed.get(0);</span>
+<span class="fc" id="L194">    existing.setEntryType(updated.getEntryType());</span>
+<span class="fc" id="L195">    existing.setCiteKey(updated.getCiteKey());</span>
+<span class="fc" id="L196">    existing.setKeyValuePairs(updated.getKeyValuePairs());</span>
 
-<span class="fc" id="L190">    return bibTexEntryRepository.save(existing);</span>
+<span class="fc" id="L198">    return bibTexEntryRepository.save(existing);</span>
   }
 
   /**
@@ -203,14 +211,14 @@ import org.springframework.web.bind.annotation.RestController;
   public Object deleteBibTexEntry(
       @Parameter(name = &quot;id&quot;) @RequestParam String id,
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) {
-<span class="fc" id="L206">    BibTexEntry entry =</span>
+<span class="fc" id="L214">    BibTexEntry entry =</span>
         bibTexEntryRepository
-<span class="fc" id="L208">            .findById(id)</span>
-<span class="fc" id="L209">            .orElseThrow(() -&gt; new EntityNotFoundException(BibTexEntry.class, id));</span>
+<span class="fc" id="L216">            .findById(id)</span>
+<span class="fc" id="L217">            .orElseThrow(() -&gt; new EntityNotFoundException(BibTexEntry.class, id));</span>
 
-<span class="fc" id="L211">    bibTexEntryRepository.delete(entry);</span>
+<span class="fc" id="L219">    bibTexEntryRepository.delete(entry);</span>
 
-<span class="fc" id="L213">    return genericMessage(&quot;BibTexEntry with id %s deleted&quot;.formatted(entry.getId()));</span>
+<span class="fc" id="L221">    return genericMessage(&quot;BibTexEntry with id %s deleted&quot;.formatted(entry.getId()));</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
