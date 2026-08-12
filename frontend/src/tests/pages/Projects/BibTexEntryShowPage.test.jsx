@@ -16,13 +16,15 @@ vi.mock("react-toastify", async (importOriginal) => {
   };
 });
 
+const ENTRY_ID = "64f1b2c3d4e5f6a7b8c9d0e1";
+
 function renderAtSmith2020(queryClient = new QueryClient()) {
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/project/1/bibtex/smith2020"]}>
+      <MemoryRouter initialEntries={[`/project/1/bibtex/${ENTRY_ID}`]}>
         <Routes>
           <Route
-            path="/project/:id/bibtex/:citekey"
+            path="/project/:id/bibtex/:entryId"
             element={<BibTexEntryShowPage />}
           />
         </Routes>
@@ -83,7 +85,7 @@ describe("BibTexEntryShowPage tests", () => {
     expect(
       axiosMock.history.get.find((r) => r.url === "/api/bibtexentries/entry")
         .params,
-    ).toEqual({ projectId: "1", citeKey: "smith2020" });
+    ).toEqual({ projectId: "1", id: ENTRY_ID });
   });
 
   test("shows a Go to Project button linking back to the project page", async () => {

@@ -13,15 +13,15 @@ import { extractCitelinesFields } from "main/utils/citelinesFields";
 export default function BibTexEntryShowPage({
   testId = "BibTexEntryShowPage",
 }) {
-  const { id: projectId, citekey } = useParams();
+  const { id: projectId, entryId } = useParams();
   const [showErrorModal, setShowErrorModal] = useState(false);
 
   const { data: entry, failureCount: entryBackendFailureCount } = useBackend(
-    [`/api/bibtexentries/entry?projectId=${projectId}&citeKey=${citekey}`],
+    [`/api/bibtexentries/entry?projectId=${projectId}&id=${entryId}`],
     {
       method: "GET",
       url: "/api/bibtexentries/entry",
-      params: { projectId, citeKey: citekey },
+      params: { projectId, id: entryId },
     },
     null,
     true,
@@ -55,37 +55,37 @@ export default function BibTexEntryShowPage({
     { enabled: !!entry },
   );
 
-  const referencesQueryKey = `/api/citationedges/references?projectId=${projectId}&citeKey=${citekey}`;
+  const referencesQueryKey = `/api/citationedges/references?projectId=${projectId}&citeKey=${entry?.citeKey}`;
   const { data: references } = useBackend(
     [referencesQueryKey],
     {
       method: "GET",
       url: "/api/citationedges/references",
-      params: { projectId, citeKey: citekey },
+      params: { projectId, citeKey: entry?.citeKey },
     },
     [],
     true,
-    { refetchInterval: 5000 },
+    { refetchInterval: 5000, enabled: !!entry },
   );
 
-  const citationsQueryKey = `/api/citationedges/citations?projectId=${projectId}&citeKey=${citekey}`;
+  const citationsQueryKey = `/api/citationedges/citations?projectId=${projectId}&citeKey=${entry?.citeKey}`;
   const { data: citations } = useBackend(
     [citationsQueryKey],
     {
       method: "GET",
       url: "/api/citationedges/citations",
-      params: { projectId, citeKey: citekey },
+      params: { projectId, citeKey: entry?.citeKey },
     },
     [],
     true,
-    { refetchInterval: 5000 },
+    { refetchInterval: 5000, enabled: !!entry },
   );
 
   const getReferencesMutation = useBackendMutation(
     () => ({
       url: "/api/jobs/launch/getReferences",
       method: "POST",
-      params: { projectId, citeKey: citekey },
+      params: { projectId, citeKey: entry?.citeKey },
     }),
     {
       onSuccess: () =>
@@ -97,7 +97,7 @@ export default function BibTexEntryShowPage({
     () => ({
       url: "/api/jobs/launch/getCitations",
       method: "POST",
-      params: { projectId, citeKey: citekey },
+      params: { projectId, citeKey: entry?.citeKey },
     }),
     {
       onSuccess: () =>

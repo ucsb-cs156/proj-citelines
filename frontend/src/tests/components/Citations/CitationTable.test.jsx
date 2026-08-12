@@ -57,7 +57,10 @@ describe("CitationTable tests", () => {
       "CitationTable-cell-row-0-col-citeKey-link",
     );
     expect(citeKeyLink).toHaveTextContent("smith202...");
-    expect(citeKeyLink).toHaveAttribute("href", "/project/1/bibtex/smith2020");
+    expect(citeKeyLink).toHaveAttribute(
+      "href",
+      "/project/1/bibtex/64f1b2c3d4e5f6a7b8c9d0e1",
+    );
     expect(
       screen.getByTestId("CitationTable-cell-row-0-col-year"),
     ).toHaveTextContent("2020");
@@ -83,6 +86,20 @@ describe("CitationTable tests", () => {
     expect(
       screen.getByTestId("CitationTable-cell-row-0-col-citeKey-link"),
     ).toHaveTextContent("lee2021");
+  });
+
+  test("the citekey link targets the entry's id even when the citekey itself contains a slash", () => {
+    renderTable({
+      citations: [bibTexEntriesFixtures.entryWithSlashInCiteKey],
+    });
+
+    const citeKeyLink = screen.getByTestId(
+      "CitationTable-cell-row-0-col-citeKey-link",
+    );
+    expect(citeKeyLink).toHaveAttribute(
+      "href",
+      "/project/1/bibtex/64f1b2c3d4e5f6a7b8c9d0e4",
+    );
   });
 
   test("readOnly mode hides the Edit/Delete columns and buttons", () => {
