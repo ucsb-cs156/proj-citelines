@@ -1,10 +1,16 @@
 import Modal from "react-bootstrap/Modal";
 import { Form, Alert } from "react-bootstrap";
 import { useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useBackendMutation } from "main/utils/useBackend";
 import { toast } from "react-toastify";
+import {
+  RELEVANCE_OPTIONS,
+  DEFAULT_RELEVANCE,
+  extractCitelinesFields,
+  injectCitelinesFields,
+} from "main/utils/citelinesFields";
 
 export default function BibTexEntryModal({
   showModal,
@@ -18,10 +24,14 @@ export default function BibTexEntryModal({
     formState: { errors },
     handleSubmit,
     reset,
-  } = useForm();
+  } = useForm({ defaultValues: { bibtex: "", relevance: DEFAULT_RELEVANCE } });
 
   const [parseError, setParseError] = useState(null);
   const [loadingExisting, setLoadingExisting] = useState(false);
+  // CITELINES_* fields other than relevance (e.g. position/references/citations), stripped out
+  // of the displayed BibTeX text on load and restored verbatim on submit. Not form state, since
+  // they're never shown/edited directly — see docs on citelinesFields.js.
+  const preservedFieldsRef = useRef({});
 
   const isEditing = Boolean(entryToEdit);
   const modalTitle = isEditing ? "Edit Citation" : "Add Citation";
@@ -38,14 +48,18 @@ export default function BibTexEntryModal({
           params: { id: entryToEdit.id, projectId: projectId },
         })
         .then((response) => {
-          reset({ bibtex: response.data });
+          const { strippedBibtex, relevance, preservedFields } =
+            extractCitelinesFields(response.data);
+          preservedFieldsRef.current = preservedFields;
+          reset({ bibtex: strippedBibtex, relevance });
         })
         .catch(() => {
           setParseError("Could not load the existing citation for editing.");
         })
         .finally(() => setLoadingExisting(false));
     } else {
-      reset({ bibtex: "" });
+      preservedFieldsRef.current = {};
+      reset({ bibtex: "", relevance: DEFAULT_RELEVANCE });
     }
     // Stryker disable next-line ArrayDeclaration : re-running this effect on every render
     // (e.g. by omitting isEditing) would refetch/reset on unrelated re-renders.
@@ -98,7 +112,12 @@ export default function BibTexEntryModal({
 
   const onSubmit = (formData) => {
     setParseError(null);
-    mutation.mutate(formData);
+    const bibtex = injectCitelinesFields(
+      formData.bibtex,
+      formData.relevance,
+      preservedFieldsRef.current,
+    );
+    mutation.mutate({ ...formData, bibtex });
   };
 
   return (
@@ -126,6 +145,21 @@ export default function BibTexEntryModal({
               {parseError}
             </Alert>
           )}
+          <Form.Group className="mb-3">
+            <Form.Label htmlFor="relevance">Relevance</Form.Label>
+            <Form.Select
+              data-testid={"BibTexEntryModal-relevance"}
+              id="relevance"
+              disabled={loadingExisting}
+              {...register("relevance")}
+            >
+              {RELEVANCE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
           <Form.Group>
             <Form.Label htmlFor="bibtex">BibTeX Entry</Form.Label>
             <Form.Control
