@@ -8,6 +8,7 @@ import Modal from "react-bootstrap/Modal";
 import { Button, OverlayTrigger, Row, Tooltip } from "react-bootstrap";
 import { toast } from "react-toastify";
 import CitationTable from "main/components/Citations/CitationTable";
+import BibTexEntryModal from "main/components/Citations/BibTexEntryModal";
 import { extractCitelinesFields } from "main/utils/citelinesFields";
 
 export default function BibTexEntryShowPage({
@@ -15,6 +16,8 @@ export default function BibTexEntryShowPage({
 }) {
   const { id: projectId, entryId } = useParams();
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showAddReferenceModal, setShowAddReferenceModal] = useState(false);
+  const [showAddCitationModal, setShowAddCitationModal] = useState(false);
 
   const { data: entry, failureCount: entryBackendFailureCount } = useBackend(
     [`/api/bibtexentries/entry?projectId=${projectId}&id=${entryId}`],
@@ -125,6 +128,22 @@ export default function BibTexEntryShowPage({
         <div data-testid={`${testId}-loading`}>Citation: Loading...</div>
       ) : (
         <div className="border rounded-3 p-4 mb-4">
+          <BibTexEntryModal
+            showModal={showAddReferenceModal}
+            toggleShowModal={setShowAddReferenceModal}
+            projectId={projectId}
+            relatedCiteKey={entry.citeKey}
+            relationship="reference"
+            mutationQueryKeys={[referencesQueryKey]}
+          />
+          <BibTexEntryModal
+            showModal={showAddCitationModal}
+            toggleShowModal={setShowAddCitationModal}
+            projectId={projectId}
+            relatedCiteKey={entry.citeKey}
+            relationship="citation"
+            mutationQueryKeys={[citationsQueryKey]}
+          />
           <h1 data-testid={`${testId}-title`} className="h3 mb-3 fw-semibold">
             {entry.citeKey}
           </h1>
@@ -169,6 +188,20 @@ export default function BibTexEntryShowPage({
                   Get Citations
                 </Button>
               </OverlayTrigger>
+              <Button
+                variant="outline-primary"
+                onClick={() => setShowAddReferenceModal(true)}
+                data-testid={`${testId}-add-reference-button`}
+              >
+                Add Reference
+              </Button>
+              <Button
+                variant="outline-primary"
+                onClick={() => setShowAddCitationModal(true)}
+                data-testid={`${testId}-add-citation-button`}
+              >
+                Add Citation
+              </Button>
             </div>
           </Row>
 

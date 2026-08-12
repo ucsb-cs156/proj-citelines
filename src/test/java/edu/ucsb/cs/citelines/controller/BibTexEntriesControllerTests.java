@@ -16,6 +16,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import edu.ucsb.cs.citelines.ControllerTestCase;
 import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
+import edu.ucsb.cs.citelines.collections.CitationEdge;
+import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
 import edu.ucsb.cs.citelines.config.ProjectSecurity;
 import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.entity.ProjectCollaborator;
@@ -45,6 +47,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
   @MockitoBean ProjectRepository projectRepository;
   @MockitoBean ProjectCollaboratorRepository projectCollaboratorRepository;
   @MockitoBean BibTexEntryRepository bibTexEntryRepository;
+  @MockitoBean CitationEdgeRepository citationEdgeRepository;
 
   private static final String RAW_BIBTEX =
       """
@@ -154,6 +157,75 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
     verify(bibTexEntryRepository, times(1)).saveAll(captor.capture());
     assertEquals(1, captor.getValue().size());
     assertEquals("Jane Smith", captor.getValue().get(0).getKeyValuePairs().get("author"));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_post_bibtex_as_a_reference_and_it_creates_a_citation_edge()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021"
+                    + "&relationship=reference")
+                .content(RAW_BIBTEX)
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<CitationEdge> captor =
+        org.mockito.ArgumentCaptor.forClass(CitationEdge.class);
+    verify(citationEdgeRepository, times(1)).save(captor.capture());
+    assertEquals("paper2021", captor.getValue().getCitingCiteKey());
+    assertEquals("smith2020", captor.getValue().getCitedCiteKey());
+    assertEquals(1, captor.getValue().getProjectId());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_post_bibtex_as_a_citation_and_it_creates_a_citation_edge()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021"
+                    + "&relationship=citation")
+                .content(RAW_BIBTEX)
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<CitationEdge> captor =
+        org.mockito.ArgumentCaptor.forClass(CitationEdge.class);
+    verify(citationEdgeRepository, times(1)).save(captor.capture());
+    assertEquals("smith2020", captor.getValue().getCitingCiteKey());
+    assertEquals("paper2021", captor.getValue().getCitedCiteKey());
+    assertEquals(1, captor.getValue().getProjectId());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void posting_bibtex_without_relatedCiteKey_or_relationship_does_not_create_an_edge()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(post("/api/bibtexentries/post?projectId=1").content(RAW_BIBTEX).with(csrf()))
+        .andExpect(status().isOk());
+
+    verify(citationEdgeRepository, times(0)).save(any());
   }
 
   @WithMockUser(

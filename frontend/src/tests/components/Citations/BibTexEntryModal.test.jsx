@@ -102,6 +102,56 @@ describe("BibTexEntryModal tests", () => {
     expect(toggleShowModal).toHaveBeenCalledWith(false);
   });
 
+  test("when relationship is 'reference', shows the Add Reference title and includes relatedCiteKey/relationship in the POST", async () => {
+    axiosMock
+      .onPost("/api/bibtexentries/post")
+      .reply(200, [bibTexEntriesFixtures.oneEntry]);
+
+    renderModal({ relatedCiteKey: "smith2020", relationship: "reference" });
+
+    expect(screen.getByText("Add Reference")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("BibTexEntryModal-bibtex"), {
+      target: { value: "@article{jones2021, title = {A Title}}" },
+    });
+    fireEvent.click(screen.getByTestId("BibTexEntryModal-submit"));
+
+    await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+    expect(axiosMock.history.post[0].params).toEqual({
+      projectId: 1,
+      relatedCiteKey: "smith2020",
+      relationship: "reference",
+    });
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith("Reference added successfully"),
+    );
+  });
+
+  test("when relationship is 'citation', shows the Add Citation title and includes relatedCiteKey/relationship in the POST", async () => {
+    axiosMock
+      .onPost("/api/bibtexentries/post")
+      .reply(200, [bibTexEntriesFixtures.oneEntry]);
+
+    renderModal({ relatedCiteKey: "smith2020", relationship: "citation" });
+
+    expect(screen.getByText("Add Citation")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("BibTexEntryModal-bibtex"), {
+      target: { value: "@article{jones2021, title = {A Title}}" },
+    });
+    fireEvent.click(screen.getByTestId("BibTexEntryModal-submit"));
+
+    await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+    expect(axiosMock.history.post[0].params).toEqual({
+      projectId: 1,
+      relatedCiteKey: "smith2020",
+      relationship: "citation",
+    });
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith("Citation added successfully"),
+    );
+  });
+
   test("includes the user-selected relevance value in the submitted bibtex", async () => {
     axiosMock
       .onPost("/api/bibtexentries/post")
