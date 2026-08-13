@@ -22,7 +22,8 @@ import org.springframework.stereotype.Service;
 public class BibTexEntryCoalescingService {
 
   // Field-specific merge rule requested for these two: the resolved value should be the highest
-  // ranked of the differing values, from most to least relevant.
+  // ranked of the differing values, from most to least relevant. A value not on this list ranks
+  // below all of these (see rankOf).
   private static final String RELEVANCE_KEY = "CITELINES_relevance";
   private static final List<String> RELEVANCE_RANK =
       List.of("high", "medium", "low", "none", "unreviewed");
@@ -42,7 +43,7 @@ public class BibTexEntryCoalescingService {
    * @return the merged entry
    */
   public BibTexEntry coalesce(List<BibTexEntry> entries) {
-    if (entries == null || entries.isEmpty()) {
+    if (entries.isEmpty()) {
       throw new IllegalArgumentException("Cannot coalesce an empty list of entries");
     }
     if (entries.size() == 1) {
@@ -51,11 +52,7 @@ public class BibTexEntryCoalescingService {
 
     Map<String, String> mergedFields = new LinkedHashMap<>();
     for (BibTexEntry entry : entries) {
-      Map<String, String> fields = entry.getKeyValuePairs();
-      if (fields == null) {
-        continue;
-      }
-      for (Map.Entry<String, String> field : fields.entrySet()) {
+      for (Map.Entry<String, String> field : entry.getKeyValuePairs().entrySet()) {
         mergedFields.merge(
             field.getKey(), field.getValue(), (a, b) -> resolveField(field.getKey(), a, b));
       }
@@ -70,14 +67,14 @@ public class BibTexEntryCoalescingService {
     if (Objects.equals(a, b)) {
       return a;
     }
-    if (a == null || a.isBlank()) {
+    if (a.isBlank()) {
       return b;
     }
-    if (b == null || b.isBlank()) {
+    if (b.isBlank()) {
       return a;
     }
     if (RELEVANCE_KEY.equals(key)) {
-      return higherRankedRelevance(a, b);
+      return rankOf(a) <= rankOf(b) ? a : b;
     }
     if (CONCATENATED_KEYS.contains(key)) {
       return a + "\n\n" + b;
@@ -87,16 +84,10 @@ public class BibTexEntryCoalescingService {
     return a;
   }
 
-  private String higherRankedRelevance(String a, String b) {
-    int rankA = RELEVANCE_RANK.indexOf(a);
-    int rankB = RELEVANCE_RANK.indexOf(b);
-    // Unrecognized values are ranked below all known values (so a recognized value always wins).
-    if (rankA == -1) {
-      return rankB == -1 ? a : b;
-    }
-    if (rankB == -1) {
-      return a;
-    }
-    return rankA <= rankB ? a : b;
+  // Unrecognized relevance values are ranked below all known ones, so a recognized value always
+  // wins over one that isn't (and two recognized values are compared by their listed order).
+  private int rankOf(String relevance) {
+    int rank = RELEVANCE_RANK.indexOf(relevance);
+    return rank == -1 ? RELEVANCE_RANK.size() : rank;
   }
 }

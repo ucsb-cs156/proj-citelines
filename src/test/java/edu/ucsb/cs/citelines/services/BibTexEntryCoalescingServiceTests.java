@@ -81,6 +81,28 @@ public class BibTexEntryCoalescingServiceTests {
   }
 
   @Test
+  void a_blank_value_defers_to_the_other_entrys_non_blank_value() {
+    BibTexEntry first = BibTexEntry.builder().id("id1").keyValuePairs(Map.of("title", "")).build();
+    BibTexEntry second =
+        BibTexEntry.builder().id("id2").keyValuePairs(Map.of("title", "A Great Paper")).build();
+
+    BibTexEntry merged = service.coalesce(List.of(first, second));
+
+    assertEquals("A Great Paper", merged.getKeyValuePairs().get("title"));
+  }
+
+  @Test
+  void a_non_blank_value_wins_over_a_later_blank_value() {
+    BibTexEntry first =
+        BibTexEntry.builder().id("id1").keyValuePairs(Map.of("title", "A Great Paper")).build();
+    BibTexEntry second = BibTexEntry.builder().id("id2").keyValuePairs(Map.of("title", "")).build();
+
+    BibTexEntry merged = service.coalesce(List.of(first, second));
+
+    assertEquals("A Great Paper", merged.getKeyValuePairs().get("title"));
+  }
+
+  @Test
   void relevance_prefers_the_higher_ranked_value_regardless_of_order() {
     assertEquals("high", mergedRelevance("low", "high"));
     assertEquals("high", mergedRelevance("high", "low"));
@@ -93,6 +115,11 @@ public class BibTexEntryCoalescingServiceTests {
   void relevance_prefers_a_recognized_value_over_an_unrecognized_one() {
     assertEquals("high", mergedRelevance("high", "made-up-value"));
     assertEquals("high", mergedRelevance("made-up-value", "high"));
+  }
+
+  @Test
+  void relevance_arbitrarily_keeps_the_first_value_when_both_are_unrecognized() {
+    assertEquals("made-up-value-1", mergedRelevance("made-up-value-1", "made-up-value-2"));
   }
 
   private String mergedRelevance(String a, String b) {

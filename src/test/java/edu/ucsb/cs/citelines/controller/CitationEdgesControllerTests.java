@@ -104,6 +104,7 @@ public class CitationEdgesControllerTests extends ControllerTestCase {
     assertEquals(
         mapper.writeValueAsString(List.of(citedEntry)),
         response.getResponse().getContentAsString());
+    org.mockito.Mockito.verify(bibTexEntryRepository, org.mockito.Mockito.never()).deleteAll(any());
   }
 
   @WithMockUser(
@@ -164,6 +165,7 @@ public class CitationEdgesControllerTests extends ControllerTestCase {
     assertEquals(
         mapper.writeValueAsString(List.of(citingEntry)),
         response.getResponse().getContentAsString());
+    org.mockito.Mockito.verify(bibTexEntryRepository, org.mockito.Mockito.never()).deleteAll(any());
   }
 
   @WithMockUser(
