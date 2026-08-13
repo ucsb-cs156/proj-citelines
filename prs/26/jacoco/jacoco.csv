@@ -6,7 +6,7 @@ citelines,edu.ucsb.cs.citelines.startup,ScaffoldApplicationRunner,0,14,0,0,0,5,0
 citelines,edu.ucsb.cs.citelines.startup,ScaffoldStartup,0,34,0,0,0,11,0,4,0,4
 citelines,edu.ucsb.cs.citelines.controller,AdminsController.AdminDTO,0,18,0,0,0,3,0,2,0,2
 citelines,edu.ucsb.cs.citelines.controller,UserInfoController,0,6,0,0,0,2,0,2,0,2
-citelines,edu.ucsb.cs.citelines.controller,BibTexEntriesController,0,263,0,20,0,56,0,26,0,16
+citelines,edu.ucsb.cs.citelines.controller,BibTexEntriesController,0,291,0,26,0,62,0,29,0,16
 citelines,edu.ucsb.cs.citelines.controller,ProjectsController,0,134,0,0,0,33,0,11,0,11
 citelines,edu.ucsb.cs.citelines.controller,HealthController,0,7,0,0,0,2,0,2,0,2
 citelines,edu.ucsb.cs.citelines.controller,ApiController,0,50,0,0,0,14,0,8,0,8
@@ -15,7 +15,7 @@ citelines,edu.ucsb.cs.citelines.controller,ResearchersController,0,65,0,2,0,14,0
 citelines,edu.ucsb.cs.citelines.controller,AdminsController,0,82,0,2,0,16,0,8,0,7
 citelines,edu.ucsb.cs.citelines.controller,SystemInfoController,0,7,0,0,0,2,0,2,0,2
 citelines,edu.ucsb.cs.citelines.controller,JobsController,0,82,0,2,0,25,0,8,0,7
-citelines,edu.ucsb.cs.citelines.controller,CitationEdgesController,0,55,0,0,0,15,0,7,0,7
+citelines,edu.ucsb.cs.citelines.controller,CitationEdgesController,0,95,0,6,0,24,0,12,0,9
 citelines,edu.ucsb.cs.citelines.services,OpenAlexWork,0,27,0,0,0,1,0,1,0,1
 citelines,edu.ucsb.cs.citelines.services,SystemInfoServiceImpl,0,58,0,4,0,15,0,5,0,3
 citelines,edu.ucsb.cs.citelines.services,BibTexConverterService,0,182,0,10,0,47,0,14,0,9
@@ -23,6 +23,7 @@ citelines,edu.ucsb.cs.citelines.services,DOIService,0,47,0,6,0,14,0,6,0,3
 citelines,edu.ucsb.cs.citelines.services,ApiRetryHelper.ApiUnavailableException,0,4,0,0,0,2,0,1,0,1
 citelines,edu.ucsb.cs.citelines.services,BibTexSynthesisService,0,281,0,38,0,55,0,28,0,9
 citelines,edu.ucsb.cs.citelines.services,CitationGraphService.Direction,0,30,0,0,0,7,0,2,0,2
+citelines,edu.ucsb.cs.citelines.services,BibTexEntryCoalescingService,7,159,7,27,3,37,7,16,0,6
 citelines,edu.ucsb.cs.citelines.services,JobUserProviderImpl,0,26,0,4,0,5,0,5,0,3
 citelines,edu.ucsb.cs.citelines.services,CitationGraphService,0,537,0,40,0,103,0,31,0,11
 citelines,edu.ucsb.cs.citelines.services,CurrentUserService,0,10,0,2,0,2,0,3,0,2
