@@ -23,7 +23,7 @@ citelines,edu.ucsb.cs.citelines.services,DOIService,0,47,0,6,0,14,0,6,0,3
 citelines,edu.ucsb.cs.citelines.services,ApiRetryHelper.ApiUnavailableException,0,4,0,0,0,2,0,1,0,1
 citelines,edu.ucsb.cs.citelines.services,BibTexSynthesisService,0,281,0,38,0,55,0,28,0,9
 citelines,edu.ucsb.cs.citelines.services,CitationGraphService.Direction,0,30,0,0,0,7,0,2,0,2
-citelines,edu.ucsb.cs.citelines.services,BibTexEntryCoalescingService,7,159,7,27,3,37,7,16,0,6
+citelines,edu.ucsb.cs.citelines.services,BibTexEntryCoalescingService,0,143,0,22,0,32,0,17,0,6
 citelines,edu.ucsb.cs.citelines.services,JobUserProviderImpl,0,26,0,4,0,5,0,5,0,3
 citelines,edu.ucsb.cs.citelines.services,CitationGraphService,0,537,0,40,0,103,0,31,0,11
 citelines,edu.ucsb.cs.citelines.services,CurrentUserService,0,10,0,2,0,2,0,3,0,2

@@ -22,15 +22,16 @@ import org.springframework.stereotype.Service;
 <span class="fc" id="L22">public class BibTexEntryCoalescingService {</span>
 
   // Field-specific merge rule requested for these two: the resolved value should be the highest
-  // ranked of the differing values, from most to least relevant.
+  // ranked of the differing values, from most to least relevant. A value not on this list ranks
+  // below all of these (see rankOf).
   private static final String RELEVANCE_KEY = &quot;CITELINES_relevance&quot;;
-<span class="fc" id="L27">  private static final List&lt;String&gt; RELEVANCE_RANK =</span>
-<span class="fc" id="L28">      List.of(&quot;high&quot;, &quot;medium&quot;, &quot;low&quot;, &quot;none&quot;, &quot;unreviewed&quot;);</span>
+<span class="fc" id="L28">  private static final List&lt;String&gt; RELEVANCE_RANK =</span>
+<span class="fc" id="L29">      List.of(&quot;high&quot;, &quot;medium&quot;, &quot;low&quot;, &quot;none&quot;, &quot;unreviewed&quot;);</span>
 
   // Field-specific merge rule requested for these two: concatenate differing values, separated by
   // a blank line, so no manually-entered notes are lost.
-<span class="fc" id="L32">  private static final List&lt;String&gt; CONCATENATED_KEYS =</span>
-<span class="fc" id="L33">      List.of(&quot;CITELINES_comments&quot;, &quot;CITELINES_comments_draft&quot;);</span>
+<span class="fc" id="L33">  private static final List&lt;String&gt; CONCATENATED_KEYS =</span>
+<span class="fc" id="L34">      List.of(&quot;CITELINES_comments&quot;, &quot;CITELINES_comments_draft&quot;);</span>
 
   /**
    * Merges a list of duplicate {@link BibTexEntry} documents (all sharing the same projectId and
@@ -42,62 +43,52 @@ import org.springframework.stereotype.Service;
    * @return the merged entry
    */
   public BibTexEntry coalesce(List&lt;BibTexEntry&gt; entries) {
-<span class="pc bpc" id="L45" title="1 of 4 branches missed.">    if (entries == null || entries.isEmpty()) {</span>
-<span class="fc" id="L46">      throw new IllegalArgumentException(&quot;Cannot coalesce an empty list of entries&quot;);</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">    if (entries.isEmpty()) {</span>
+<span class="fc" id="L47">      throw new IllegalArgumentException(&quot;Cannot coalesce an empty list of entries&quot;);</span>
     }
-<span class="fc bfc" id="L48" title="All 2 branches covered.">    if (entries.size() == 1) {</span>
-<span class="fc" id="L49">      return entries.get(0);</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">    if (entries.size() == 1) {</span>
+<span class="fc" id="L50">      return entries.get(0);</span>
     }
 
-<span class="fc" id="L52">    Map&lt;String, String&gt; mergedFields = new LinkedHashMap&lt;&gt;();</span>
-<span class="fc bfc" id="L53" title="All 2 branches covered.">    for (BibTexEntry entry : entries) {</span>
-<span class="fc" id="L54">      Map&lt;String, String&gt; fields = entry.getKeyValuePairs();</span>
-<span class="pc bpc" id="L55" title="1 of 2 branches missed.">      if (fields == null) {</span>
-<span class="nc" id="L56">        continue;</span>
-      }
-<span class="fc bfc" id="L58" title="All 2 branches covered.">      for (Map.Entry&lt;String, String&gt; field : fields.entrySet()) {</span>
-<span class="fc" id="L59">        mergedFields.merge(</span>
-<span class="fc" id="L60">            field.getKey(), field.getValue(), (a, b) -&gt; resolveField(field.getKey(), a, b));</span>
-<span class="fc" id="L61">      }</span>
-<span class="fc" id="L62">    }</span>
+<span class="fc" id="L53">    Map&lt;String, String&gt; mergedFields = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">    for (BibTexEntry entry : entries) {</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">      for (Map.Entry&lt;String, String&gt; field : entry.getKeyValuePairs().entrySet()) {</span>
+<span class="fc" id="L56">        mergedFields.merge(</span>
+<span class="fc" id="L57">            field.getKey(), field.getValue(), (a, b) -&gt; resolveField(field.getKey(), a, b));</span>
+<span class="fc" id="L58">      }</span>
+<span class="fc" id="L59">    }</span>
 
-<span class="fc" id="L64">    BibTexEntry merged = entries.get(0);</span>
-<span class="fc" id="L65">    merged.setKeyValuePairs(mergedFields);</span>
-<span class="fc" id="L66">    return merged;</span>
+<span class="fc" id="L61">    BibTexEntry merged = entries.get(0);</span>
+<span class="fc" id="L62">    merged.setKeyValuePairs(mergedFields);</span>
+<span class="fc" id="L63">    return merged;</span>
   }
 
   private String resolveField(String key, String a, String b) {
-<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (Objects.equals(a, b)) {</span>
-<span class="fc" id="L71">      return a;</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">    if (Objects.equals(a, b)) {</span>
+<span class="fc" id="L68">      return a;</span>
     }
-<span class="pc bpc" id="L73" title="2 of 4 branches missed.">    if (a == null || a.isBlank()) {</span>
-<span class="nc" id="L74">      return b;</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">    if (a.isBlank()) {</span>
+<span class="fc" id="L71">      return b;</span>
     }
-<span class="pc bpc" id="L76" title="2 of 4 branches missed.">    if (b == null || b.isBlank()) {</span>
-<span class="nc" id="L77">      return a;</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">    if (b.isBlank()) {</span>
+<span class="fc" id="L74">      return a;</span>
     }
-<span class="fc bfc" id="L79" title="All 2 branches covered.">    if (RELEVANCE_KEY.equals(key)) {</span>
-<span class="fc" id="L80">      return higherRankedRelevance(a, b);</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">    if (RELEVANCE_KEY.equals(key)) {</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">      return rankOf(a) &lt;= rankOf(b) ? a : b;</span>
     }
-<span class="fc bfc" id="L82" title="All 2 branches covered.">    if (CONCATENATED_KEYS.contains(key)) {</span>
-<span class="fc" id="L83">      return a + &quot;\n\n&quot; + b;</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    if (CONCATENATED_KEYS.contains(key)) {</span>
+<span class="fc" id="L80">      return a + &quot;\n\n&quot; + b;</span>
     }
     // CITELINES_position, and any other field not covered by a specific rule above: no principled
     // way to pick between two differing values, so arbitrarily keep the first one seen.
-<span class="fc" id="L87">    return a;</span>
+<span class="fc" id="L84">    return a;</span>
   }
 
-  private String higherRankedRelevance(String a, String b) {
-<span class="fc" id="L91">    int rankA = RELEVANCE_RANK.indexOf(a);</span>
-<span class="fc" id="L92">    int rankB = RELEVANCE_RANK.indexOf(b);</span>
-    // Unrecognized values are ranked below all known values (so a recognized value always wins).
-<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (rankA == -1) {</span>
-<span class="pc bpc" id="L95" title="1 of 2 branches missed.">      return rankB == -1 ? a : b;</span>
-    }
-<span class="fc bfc" id="L97" title="All 2 branches covered.">    if (rankB == -1) {</span>
-<span class="fc" id="L98">      return a;</span>
-    }
-<span class="fc bfc" id="L100" title="All 2 branches covered.">    return rankA &lt;= rankB ? a : b;</span>
+  // Unrecognized relevance values are ranked below all known ones, so a recognized value always
+  // wins over one that isn't (and two recognized values are compared by their listed order).
+  private int rankOf(String relevance) {
+<span class="fc" id="L90">    int rank = RELEVANCE_RANK.indexOf(relevance);</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    return rank == -1 ? RELEVANCE_RANK.size() : rank;</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
