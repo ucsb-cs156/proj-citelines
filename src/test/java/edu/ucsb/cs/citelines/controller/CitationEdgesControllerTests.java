@@ -27,7 +27,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
 
 @WebMvcTest(controllers = CitationEdgesController.class)
-@Import({edu.ucsb.cs.citelines.testconfig.TestConfig.class, ProjectSecurity.class})
+@Import({
+  edu.ucsb.cs.citelines.testconfig.TestConfig.class,
+  ProjectSecurity.class,
+  edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService.class
+})
 public class CitationEdgesControllerTests extends ControllerTestCase {
 
   @MockitoBean ProjectRepository projectRepository;
@@ -88,8 +92,8 @@ public class CitationEdgesControllerTests extends ControllerTestCase {
         .thenReturn(List.of(edge));
     BibTexEntry citedEntry =
         BibTexEntry.builder().id("id1").projectId(1).citeKey("jones2019").build();
-    when(bibTexEntryRepository.findByProjectIdAndCiteKey(1, "jones2019"))
-        .thenReturn(Optional.of(citedEntry));
+    when(bibTexEntryRepository.findAllByProjectIdAndCiteKey(1, "jones2019"))
+        .thenReturn(List.of(citedEntry));
 
     MvcResult response =
         mockMvc
@@ -118,8 +122,8 @@ public class CitationEdgesControllerTests extends ControllerTestCase {
             .build();
     when(citationEdgeRepository.findByProjectIdAndCitingCiteKey(1, "smith2020"))
         .thenReturn(List.of(edge));
-    when(bibTexEntryRepository.findByProjectIdAndCiteKey(1, "deleted2019"))
-        .thenReturn(Optional.empty());
+    when(bibTexEntryRepository.findAllByProjectIdAndCiteKey(1, "deleted2019"))
+        .thenReturn(List.of());
 
     MvcResult response =
         mockMvc
@@ -148,8 +152,8 @@ public class CitationEdgesControllerTests extends ControllerTestCase {
         .thenReturn(List.of(edge));
     BibTexEntry citingEntry =
         BibTexEntry.builder().id("id1").projectId(1).citeKey("jones2019").build();
-    when(bibTexEntryRepository.findByProjectIdAndCiteKey(1, "jones2019"))
-        .thenReturn(Optional.of(citingEntry));
+    when(bibTexEntryRepository.findAllByProjectIdAndCiteKey(1, "jones2019"))
+        .thenReturn(List.of(citingEntry));
 
     MvcResult response =
         mockMvc
@@ -159,6 +163,55 @@ public class CitationEdgesControllerTests extends ControllerTestCase {
 
     assertEquals(
         mapper.writeValueAsString(List.of(citingEntry)),
+        response.getResponse().getContentAsString());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void citations_coalesces_duplicate_entries_for_the_same_citeKey_instead_of_erroring_out()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    CitationEdge edge =
+        CitationEdge.builder()
+            .id("1:jones2019:smith2020")
+            .projectId(1)
+            .citingCiteKey("jones2019")
+            .citedCiteKey("smith2020")
+            .build();
+    when(citationEdgeRepository.findByProjectIdAndCitedCiteKey(1, "smith2020"))
+        .thenReturn(List.of(edge));
+    BibTexEntry duplicate1 =
+        BibTexEntry.builder()
+            .id("id1")
+            .projectId(1)
+            .citeKey("jones2019")
+            .keyValuePairs(java.util.Map.of("CITELINES_relevance", "low"))
+            .build();
+    BibTexEntry duplicate2 =
+        BibTexEntry.builder()
+            .id("id2")
+            .projectId(1)
+            .citeKey("jones2019")
+            .keyValuePairs(java.util.Map.of("CITELINES_relevance", "high"))
+            .build();
+    when(bibTexEntryRepository.findAllByProjectIdAndCiteKey(1, "jones2019"))
+        .thenReturn(List.of(duplicate1, duplicate2));
+
+    MvcResult response =
+        mockMvc
+            .perform(get("/api/citationedges/citations?projectId=1&citeKey=smith2020"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    org.mockito.ArgumentCaptor<List<BibTexEntry>> captor =
+        org.mockito.ArgumentCaptor.forClass(List.class);
+    org.mockito.Mockito.verify(bibTexEntryRepository).deleteAll(captor.capture());
+    assertEquals(List.of(duplicate2), captor.getValue());
+    assertEquals(
+        mapper.writeValueAsString(List.of(duplicate1)),
         response.getResponse().getContentAsString());
   }
 

@@ -6,6 +6,7 @@ import edu.ucsb.cs.citelines.collections.CitationEdge;
 import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
 import edu.ucsb.cs.citelines.collections.UnresolvedCitation;
 import edu.ucsb.cs.citelines.collections.UnresolvedCitationRepository;
+import edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,6 +36,7 @@ public class CitationEdgesController extends ApiController {
   @Autowired private CitationEdgeRepository citationEdgeRepository;
   @Autowired private BibTexEntryRepository bibTexEntryRepository;
   @Autowired private UnresolvedCitationRepository unresolvedCitationRepository;
+  @Autowired private BibTexEntryCoalescingService bibTexEntryCoalescingService;
 
   @Operation(summary = "List the BibTeX entries that a given entry cites")
   @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
@@ -76,8 +78,25 @@ public class CitationEdgesController extends ApiController {
 
   private List<BibTexEntry> relatedEntries(Long projectId, Stream<String> citeKeys) {
     return citeKeys
-        .map(key -> bibTexEntryRepository.findByProjectIdAndCiteKey(projectId.intValue(), key))
+        .map(key -> findOneByProjectIdAndCiteKey(projectId.intValue(), key))
         .flatMap(Optional::stream)
         .toList();
+  }
+
+  // Same duplicate-tolerant lookup as BibTexEntriesController#reuseExistingIdIfPresent: if more
+  // than one entry is (incorrectly) stored for a citeKey, coalesce them into one instead of
+  // letting the ambiguity surface as an IncorrectResultSizeDataAccessException.
+  private Optional<BibTexEntry> findOneByProjectIdAndCiteKey(int projectId, String citeKey) {
+    List<BibTexEntry> matches =
+        bibTexEntryRepository.findAllByProjectIdAndCiteKey(projectId, citeKey);
+    if (matches.isEmpty()) {
+      return Optional.empty();
+    }
+    BibTexEntry coalesced = bibTexEntryCoalescingService.coalesce(matches);
+    if (matches.size() > 1) {
+      List<BibTexEntry> duplicates = matches.stream().filter(e -> e != coalesced).toList();
+      bibTexEntryRepository.deleteAll(duplicates);
+    }
+    return Optional.of(coalesced);
   }
 }

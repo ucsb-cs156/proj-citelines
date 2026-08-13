@@ -6,6 +6,7 @@ import edu.ucsb.cs.citelines.collections.CitationEdge;
 import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
 import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
 import edu.ucsb.cs.citelines.services.BibTexConverterService;
+import edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,6 +43,8 @@ public class BibTexEntriesController extends ApiController {
   @Autowired private BibTexConverterService bibTexConverterService;
 
   @Autowired private CitationEdgeRepository citationEdgeRepository;
+
+  @Autowired private BibTexEntryCoalescingService bibTexEntryCoalescingService;
 
   /**
    * Parses pasted BibTeX text (which may contain more than one entry) and saves the resulting
@@ -97,10 +100,22 @@ public class BibTexEntriesController extends ApiController {
   // Reusing the existing id makes save() overwrite that entry instead of inserting a duplicate,
   // which would otherwise break the assumption (relied on throughout, e.g. by
   // CitationEdgesController) that a project has at most one entry per citeKey.
+  //
+  // If more than one entry is already stored for that citeKey (e.g. duplicates created before
+  // this de-duplication existed), they are coalesced into a single entry first (via
+  // BibTexEntryCoalescingService) so that assumption holds going forward.
   private void reuseExistingIdIfPresent(int projectId, BibTexEntry entry) {
-    bibTexEntryRepository
-        .findByProjectIdAndCiteKey(projectId, entry.getCiteKey())
-        .ifPresent(existing -> entry.setId(existing.getId()));
+    List<BibTexEntry> existing =
+        bibTexEntryRepository.findAllByProjectIdAndCiteKey(projectId, entry.getCiteKey());
+    if (existing.isEmpty()) {
+      return;
+    }
+    BibTexEntry coalesced = bibTexEntryCoalescingService.coalesce(existing);
+    if (existing.size() > 1) {
+      List<BibTexEntry> duplicates = existing.stream().filter(e -> e != coalesced).toList();
+      bibTexEntryRepository.deleteAll(duplicates);
+    }
+    entry.setId(coalesced.getId());
   }
 
   private static CitationEdge makeCitationEdge(

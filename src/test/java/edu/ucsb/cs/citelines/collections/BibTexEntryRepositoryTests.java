@@ -78,4 +78,32 @@ class BibTexEntryRepositoryTests {
     assertFalse(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "nonexistent").isPresent());
     assertFalse(bibTexEntryRepository.findByProjectIdAndCiteKey(99, "smith2020").isPresent());
   }
+
+  @Test
+  void finds_all_entries_by_project_id_and_cite_key() {
+    bibTexEntryRepository.deleteAll();
+
+    BibTexEntry entry1 =
+        BibTexEntry.builder()
+            .projectId(42)
+            .entryType("article")
+            .citeKey("smith2020")
+            .keyValuePairs(Map.of("title", "A Great Paper"))
+            .build();
+    BibTexEntry entry2 =
+        BibTexEntry.builder()
+            .projectId(42)
+            .entryType("article")
+            .citeKey("smith2020")
+            .keyValuePairs(Map.of("title", "A Duplicate Paper"))
+            .build();
+    bibTexEntryRepository.save(entry1);
+    bibTexEntryRepository.save(entry2);
+
+    List<BibTexEntry> found = bibTexEntryRepository.findAllByProjectIdAndCiteKey(42, "smith2020");
+    assertEquals(2, found.size());
+
+    assertTrue(bibTexEntryRepository.findAllByProjectIdAndCiteKey(42, "nonexistent").isEmpty());
+    assertTrue(bibTexEntryRepository.findAllByProjectIdAndCiteKey(99, "smith2020").isEmpty());
+  }
 }

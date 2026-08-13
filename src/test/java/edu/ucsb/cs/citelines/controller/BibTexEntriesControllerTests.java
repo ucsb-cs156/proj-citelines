@@ -40,7 +40,8 @@ import org.springframework.test.web.servlet.MvcResult;
   edu.ucsb.cs.citelines.testconfig.TestConfig.class,
   ProjectSecurity.class,
   BibTexConverterService.class,
-  DOIService.class
+  DOIService.class,
+  edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService.class
 })
 public class BibTexEntriesControllerTests extends ControllerTestCase {
 
@@ -264,8 +265,8 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
             .citeKey("smith2020")
             .keyValuePairs(Map.of("author", "Someone Else"))
             .build();
-    when(bibTexEntryRepository.findByProjectIdAndCiteKey(1, "smith2020"))
-        .thenReturn(Optional.of(existing));
+    when(bibTexEntryRepository.findAllByProjectIdAndCiteKey(1, "smith2020"))
+        .thenReturn(List.of(existing));
     when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
     mockMvc
@@ -281,6 +282,49 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
     verify(bibTexEntryRepository, times(1)).saveAll(captor.capture());
     assertEquals(1, captor.getValue().size());
     assertEquals("existing-id", captor.getValue().get(0).getId());
+    verify(bibTexEntryRepository, times(0)).deleteAll(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void
+      posting_bibtex_that_matches_multiple_existing_duplicates_coalesces_them_before_updating()
+          throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    BibTexEntry existing1 =
+        BibTexEntry.builder()
+            .id("existing-id-1")
+            .projectId(1)
+            .citeKey("smith2020")
+            .keyValuePairs(Map.of("CITELINES_relevance", "low"))
+            .build();
+    BibTexEntry existing2 =
+        BibTexEntry.builder()
+            .id("existing-id-2")
+            .projectId(1)
+            .citeKey("smith2020")
+            .keyValuePairs(Map.of("CITELINES_relevance", "high"))
+            .build();
+    when(bibTexEntryRepository.findAllByProjectIdAndCiteKey(1, "smith2020"))
+        .thenReturn(List.of(existing1, existing2));
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(post("/api/bibtexentries/post?projectId=1").content(RAW_BIBTEX).with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<List<BibTexEntry>> saveCaptor =
+        org.mockito.ArgumentCaptor.forClass(List.class);
+    verify(bibTexEntryRepository, times(1)).saveAll(saveCaptor.capture());
+    assertEquals("existing-id-1", saveCaptor.getValue().get(0).getId());
+
+    org.mockito.ArgumentCaptor<List<BibTexEntry>> deleteCaptor =
+        org.mockito.ArgumentCaptor.forClass(List.class);
+    verify(bibTexEntryRepository, times(1)).deleteAll(deleteCaptor.capture());
+    assertEquals(List.of(existing2), deleteCaptor.getValue());
   }
 
   @WithMockUser(

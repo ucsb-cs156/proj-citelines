@@ -11,4 +11,8 @@ public interface BibTexEntryRepository extends MongoRepository<BibTexEntry, Stri
   List<BibTexEntry> findByProjectId(int projectId);
 
   Optional<BibTexEntry> findByProjectIdAndCiteKey(int projectId, String citeKey);
+
+  // Used to recover from (and coalesce away) any duplicate entries for the same citeKey, e.g. ones
+  // created before duplicate-prevention was added to BibTexEntriesController#postBibTexEntries.
+  List<BibTexEntry> findAllByProjectIdAndCiteKey(int projectId, String citeKey);
 }
