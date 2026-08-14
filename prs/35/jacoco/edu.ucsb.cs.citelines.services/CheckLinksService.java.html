@@ -29,10 +29,10 @@ import org.springframework.web.client.RestTemplate;
  * Entries with neither a DOI nor a URL are skipped. A previously-set flag is cleared if the link
  * now resolves cleanly.
  *
- * &lt;p&gt;Like {@link OpenAlexService} and the other {@code CitationMetadataResolver}s, every link
- * fetch is paced and retried through {@link ApiRetryHelper}, using {@code
- * citelines.api.delay-ms}/{@code CITELINES_API_DELAY_MS} both as the minimum gap between calls and
- * as the starting delay for exponential backoff on 5xx errors and rate-limit (429) responses.
+ * &lt;p&gt;Like {@link OpenAlexService} and the other {@code CitationMetadataResolver}s, every link fetch
+ * is paced and retried through {@link ApiRetryHelper}, using {@code citelines.api.delay-ms}/{@code
+ * CITELINES_API_DELAY_MS} both as the minimum gap between calls and as the starting delay for
+ * exponential backoff on 5xx errors and rate-limit (429) responses.
  */
 <span class="fc" id="L37">@Slf4j</span>
 @Service
