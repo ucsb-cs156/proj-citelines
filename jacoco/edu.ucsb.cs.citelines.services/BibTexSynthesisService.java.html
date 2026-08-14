@@ -7,19 +7,20 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 /**
- * Builds a raw BibTeX string from an {@link OpenAlexWork}, so it can be fed through the existing,
+ * Builds a raw BibTeX string from a {@link ResolvedWork}, so it can be fed through the existing,
  * already-tested {@link BibTexConverterService#parseToEntries} rather than hand-building a {@link
  * edu.ucsb.cs.citelines.collections.BibTexEntry} and duplicating its validation/normalization.
  *
- * &lt;p&gt;Field values are only lightly sanitized (stray {@code {}/{}} characters are stripped) — no
- * LaTeX escaping is attempted. See {@code
- * docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md} for where that would slot in.
+ * &lt;p&gt;Field values are passed through {@link LaTeXNormalizationService} (some upstream bibliographic
+ * data — especially older ACM/IEEE deposits — carries literal LaTeX escapes like {@code
+ * Schr{\&quot;o}der} even in an otherwise-JSON API response) and any leftover stray {@code {}/{}}
+ * characters are stripped. See {@code docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md}.
  */
 @Service
-<span class="fc" id="L19">public class BibTexSynthesisService {</span>
+public class BibTexSynthesisService {
 
-<span class="fc" id="L21">  private static final Map&lt;String, String&gt; ENTRY_TYPE_MAP =</span>
-<span class="fc" id="L22">      Map.of(</span>
+<span class="fc" id="L22">  private static final Map&lt;String, String&gt; ENTRY_TYPE_MAP =</span>
+<span class="fc" id="L23">      Map.of(</span>
           &quot;article&quot;, &quot;article&quot;,
           &quot;proceedings-article&quot;, &quot;inproceedings&quot;,
           &quot;book-chapter&quot;, &quot;incollection&quot;,
@@ -27,40 +28,46 @@ import org.springframework.stereotype.Service;
           &quot;dissertation&quot;, &quot;phdthesis&quot;,
           &quot;report&quot;, &quot;techreport&quot;);
 
+  private final LaTeXNormalizationService laTeXNormalizationService;
+
+<span class="fc" id="L33">  public BibTexSynthesisService(LaTeXNormalizationService laTeXNormalizationService) {</span>
+<span class="fc" id="L34">    this.laTeXNormalizationService = laTeXNormalizationService;</span>
+<span class="fc" id="L35">  }</span>
+
   /**
    * Builds a raw BibTeX string for the given work, using {@code citeKey} as its citation key.
    *
    * @throws IllegalArgumentException if the work has no title
    */
-  public String synthesizeRawBibTex(OpenAlexWork work, String citeKey) {
-<span class="fc bfc" id="L36" title="All 4 branches covered.">    if (work.title() == null || work.title().isBlank()) {</span>
-<span class="fc" id="L37">      throw new IllegalArgumentException(&quot;Cannot synthesize a BibTeX entry without a title.&quot;);</span>
+  public String synthesizeRawBibTex(ResolvedWork work, String citeKey) {
+<span class="fc bfc" id="L43" title="All 4 branches covered.">    if (work.title() == null || work.title().isBlank()) {</span>
+<span class="fc" id="L44">      throw new IllegalArgumentException(&quot;Cannot synthesize a BibTeX entry without a title.&quot;);</span>
     }
 
-<span class="fc" id="L40">    String entryType = ENTRY_TYPE_MAP.getOrDefault(work.type(), &quot;misc&quot;);</span>
+<span class="fc" id="L47">    String entryType = ENTRY_TYPE_MAP.getOrDefault(work.type(), &quot;misc&quot;);</span>
 
-<span class="fc" id="L42">    StringBuilder bibtex = new StringBuilder();</span>
-<span class="fc" id="L43">    bibtex.append(&quot;@&quot;).append(entryType).append(&quot;{&quot;).append(citeKey).append(&quot;,\n&quot;);</span>
-<span class="fc" id="L44">    bibtex.append(&quot;  title = {&quot;).append(sanitize(work.title())).append(&quot;},\n&quot;);</span>
-<span class="fc bfc" id="L45" title="All 4 branches covered.">    if (work.authorNames() != null &amp;&amp; !work.authorNames().isEmpty()) {</span>
-<span class="fc" id="L46">      bibtex.append(&quot;  author = {&quot;).append(formatAuthors(work.authorNames())).append(&quot;},\n&quot;);</span>
+<span class="fc" id="L49">    StringBuilder bibtex = new StringBuilder();</span>
+<span class="fc" id="L50">    bibtex.append(&quot;@&quot;).append(entryType).append(&quot;{&quot;).append(citeKey).append(&quot;,\n&quot;);</span>
+<span class="fc" id="L51">    bibtex.append(&quot;  title = {&quot;).append(sanitize(work.title())).append(&quot;},\n&quot;);</span>
+<span class="fc bfc" id="L52" title="All 4 branches covered.">    if (work.authorNames() != null &amp;&amp; !work.authorNames().isEmpty()) {</span>
+<span class="fc" id="L53">      bibtex.append(&quot;  author = {&quot;).append(formatAuthors(work.authorNames())).append(&quot;},\n&quot;);</span>
     }
-<span class="fc bfc" id="L48" title="All 2 branches covered.">    if (work.year() != null) {</span>
-<span class="fc" id="L49">      bibtex.append(&quot;  year = {&quot;).append(work.year()).append(&quot;},\n&quot;);</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">    if (work.year() != null) {</span>
+<span class="fc" id="L56">      bibtex.append(&quot;  year = {&quot;).append(work.year()).append(&quot;},\n&quot;);</span>
     }
-<span class="fc bfc" id="L51" title="All 4 branches covered.">    if (work.venue() != null &amp;&amp; !work.venue().isBlank()) {</span>
-<span class="fc" id="L52">      bibtex</span>
-<span class="fc" id="L53">          .append(&quot;  &quot;)</span>
-<span class="fc" id="L54">          .append(venueFieldName(entryType))</span>
-<span class="fc" id="L55">          .append(&quot; = {&quot;)</span>
-<span class="fc" id="L56">          .append(sanitize(work.venue()))</span>
-<span class="fc" id="L57">          .append(&quot;},\n&quot;);</span>
+<span class="fc bfc" id="L58" title="All 4 branches covered.">    if (work.venue() != null &amp;&amp; !work.venue().isBlank()) {</span>
+<span class="fc" id="L59">      bibtex</span>
+<span class="fc" id="L60">          .append(&quot;  &quot;)</span>
+<span class="fc" id="L61">          .append(venueFieldName(entryType))</span>
+<span class="fc" id="L62">          .append(&quot; = {&quot;)</span>
+<span class="fc" id="L63">          .append(sanitize(work.venue()))</span>
+<span class="fc" id="L64">          .append(&quot;},\n&quot;);</span>
     }
-<span class="fc bfc" id="L59" title="All 4 branches covered.">    if (work.doi() != null &amp;&amp; !work.doi().isBlank()) {</span>
-<span class="fc" id="L60">      bibtex.append(&quot;  doi = {&quot;).append(work.doi()).append(&quot;},\n&quot;);</span>
+<span class="fc bfc" id="L66" title="All 4 branches covered.">    if (work.doi() != null &amp;&amp; !work.doi().isBlank()) {</span>
+<span class="fc" id="L67">      bibtex.append(&quot;  doi = {&quot;).append(work.doi()).append(&quot;},\n&quot;);</span>
     }
-<span class="fc" id="L62">    bibtex.append(&quot;}\n&quot;);</span>
-<span class="fc" id="L63">    return bibtex.toString();</span>
+<span class="fc" id="L69">    bibtex.append(&quot;}\n&quot;);</span>
+<span class="fc" id="L70">    return bibtex.toString();</span>
   }
 
   /**
@@ -68,63 +75,62 @@ import org.springframework.stereotype.Service;
    * disambiguated against {@code existingCiteKeys} by appending a letter (or, in the unlikely event
    * all 26 are taken, a number) suffix.
    */
-  public String generateUniqueCiteKey(OpenAlexWork work, Set&lt;String&gt; existingCiteKeys) {
-<span class="fc" id="L72">    String base = citeKeyBase(work);</span>
-<span class="fc bfc" id="L73" title="All 2 branches covered.">    if (!existingCiteKeys.contains(base)) {</span>
-<span class="fc" id="L74">      return base;</span>
+  public String generateUniqueCiteKey(ResolvedWork work, Set&lt;String&gt; existingCiteKeys) {
+<span class="fc" id="L79">    String base = citeKeyBase(work);</span>
+<span class="fc bfc" id="L80" title="All 2 branches covered.">    if (!existingCiteKeys.contains(base)) {</span>
+<span class="fc" id="L81">      return base;</span>
     }
-<span class="fc bfc" id="L76" title="All 2 branches covered.">    for (char suffix = 'a'; suffix &lt;= 'z'; suffix++) {</span>
-<span class="fc" id="L77">      String candidate = base + suffix;</span>
-<span class="fc bfc" id="L78" title="All 2 branches covered.">      if (!existingCiteKeys.contains(candidate)) {</span>
-<span class="fc" id="L79">        return candidate;</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">    for (char suffix = 'a'; suffix &lt;= 'z'; suffix++) {</span>
+<span class="fc" id="L84">      String candidate = base + suffix;</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">      if (!existingCiteKeys.contains(candidate)) {</span>
+<span class="fc" id="L86">        return candidate;</span>
       }
     }
-<span class="fc" id="L82">    int counter = 2;</span>
-<span class="fc bfc" id="L83" title="All 2 branches covered.">    while (existingCiteKeys.contains(base + counter)) {</span>
-<span class="fc" id="L84">      counter++;</span>
+<span class="fc" id="L89">    int counter = 2;</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">    while (existingCiteKeys.contains(base + counter)) {</span>
+<span class="fc" id="L91">      counter++;</span>
     }
-<span class="fc" id="L86">    return base + counter;</span>
+<span class="fc" id="L93">    return base + counter;</span>
   }
 
-  private String citeKeyBase(OpenAlexWork work) {
-<span class="fc" id="L90">    String lastName = &quot;entry&quot;;</span>
-<span class="fc bfc" id="L91" title="All 4 branches covered.">    if (work.authorNames() != null &amp;&amp; !work.authorNames().isEmpty()) {</span>
-<span class="fc" id="L92">      String[] parts = work.authorNames().get(0).trim().split(&quot;\\s+&quot;);</span>
-<span class="fc" id="L93">      String candidate = parts[parts.length - 1].toLowerCase().replaceAll(&quot;[^a-z0-9]&quot;, &quot;&quot;);</span>
-<span class="fc bfc" id="L94" title="All 2 branches covered.">      if (!candidate.isEmpty()) {</span>
-<span class="fc" id="L95">        lastName = candidate;</span>
+  private String citeKeyBase(ResolvedWork work) {
+<span class="fc" id="L97">    String lastName = &quot;entry&quot;;</span>
+<span class="fc bfc" id="L98" title="All 4 branches covered.">    if (work.authorNames() != null &amp;&amp; !work.authorNames().isEmpty()) {</span>
+<span class="fc" id="L99">      String[] parts = sanitize(work.authorNames().get(0)).trim().split(&quot;\\s+&quot;);</span>
+<span class="fc" id="L100">      String candidate = parts[parts.length - 1].toLowerCase().replaceAll(&quot;[^a-z0-9]&quot;, &quot;&quot;);</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">      if (!candidate.isEmpty()) {</span>
+<span class="fc" id="L102">        lastName = candidate;</span>
       }
     }
-<span class="fc bfc" id="L98" title="All 2 branches covered.">    String yearPart = work.year() != null ? String.valueOf(work.year()) : &quot;&quot;;</span>
-<span class="fc" id="L99">    return lastName + yearPart;</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">    String yearPart = work.year() != null ? String.valueOf(work.year()) : &quot;&quot;;</span>
+<span class="fc" id="L106">    return lastName + yearPart;</span>
   }
 
   private static String venueFieldName(String entryType) {
-<span class="fc bfc" id="L103" title="All 2 branches covered.">    return switch (entryType) {</span>
-<span class="fc" id="L104">      case &quot;inproceedings&quot;, &quot;incollection&quot; -&gt; &quot;booktitle&quot;;</span>
-<span class="fc" id="L105">      default -&gt; &quot;journal&quot;;</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">    return switch (entryType) {</span>
+<span class="fc" id="L111">      case &quot;inproceedings&quot;, &quot;incollection&quot; -&gt; &quot;booktitle&quot;;</span>
+<span class="fc" id="L112">      default -&gt; &quot;journal&quot;;</span>
     };
   }
 
-  private static String formatAuthors(List&lt;String&gt; names) {
-<span class="fc" id="L110">    return names.stream()</span>
-<span class="fc" id="L111">        .map(BibTexSynthesisService::formatAuthorName)</span>
-<span class="fc" id="L112">        .collect(Collectors.joining(&quot; and &quot;));</span>
+  private String formatAuthors(List&lt;String&gt; names) {
+<span class="fc" id="L117">    return names.stream().map(this::formatAuthorName).collect(Collectors.joining(&quot; and &quot;));</span>
   }
 
   // Heuristic &quot;Last, First Middle&quot; reformatting; does not handle multi-word surnames/particles
   // (e.g. &quot;van der Berg&quot;) specially.
-  private static String formatAuthorName(String fullName) {
-<span class="fc" id="L118">    String trimmed = fullName.trim();</span>
-<span class="fc" id="L119">    int lastSpace = trimmed.lastIndexOf(' ');</span>
-<span class="fc bfc" id="L120" title="All 2 branches covered.">    if (lastSpace == -1) {</span>
-<span class="fc" id="L121">      return trimmed;</span>
+  private String formatAuthorName(String fullName) {
+<span class="fc" id="L123">    String trimmed = sanitize(fullName).trim();</span>
+<span class="fc" id="L124">    int lastSpace = trimmed.lastIndexOf(' ');</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">    if (lastSpace == -1) {</span>
+<span class="fc" id="L126">      return trimmed;</span>
     }
-<span class="fc" id="L123">    return trimmed.substring(lastSpace + 1) + &quot;, &quot; + trimmed.substring(0, lastSpace);</span>
+<span class="fc" id="L128">    return trimmed.substring(lastSpace + 1) + &quot;, &quot; + trimmed.substring(0, lastSpace);</span>
   }
 
-  private static String sanitize(String value) {
-<span class="fc" id="L127">    return value.replace(&quot;{&quot;, &quot;&quot;).replace(&quot;}&quot;, &quot;&quot;);</span>
+  private String sanitize(String value) {
+<span class="fc" id="L132">    String normalized = laTeXNormalizationService.normalize(value);</span>
+<span class="fc" id="L133">    return normalized.replace(&quot;{&quot;, &quot;&quot;).replace(&quot;}&quot;, &quot;&quot;);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

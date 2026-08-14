@@ -12,204 +12,333 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 /**
  * Orchestrates the &quot;Get References&quot; and &quot;Get Citations&quot; jobs: looks up a source {@link
- * BibTexEntry}'s DOI on OpenAlex, resolves the related works it names, synthesizes+saves a {@link
- * BibTexEntry} for each one not already present (deduped by DOI), and records a {@link
- * CitationEdge} between the source and each related entry. Anything OpenAlex can't fully resolve is
- * recorded as an {@link UnresolvedCitation} rather than silently dropped — see {@code
- * docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md}.
+ * BibTexEntry}'s DOI across a chain of {@link CitationMetadataResolver}s (OpenAlex first, then
+ * Semantic Scholar, then Crossref), resolves the related works the first successful resolver names,
+ * synthesizes+saves a {@link BibTexEntry} for each one not already present (deduped by DOI), and
+ * records a {@link CitationEdge} between the source and each related entry. Anything no resolver
+ * can fully resolve is recorded as an {@link UnresolvedCitation} rather than silently dropped — see
+ * {@code docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md} for why the chain is a
+ * waterfall (not a union of all three) and which gaps get a second chance via another resolver.
  */
 @Service
-<span class="fc" id="L28">public class CitationGraphService {</span>
+public class CitationGraphService {
 
   /** Cap on how many references/citations are fetched per job run. */
   static final int MAX_RESULTS = 200;
 
-  @Autowired BibTexEntryRepository bibTexEntryRepository;
-  @Autowired CitationEdgeRepository citationEdgeRepository;
-  @Autowired UnresolvedCitationRepository unresolvedCitationRepository;
-  @Autowired OpenAlexService openAlexService;
-  @Autowired BibTexSynthesisService bibTexSynthesisService;
-  @Autowired BibTexConverterService bibTexConverterService;
+  private static final String REASON_NOT_FOUND = &quot;not_found_by_any_resolver&quot;;
+  private static final String REASON_MISSING_TITLE = &quot;missing_title&quot;;
+  private static final String REASON_MISSING_DOI = &quot;missing_doi&quot;;
+
+  private final BibTexEntryRepository bibTexEntryRepository;
+  private final CitationEdgeRepository citationEdgeRepository;
+  private final UnresolvedCitationRepository unresolvedCitationRepository;
+  private final BibTexSynthesisService bibTexSynthesisService;
+  private final BibTexConverterService bibTexConverterService;
+  private final CrossrefResolver crossrefResolver;
+  private final List&lt;CitationMetadataResolver&gt; resolversInPriorityOrder;
+
+  public CitationGraphService(
+      BibTexEntryRepository bibTexEntryRepository,
+      CitationEdgeRepository citationEdgeRepository,
+      UnresolvedCitationRepository unresolvedCitationRepository,
+      OpenAlexService openAlexService,
+      SemanticScholarResolver semanticScholarResolver,
+      CrossrefResolver crossrefResolver,
+      BibTexSynthesisService bibTexSynthesisService,
+<span class="fc" id="L56">      BibTexConverterService bibTexConverterService) {</span>
+<span class="fc" id="L57">    this.bibTexEntryRepository = bibTexEntryRepository;</span>
+<span class="fc" id="L58">    this.citationEdgeRepository = citationEdgeRepository;</span>
+<span class="fc" id="L59">    this.unresolvedCitationRepository = unresolvedCitationRepository;</span>
+<span class="fc" id="L60">    this.bibTexSynthesisService = bibTexSynthesisService;</span>
+<span class="fc" id="L61">    this.bibTexConverterService = bibTexConverterService;</span>
+<span class="fc" id="L62">    this.crossrefResolver = crossrefResolver;</span>
+<span class="fc" id="L63">    this.resolversInPriorityOrder =</span>
+<span class="fc" id="L64">        List.of(openAlexService, semanticScholarResolver, crossrefResolver);</span>
+<span class="fc" id="L65">  }</span>
 
   public void fetchReferences(int projectId, String sourceCiteKey, JobContext ctx) {
-<span class="fc" id="L41">    fetchGraph(projectId, sourceCiteKey, ctx, Direction.REFERENCE);</span>
-<span class="fc" id="L42">  }</span>
+<span class="fc" id="L68">    fetchGraph(projectId, sourceCiteKey, ctx, Direction.REFERENCE);</span>
+<span class="fc" id="L69">  }</span>
 
   public void fetchCitations(int projectId, String sourceCiteKey, JobContext ctx) {
-<span class="fc" id="L45">    fetchGraph(projectId, sourceCiteKey, ctx, Direction.CITATION);</span>
-<span class="fc" id="L46">  }</span>
+<span class="fc" id="L72">    fetchGraph(projectId, sourceCiteKey, ctx, Direction.CITATION);</span>
+<span class="fc" id="L73">  }</span>
 
-<span class="fc" id="L48">  private enum Direction {</span>
-<span class="fc" id="L49">    REFERENCE(&quot;reference&quot;, &quot;References&quot;),</span>
-<span class="fc" id="L50">    CITATION(&quot;citation&quot;, &quot;Citations&quot;);</span>
+<span class="fc" id="L75">  private enum Direction {</span>
+<span class="fc" id="L76">    REFERENCE(&quot;reference&quot;, &quot;References&quot;),</span>
+<span class="fc" id="L77">    CITATION(&quot;citation&quot;, &quot;Citations&quot;);</span>
 
     final String trackingLabel;
     final String displayLabel;
 
-<span class="fc" id="L55">    Direction(String trackingLabel, String displayLabel) {</span>
-<span class="fc" id="L56">      this.trackingLabel = trackingLabel;</span>
-<span class="fc" id="L57">      this.displayLabel = displayLabel;</span>
-<span class="fc" id="L58">    }</span>
+<span class="fc" id="L82">    Direction(String trackingLabel, String displayLabel) {</span>
+<span class="fc" id="L83">      this.trackingLabel = trackingLabel;</span>
+<span class="fc" id="L84">      this.displayLabel = displayLabel;</span>
+<span class="fc" id="L85">    }</span>
   }
 
   private void fetchGraph(
       int projectId, String sourceCiteKey, JobContext ctx, Direction direction) {
-<span class="fc" id="L63">    ctx.log(</span>
+<span class="fc" id="L90">    ctx.log(</span>
         &quot;Starting Get %s for %s in project %d&quot;
-<span class="fc" id="L65">            .formatted(direction.displayLabel, sourceCiteKey, projectId));</span>
+<span class="fc" id="L92">            .formatted(direction.displayLabel, sourceCiteKey, projectId));</span>
 
-<span class="fc" id="L67">    BibTexEntry source =</span>
+<span class="fc" id="L94">    BibTexEntry source =</span>
         bibTexEntryRepository
-<span class="fc" id="L69">            .findByProjectIdAndCiteKey(projectId, sourceCiteKey)</span>
-<span class="fc" id="L70">            .orElseThrow(</span>
+<span class="fc" id="L96">            .findByProjectIdAndCiteKey(projectId, sourceCiteKey)</span>
+<span class="fc" id="L97">            .orElseThrow(</span>
                 () -&gt; {
-<span class="fc" id="L72">                  ctx.log(&quot;Entry not found: &quot; + sourceCiteKey);</span>
-<span class="fc" id="L73">                  return new IllegalStateException(&quot;Entry not found: &quot; + sourceCiteKey);</span>
+<span class="fc" id="L99">                  ctx.log(&quot;Entry not found: &quot; + sourceCiteKey);</span>
+<span class="fc" id="L100">                  return new IllegalStateException(&quot;Entry not found: &quot; + sourceCiteKey);</span>
                 });
 
-<span class="fc bfc" id="L76" title="All 2 branches covered.">    String doi = source.getKeyValuePairs() != null ? source.getKeyValuePairs().get(&quot;doi&quot;) : null;</span>
-<span class="fc bfc" id="L77" title="All 4 branches covered.">    if (doi == null || doi.isBlank()) {</span>
-<span class="fc" id="L78">      ctx.log(</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">    String doi = source.getKeyValuePairs() != null ? source.getKeyValuePairs().get(&quot;doi&quot;) : null;</span>
+<span class="fc bfc" id="L104" title="All 4 branches covered.">    if (doi == null || doi.isBlank()) {</span>
+<span class="fc" id="L105">      ctx.log(</span>
           &quot;Entry %s has no DOI; cannot look up %s.&quot;
-<span class="fc" id="L80">              .formatted(sourceCiteKey, direction.displayLabel.toLowerCase()));</span>
-<span class="fc" id="L81">      throw new IllegalStateException(&quot;Entry has no DOI: &quot; + sourceCiteKey);</span>
+<span class="fc" id="L107">              .formatted(sourceCiteKey, direction.displayLabel.toLowerCase()));</span>
+<span class="fc" id="L108">      throw new IllegalStateException(&quot;Entry has no DOI: &quot; + sourceCiteKey);</span>
     }
 
-<span class="fc" id="L84">    OpenAlexWork sourceWork =</span>
-        openAlexService
-<span class="fc" id="L86">            .getWorkByDoi(doi)</span>
-<span class="fc" id="L87">            .orElseThrow(</span>
-                () -&gt; {
-<span class="fc" id="L89">                  ctx.log(&quot;No OpenAlex record found for DOI &quot; + doi);</span>
-<span class="fc" id="L90">                  return new IllegalStateException(&quot;No OpenAlex record for DOI: &quot; + doi);</span>
-                });
-<span class="fc" id="L92">    ctx.log(&quot;Found source work on OpenAlex: &quot; + sourceWork.title());</span>
+<span class="fc" id="L111">    ResolverResult sourceResult = resolveSourceWork(doi, ctx);</span>
+<span class="fc" id="L112">    CitationMetadataResolver discoveryResolver = sourceResult.resolver();</span>
+<span class="fc" id="L113">    ResolvedWork sourceWork = sourceResult.work();</span>
+<span class="fc" id="L114">    ctx.log(&quot;Found source work on %s: %s&quot;.formatted(discoveryResolver.name(), sourceWork.title()));</span>
 
-    List&lt;OpenAlexWork&gt; relatedWorks =
-<span class="fc bfc" id="L95" title="All 2 branches covered.">        direction == Direction.REFERENCE</span>
-<span class="fc" id="L96">            ? fetchReferencedWorks(sourceWork, projectId, sourceCiteKey, ctx)</span>
-<span class="fc" id="L97">            : fetchCitingWorks(sourceWork, ctx);</span>
+    List&lt;ResolvedWork&gt; relatedWorks =
+<span class="fc bfc" id="L117" title="All 2 branches covered.">        direction == Direction.REFERENCE</span>
+<span class="fc" id="L118">            ? fetchReferencedWorks(discoveryResolver, sourceWork, projectId, sourceCiteKey, ctx)</span>
+<span class="fc" id="L119">            : fetchCitingWorks(discoveryResolver, sourceWork, ctx);</span>
 
-<span class="fc" id="L99">    Map&lt;String, BibTexEntry&gt; existingByDoi = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L100">    Set&lt;String&gt; existingCiteKeys = new HashSet&lt;&gt;();</span>
-<span class="fc bfc" id="L101" title="All 2 branches covered.">    for (BibTexEntry entry : bibTexEntryRepository.findByProjectId(projectId)) {</span>
-<span class="fc" id="L102">      existingCiteKeys.add(entry.getCiteKey());</span>
+<span class="fc" id="L121">    Map&lt;String, BibTexEntry&gt; existingByDoi = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L122">    Set&lt;String&gt; existingCiteKeys = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">    for (BibTexEntry entry : bibTexEntryRepository.findByProjectId(projectId)) {</span>
+<span class="fc" id="L124">      existingCiteKeys.add(entry.getCiteKey());</span>
       String entryDoi =
-<span class="fc bfc" id="L104" title="All 2 branches covered.">          entry.getKeyValuePairs() != null ? entry.getKeyValuePairs().get(&quot;doi&quot;) : null;</span>
-<span class="fc bfc" id="L105" title="All 2 branches covered.">      if (entryDoi != null) {</span>
-<span class="fc" id="L106">        existingByDoi.put(entryDoi, entry);</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">          entry.getKeyValuePairs() != null ? entry.getKeyValuePairs().get(&quot;doi&quot;) : null;</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">      if (entryDoi != null) {</span>
+<span class="fc" id="L128">        existingByDoi.put(entryDoi, entry);</span>
       }
-<span class="fc" id="L108">    }</span>
+<span class="fc" id="L130">    }</span>
 
-<span class="fc" id="L110">    int added = 0;</span>
-<span class="fc" id="L111">    int linked = 0;</span>
-<span class="fc" id="L112">    int unresolved = 0;</span>
-<span class="fc bfc" id="L113" title="All 2 branches covered.">    for (OpenAlexWork work : relatedWorks) {</span>
-<span class="fc bfc" id="L114" title="All 4 branches covered.">      if (work.title() == null || work.title().isBlank()) {</span>
-<span class="fc" id="L115">        saveUnresolved(projectId, sourceCiteKey, direction, work.id(), null, &quot;missing_title&quot;);</span>
-<span class="fc" id="L116">        ctx.log(&quot;Skipping %s: no title available.&quot;.formatted(work.id()));</span>
-<span class="fc" id="L117">        unresolved++;</span>
-<span class="fc" id="L118">        continue;</span>
-      }
-
-<span class="fc bfc" id="L121" title="All 2 branches covered.">      BibTexEntry existing = work.doi() != null ? existingByDoi.get(work.doi()) : null;</span>
-      String citeKey;
-<span class="fc bfc" id="L123" title="All 2 branches covered.">      if (existing != null) {</span>
-<span class="fc" id="L124">        citeKey = existing.getCiteKey();</span>
-<span class="fc" id="L125">        linked++;</span>
-<span class="fc" id="L126">        ctx.log(&quot;Linking to existing entry %s: %s&quot;.formatted(citeKey, work.title()));</span>
-      } else {
-<span class="fc" id="L128">        citeKey = bibTexSynthesisService.generateUniqueCiteKey(work, existingCiteKeys);</span>
-<span class="fc" id="L129">        existingCiteKeys.add(citeKey);</span>
-<span class="fc" id="L130">        String rawBibtex = bibTexSynthesisService.synthesizeRawBibTex(work, citeKey);</span>
-<span class="fc" id="L131">        BibTexEntry newEntry = bibTexConverterService.parseToEntries(rawBibtex, projectId).get(0);</span>
-<span class="fc" id="L132">        bibTexEntryRepository.save(newEntry);</span>
-<span class="fc bfc" id="L133" title="All 2 branches covered.">        if (work.doi() != null) {</span>
-<span class="fc" id="L134">          existingByDoi.put(work.doi(), newEntry);</span>
-        } else {
-<span class="fc" id="L136">          saveUnresolved(</span>
-<span class="fc" id="L137">              projectId, sourceCiteKey, direction, work.id(), work.title(), &quot;missing_doi&quot;);</span>
+<span class="fc" id="L132">    int added = 0;</span>
+<span class="fc" id="L133">    int linked = 0;</span>
+<span class="fc" id="L134">    int unresolved = 0;</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">    for (ResolvedWork rawWork : relatedWorks) {</span>
+<span class="fc" id="L136">      ResolvedWork work = rawWork;</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">      if (isBlank(work.title())) {</span>
+<span class="fc" id="L138">        ResolvedWork recovered = tryRecoverMissingTitle(work, discoveryResolver, ctx);</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        if (recovered != null) {</span>
+<span class="fc" id="L140">          work = recovered;</span>
         }
-<span class="fc" id="L139">        added++;</span>
-<span class="fc" id="L140">        ctx.log(&quot;Added new entry %s: %s&quot;.formatted(citeKey, work.title()));</span>
       }
 
-<span class="fc" id="L143">      citationEdgeRepository.save(makeEdge(projectId, sourceCiteKey, citeKey, direction));</span>
-<span class="fc" id="L144">    }</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">      if (isBlank(work.title())) {</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        String reason = work.doi() != null ? REASON_MISSING_TITLE : REASON_NOT_FOUND;</span>
+<span class="fc" id="L146">        saveUnresolved(</span>
+            projectId,
+            sourceCiteKey,
+            direction,
+<span class="fc" id="L150">            discoveryResolver.name(),</span>
+<span class="fc" id="L151">            work.id(),</span>
+<span class="fc" id="L152">            work.doi(),</span>
+            null,
+            reason);
+<span class="fc" id="L155">        ctx.log(&quot;Skipping %s: no title available.&quot;.formatted(describeWork(work)));</span>
+<span class="fc" id="L156">        unresolved++;</span>
+<span class="fc" id="L157">        continue;</span>
+      }
 
-<span class="fc" id="L146">    ctx.log(</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">      BibTexEntry existing = work.doi() != null ? existingByDoi.get(work.doi()) : null;</span>
+      String citeKey;
+<span class="fc bfc" id="L162" title="All 2 branches covered.">      if (existing != null) {</span>
+<span class="fc" id="L163">        citeKey = existing.getCiteKey();</span>
+<span class="fc" id="L164">        linked++;</span>
+<span class="fc" id="L165">        ctx.log(&quot;Linking to existing entry %s: %s&quot;.formatted(citeKey, work.title()));</span>
+      } else {
+<span class="fc" id="L167">        citeKey = bibTexSynthesisService.generateUniqueCiteKey(work, existingCiteKeys);</span>
+<span class="fc" id="L168">        existingCiteKeys.add(citeKey);</span>
+<span class="fc" id="L169">        String rawBibtex = bibTexSynthesisService.synthesizeRawBibTex(work, citeKey);</span>
+<span class="fc" id="L170">        BibTexEntry newEntry = bibTexConverterService.parseToEntries(rawBibtex, projectId).get(0);</span>
+<span class="fc" id="L171">        bibTexEntryRepository.save(newEntry);</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">        if (work.doi() != null) {</span>
+<span class="fc" id="L173">          existingByDoi.put(work.doi(), newEntry);</span>
+        } else {
+<span class="fc" id="L175">          saveUnresolved(</span>
+              projectId,
+              sourceCiteKey,
+              direction,
+<span class="fc" id="L179">              discoveryResolver.name(),</span>
+<span class="fc" id="L180">              work.id(),</span>
+              null,
+<span class="fc" id="L182">              work.title(),</span>
+              REASON_MISSING_DOI);
+        }
+<span class="fc" id="L185">        added++;</span>
+<span class="fc" id="L186">        ctx.log(&quot;Added new entry %s: %s&quot;.formatted(citeKey, work.title()));</span>
+      }
+
+<span class="fc" id="L189">      citationEdgeRepository.save(makeEdge(projectId, sourceCiteKey, citeKey, direction));</span>
+<span class="fc" id="L190">    }</span>
+
+<span class="fc" id="L192">    ctx.log(</span>
         &quot;Done: %d new %s added, %d linked to existing entries, %d unresolved.&quot;
-<span class="fc bfc" id="L148" title="All 2 branches covered.">            .formatted(added, added == 1 ? &quot;entry&quot; : &quot;entries&quot;, linked, unresolved));</span>
-<span class="fc" id="L149">  }</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">            .formatted(added, added == 1 ? &quot;entry&quot; : &quot;entries&quot;, linked, unresolved));</span>
+<span class="fc" id="L195">  }</span>
 
-  private List&lt;OpenAlexWork&gt; fetchReferencedWorks(
-      OpenAlexWork sourceWork, int projectId, String sourceCiteKey, JobContext ctx) {
-<span class="fc" id="L153">    List&lt;String&gt; refIds = sourceWork.referencedWorkIds();</span>
-<span class="fc bfc" id="L154" title="All 2 branches covered.">    if (refIds.size() &gt; MAX_RESULTS) {</span>
-<span class="fc" id="L155">      ctx.log(</span>
-<span class="fc" id="L156">          &quot;Found %d references; fetching only the first %d.&quot;.formatted(refIds.size(), MAX_RESULTS));</span>
-<span class="fc" id="L157">      refIds = refIds.subList(0, MAX_RESULTS);</span>
-    } else {
-<span class="fc" id="L159">      ctx.log(&quot;Found %d references.&quot;.formatted(refIds.size()));</span>
-    }
-<span class="fc bfc" id="L161" title="All 2 branches covered.">    if (refIds.isEmpty()) {</span>
-<span class="fc" id="L162">      return List.of();</span>
-    }
+<span class="fc" id="L197">  private record ResolverResult(CitationMetadataResolver resolver, ResolvedWork work) {}</span>
 
-<span class="fc" id="L165">    List&lt;OpenAlexWork&gt; resolved = openAlexService.getWorksByIds(refIds);</span>
-<span class="fc" id="L166">    Set&lt;String&gt; resolvedIds = new HashSet&lt;&gt;();</span>
-<span class="fc" id="L167">    resolved.forEach(w -&gt; resolvedIds.add(w.id()));</span>
-<span class="fc bfc" id="L168" title="All 2 branches covered.">    for (String id : refIds) {</span>
-<span class="fc bfc" id="L169" title="All 2 branches covered.">      if (!resolvedIds.contains(id)) {</span>
-<span class="fc" id="L170">        saveUnresolved(</span>
-            projectId, sourceCiteKey, Direction.REFERENCE, id, null, &quot;not_found_in_openalex&quot;);
-<span class="fc" id="L172">        ctx.log(&quot;Could not resolve reference &quot; + id + &quot; in OpenAlex.&quot;);</span>
+  /**
+   * Tries each resolver in priority order until one has a record for {@code doi}. Throws if none
+   * do, listing every resolver tried.
+   */
+  private ResolverResult resolveSourceWork(String doi, JobContext ctx) {
+<span class="fc bfc" id="L204" title="All 2 branches covered.">    for (CitationMetadataResolver resolver : resolversInPriorityOrder) {</span>
+<span class="fc" id="L205">      Optional&lt;ResolvedWork&gt; found = resolver.resolveByDoi(doi);</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">      if (found.isPresent()) {</span>
+<span class="fc" id="L207">        return new ResolverResult(resolver, found.get());</span>
       }
-<span class="fc" id="L174">    }</span>
-<span class="fc" id="L175">    return resolved;</span>
+<span class="fc" id="L209">    }</span>
+<span class="fc" id="L210">    String triedNames =</span>
+<span class="fc" id="L211">        resolversInPriorityOrder.stream()</span>
+<span class="fc" id="L212">            .map(CitationMetadataResolver::name)</span>
+<span class="fc" id="L213">            .collect(Collectors.joining(&quot;, &quot;));</span>
+<span class="fc" id="L214">    ctx.log(&quot;No record found for DOI %s in any of: %s&quot;.formatted(doi, triedNames));</span>
+<span class="fc" id="L215">    throw new IllegalStateException(&quot;No record found for DOI: &quot; + doi);</span>
   }
 
-  private List&lt;OpenAlexWork&gt; fetchCitingWorks(OpenAlexWork sourceWork, JobContext ctx) {
-<span class="fc" id="L179">    List&lt;OpenAlexWork&gt; citing = openAlexService.getWorksCiting(sourceWork.id(), MAX_RESULTS);</span>
-<span class="fc" id="L180">    ctx.log(&quot;Found %d citations (capped at %d).&quot;.formatted(citing.size(), MAX_RESULTS));</span>
-<span class="fc" id="L181">    return citing;</span>
+  /**
+   * A {@code missing_title} gap can be recovered — the stub has a DOI (that's how it was found in
+   * the first place), so any *other* resolver's exact, non-fuzzy DOI lookup is safe to try. A gap
+   * with no DOI at all (e.g. a Crossref reference item that is pure unstructured free text) has
+   * nothing any resolver's DOI lookup could use, so is not attempted — see the design doc's
+   * explicit non-goal around fuzzy/bibliographic title search.
+   */
+  private ResolvedWork tryRecoverMissingTitle(
+      ResolvedWork stub, CitationMetadataResolver discoveryResolver, JobContext ctx) {
+<span class="fc bfc" id="L227" title="All 4 branches covered.">    if (stub.doi() == null || stub.doi().isBlank()) {</span>
+<span class="fc" id="L228">      return null;</span>
+    }
+<span class="fc bfc" id="L230" title="All 2 branches covered.">    for (CitationMetadataResolver resolver : resolversInPriorityOrder) {</span>
+<span class="fc bfc" id="L231" title="All 2 branches covered.">      if (resolver == discoveryResolver) {</span>
+<span class="fc" id="L232">        continue;</span>
+      }
+<span class="fc" id="L234">      Optional&lt;ResolvedWork&gt; found = resolver.resolveByDoi(stub.doi());</span>
+<span class="fc bfc" id="L235" title="All 4 branches covered.">      if (found.isPresent() &amp;&amp; !isBlank(found.get().title())) {</span>
+<span class="fc" id="L236">        ctx.log(&quot;Recovered title for %s via %s.&quot;.formatted(stub.doi(), resolver.name()));</span>
+<span class="fc" id="L237">        return found.get();</span>
+      }
+<span class="fc" id="L239">    }</span>
+<span class="fc" id="L240">    return null;</span>
+  }
+
+  private List&lt;ResolvedWork&gt; fetchReferencedWorks(
+      CitationMetadataResolver discoveryResolver,
+      ResolvedWork sourceWork,
+      int projectId,
+      String sourceCiteKey,
+      JobContext ctx) {
+<span class="fc" id="L249">    List&lt;String&gt; nativeIds = sourceWork.referencedWorkIds();</span>
+    int totalFound =
+<span class="fc bfc" id="L251" title="All 2 branches covered.">        !nativeIds.isEmpty() ? nativeIds.size() : sourceWork.embeddedReferences().size();</span>
+<span class="fc bfc" id="L252" title="All 2 branches covered.">    if (totalFound &gt; MAX_RESULTS) {</span>
+<span class="fc" id="L253">      ctx.log(</span>
+<span class="fc" id="L254">          &quot;Found %d references; fetching only the first %d.&quot;.formatted(totalFound, MAX_RESULTS));</span>
+    } else {
+<span class="fc" id="L256">      ctx.log(&quot;Found %d references.&quot;.formatted(totalFound));</span>
+    }
+
+<span class="fc" id="L259">    List&lt;ResolvedWork&gt; resolved = discoveryResolver.getReferences(sourceWork, MAX_RESULTS);</span>
+
+    // Only OpenAlex's referenced_works is an id-list that can come back with gaps from its own
+    // batch-fetch step — Crossref/Semantic Scholar embed full works inline, so there is no
+    // &quot;id came back empty&quot; case for them to detect here (a blank title from either is instead
+    // handled per-item, in the main loop above).
+<span class="fc bfc" id="L265" title="All 2 branches covered.">    if (!nativeIds.isEmpty()) {</span>
+<span class="fc" id="L266">      List&lt;String&gt; capped = nativeIds.subList(0, Math.min(nativeIds.size(), MAX_RESULTS));</span>
+<span class="fc" id="L267">      Set&lt;String&gt; resolvedIds = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L268">      resolved.forEach(w -&gt; resolvedIds.add(w.id()));</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">      for (String id : capped) {</span>
+<span class="fc bfc" id="L270" title="All 2 branches covered.">        if (!resolvedIds.contains(id)) {</span>
+<span class="fc" id="L271">          saveUnresolved(</span>
+              projectId,
+              sourceCiteKey,
+              Direction.REFERENCE,
+<span class="fc" id="L275">              discoveryResolver.name(),</span>
+              id,
+              null,
+              null,
+              REASON_NOT_FOUND);
+<span class="fc" id="L280">          ctx.log(&quot;Could not resolve reference %s in %s.&quot;.formatted(id, discoveryResolver.name()));</span>
+        }
+<span class="fc" id="L282">      }</span>
+    }
+<span class="fc" id="L284">    return resolved;</span>
+  }
+
+  private List&lt;ResolvedWork&gt; fetchCitingWorks(
+      CitationMetadataResolver discoveryResolver, ResolvedWork sourceWork, JobContext ctx) {
+<span class="fc" id="L289">    List&lt;ResolvedWork&gt; citing = discoveryResolver.getCitations(sourceWork, MAX_RESULTS);</span>
+<span class="fc bfc" id="L290" title="All 2 branches covered.">    if (discoveryResolver == crossrefResolver) {</span>
+<span class="fc" id="L291">      ctx.log(&quot;Crossref does not provide citation data.&quot;);</span>
+    } else {
+<span class="fc" id="L293">      ctx.log(&quot;Found %d citations (capped at %d).&quot;.formatted(citing.size(), MAX_RESULTS));</span>
+    }
+<span class="fc" id="L295">    return citing;</span>
+  }
+
+  private static boolean isBlank(String value) {
+<span class="fc bfc" id="L299" title="All 4 branches covered.">    return value == null || value.isBlank();</span>
+  }
+
+  private static String describeWork(ResolvedWork work) {
+<span class="fc bfc" id="L303" title="All 2 branches covered.">    return work.id() != null ? work.id() : &quot;an unidentified reference&quot;;</span>
   }
 
   private static CitationEdge makeEdge(
       int projectId, String sourceCiteKey, String relatedCiteKey, Direction direction) {
-<span class="fc bfc" id="L186" title="All 2 branches covered.">    String citingCiteKey = direction == Direction.REFERENCE ? sourceCiteKey : relatedCiteKey;</span>
-<span class="fc bfc" id="L187" title="All 2 branches covered.">    String citedCiteKey = direction == Direction.REFERENCE ? relatedCiteKey : sourceCiteKey;</span>
-<span class="fc" id="L188">    return CitationEdge.builder()</span>
-<span class="fc" id="L189">        .id(CitationEdge.makeId(projectId, citingCiteKey, citedCiteKey))</span>
-<span class="fc" id="L190">        .projectId(projectId)</span>
-<span class="fc" id="L191">        .citingCiteKey(citingCiteKey)</span>
-<span class="fc" id="L192">        .citedCiteKey(citedCiteKey)</span>
-<span class="fc" id="L193">        .build();</span>
+<span class="fc bfc" id="L308" title="All 2 branches covered.">    String citingCiteKey = direction == Direction.REFERENCE ? sourceCiteKey : relatedCiteKey;</span>
+<span class="fc bfc" id="L309" title="All 2 branches covered.">    String citedCiteKey = direction == Direction.REFERENCE ? relatedCiteKey : sourceCiteKey;</span>
+<span class="fc" id="L310">    return CitationEdge.builder()</span>
+<span class="fc" id="L311">        .id(CitationEdge.makeId(projectId, citingCiteKey, citedCiteKey))</span>
+<span class="fc" id="L312">        .projectId(projectId)</span>
+<span class="fc" id="L313">        .citingCiteKey(citingCiteKey)</span>
+<span class="fc" id="L314">        .citedCiteKey(citedCiteKey)</span>
+<span class="fc" id="L315">        .build();</span>
   }
 
   private void saveUnresolved(
       int projectId,
       String sourceCiteKey,
       Direction direction,
-      String openAlexWorkId,
+      String resolverName,
+      String resolverWorkId,
+      String doi,
       String title,
       String reason) {
-<span class="fc" id="L203">    unresolvedCitationRepository.save(</span>
-<span class="fc" id="L204">        UnresolvedCitation.builder()</span>
-<span class="fc" id="L205">            .projectId(projectId)</span>
-<span class="fc" id="L206">            .sourceCiteKey(sourceCiteKey)</span>
-<span class="fc" id="L207">            .direction(direction.trackingLabel)</span>
-<span class="fc" id="L208">            .openAlexWorkId(openAlexWorkId)</span>
-<span class="fc" id="L209">            .title(title)</span>
-<span class="fc" id="L210">            .reason(reason)</span>
-<span class="fc" id="L211">            .discoveredAt(Instant.now())</span>
-<span class="fc" id="L212">            .build());</span>
-<span class="fc" id="L213">  }</span>
+<span class="fc" id="L327">    String id =</span>
+<span class="fc" id="L328">        UnresolvedCitation.makeId(</span>
+            projectId, sourceCiteKey, direction.trackingLabel, reason, doi, resolverWorkId, title);
+<span class="fc" id="L330">    unresolvedCitationRepository.save(</span>
+<span class="fc" id="L331">        UnresolvedCitation.builder()</span>
+<span class="fc" id="L332">            .id(id)</span>
+<span class="fc" id="L333">            .projectId(projectId)</span>
+<span class="fc" id="L334">            .sourceCiteKey(sourceCiteKey)</span>
+<span class="fc" id="L335">            .direction(direction.trackingLabel)</span>
+<span class="fc" id="L336">            .resolverName(resolverName)</span>
+<span class="fc" id="L337">            .resolverWorkId(resolverWorkId)</span>
+<span class="fc" id="L338">            .title(title)</span>
+<span class="fc" id="L339">            .reason(reason)</span>
+<span class="fc" id="L340">            .discoveredAt(Instant.now())</span>
+<span class="fc" id="L341">            .build());</span>
+<span class="fc" id="L342">  }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
