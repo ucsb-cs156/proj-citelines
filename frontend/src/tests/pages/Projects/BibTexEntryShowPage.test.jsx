@@ -114,6 +114,58 @@ describe("BibTexEntryShowPage tests", () => {
     expect(goToProjectButton).toHaveAttribute("href", "/project/1");
   });
 
+  test("shows the full DOI as a hyperlink right below the header when the entry has a DOI", async () => {
+    renderAtSmith2020();
+
+    const doiLink = await screen.findByTestId("BibTexEntryShowPage-doi-link");
+    expect(doiLink).toHaveAttribute(
+      "href",
+      "https://doi.org/10.1038/s41586-020-2649-2",
+    );
+    expect(doiLink).toHaveTextContent(
+      "https://doi.org/10.1038/s41586-020-2649-2",
+    );
+    expect(
+      screen.queryByTestId("BibTexEntryShowPage-url-link"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("shows the full URL as a hyperlink when the entry has no DOI but has a URL", async () => {
+    axiosMock
+      .onGet("/api/bibtexentries/entry")
+      .reply(200, bibTexEntriesFixtures.threeEntries[1]);
+
+    renderAtSmith2020();
+
+    const urlLink = await screen.findByTestId("BibTexEntryShowPage-url-link");
+    expect(urlLink).toHaveAttribute("href", "https://example.org/jones2019");
+    expect(urlLink).toHaveTextContent("https://example.org/jones2019");
+    expect(
+      screen.queryByTestId("BibTexEntryShowPage-doi-link"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("shows neither a DOI nor URL link when the entry has neither", async () => {
+    axiosMock.onGet("/api/bibtexentries/entry").reply(200, {
+      ...bibTexEntriesFixtures.oneEntry,
+      keyValuePairs: {
+        author: "Jane Q. Smith and John Doe",
+        title: "A Very Long Title That Goes On and On",
+        year: "2020",
+      },
+    });
+
+    renderAtSmith2020();
+
+    await screen.findByTestId("BibTexEntryShowPage-title");
+    expect(
+      screen.queryByTestId("BibTexEntryShowPage-doi-link"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("BibTexEntryShowPage-url-link"),
+    ).not.toBeInTheDocument();
+  });
+
   test("strips CITELINES_ fields out of the displayed bibtex text", async () => {
     axiosMock.reset();
     axiosMock
