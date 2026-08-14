@@ -37,21 +37,45 @@ class CitelinesApplicationTests {
         .andExpect(jsonPath("$.oauthLogin").exists());
   }
 
+  // SimpleClientHttpRequestFactory's own prepareConnection already sets
+  // instanceFollowRedirects to false for non-GET methods, so a POST request is used here to
+  // confirm noRedirectRestTemplate's override still delegates to super (which sets the HTTP
+  // method) rather than to prove that redirects end up disabled.
   @Test
-  void noRedirectRestTemplateDisablesFollowRedirectsAndDelegatesToSuper() throws Exception {
+  void noRedirectRestTemplateDelegatesToSuperPrepareConnection() throws Exception {
+    ClientHttpRequestFactory factory =
+        new CitelinesApplication().noRedirectRestTemplate().getRequestFactory();
+    HttpURLConnection connection =
+        (HttpURLConnection) new URL("http://localhost/test").openConnection();
+
+    invokePrepareConnection(factory, connection, "POST");
+
+    assertEquals("POST", connection.getRequestMethod());
+  }
+
+  // For a GET request, super's own prepareConnection would leave instanceFollowRedirects
+  // true, so only noRedirectRestTemplate's explicit override forces it false here.
+  @Test
+  void noRedirectRestTemplateForcesFollowRedirectsFalseEvenForGet() throws Exception {
     ClientHttpRequestFactory factory =
         new CitelinesApplication().noRedirectRestTemplate().getRequestFactory();
     HttpURLConnection connection =
         (HttpURLConnection) new URL("http://localhost/test").openConnection();
     connection.setInstanceFollowRedirects(true);
 
-    Class<?> factoryClass = factory.getClass();
-    Method prepareConnection =
-        factoryClass.getDeclaredMethod("prepareConnection", HttpURLConnection.class, String.class);
-    prepareConnection.setAccessible(true);
-    prepareConnection.invoke(factory, connection, "POST");
+    invokePrepareConnection(factory, connection, "GET");
 
     assertFalse(connection.getInstanceFollowRedirects());
-    assertEquals("POST", connection.getRequestMethod());
+  }
+
+  private static void invokePrepareConnection(
+      ClientHttpRequestFactory factory, HttpURLConnection connection, String httpMethod)
+      throws Exception {
+    Method prepareConnection =
+        factory
+            .getClass()
+            .getDeclaredMethod("prepareConnection", HttpURLConnection.class, String.class);
+    prepareConnection.setAccessible(true);
+    prepareConnection.invoke(factory, connection, httpMethod);
   }
 }
