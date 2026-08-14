@@ -30,7 +30,8 @@ import org.springframework.web.client.HttpServerErrorException;
  *       raise the pace's configuration variable. This satisfies API terms of service (e.g. Semantic
  *       Scholar's) that require exponential backoff on rate-limit responses. Callers whose provider
  *       is known to return bare 403s as an anti-bot measure instead of a proper 429 (e.g. {@code
- *       doi.org}) can opt every 403 into this same treatment via {@code treatAnyForbiddenAsRateLimit}.
+ *       doi.org}) can opt every 403 into this same treatment via {@code
+ *       treatAnyForbiddenAsRateLimit}.
  * </ul>
  *
  * <p>All other client errors (404 for a missing path, 401/403 for a bad token) are rethrown

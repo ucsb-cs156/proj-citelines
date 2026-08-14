@@ -270,8 +270,7 @@ public class ApiRetryHelperTests {
   }
 
   @Test
-  public void
-      with_treatAnyForbiddenAsRateLimit_a_403_without_rate_limit_in_the_body_is_retried_as_rate_limited() {
+  public void treatAnyForbiddenAsRateLimit_treats_plain_403_as_rate_limited() {
     try (MockedStatic<Sleep> sleepMock = mockStatic(Sleep.class)) {
       AtomicInteger attempts = new AtomicInteger();
       String result =
