@@ -20,4 +20,4 @@ repo_name: "TBD"
 repo: ucsb-cs156/proj-citelines
 owner: ucsb-cs156
 repo_name: proj-citelines
-pull_requests: [{"author":{"is_bot":true,"login":"app/copilot-swe-agent"},"headRefName":"copilot/improve-bibtex-entry-show-page","number":33,"title":"[WIP] Add delete entry button and relevance dropdown on BibTexEntryShowPage","url":"https://github.com/ucsb-cs156/proj-citelines/pull/33"}]
+pull_requests: [{"author":{"is_bot":true,"login":"app/copilot-swe-agent"},"headRefName":"copilot/add-check-link-job","number":35,"title":"[WIP] Add CheckLinks job and update BibTexEntryTable","url":"https://github.com/ucsb-cs156/proj-citelines/pull/35"},{"author":{"is_bot":true,"login":"app/copilot-swe-agent"},"headRefName":"copilot/improve-bibtex-entry-show-page","number":33,"title":"[WIP] Add delete entry button and relevance dropdown on BibTexEntryShowPage","url":"https://github.com/ucsb-cs156/proj-citelines/pull/33"}]
