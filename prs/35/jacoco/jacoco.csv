@@ -1,7 +1,6 @@
 GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
 citelines,edu.ucsb.cs.citelines.collections,CitationEdge,0,18,0,0,0,1,0,1,0,1
 citelines,edu.ucsb.cs.citelines.collections,UnresolvedCitation,0,54,0,6,0,7,0,4,0,1
-citelines,edu.ucsb.cs.citelines,CitelinesApplication.new SimpleClientHttpRequestFactory() {...},8,3,0,0,3,1,1,1,1,1
 citelines,edu.ucsb.cs.citelines.utilities,CanonicalFormConverter,0,15,0,0,0,3,0,3,0,3
 citelines,edu.ucsb.cs.citelines.startup,WiremockApplicationRunner,0,17,0,0,0,6,0,3,0,3
 citelines,edu.ucsb.cs.citelines.startup,ScaffoldApplicationRunner,0,14,0,0,0,5,0,3,0,3
