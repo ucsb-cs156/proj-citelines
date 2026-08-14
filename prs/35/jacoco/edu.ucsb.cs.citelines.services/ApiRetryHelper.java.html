@@ -77,9 +77,9 @@ public class ApiRetryHelper {
 
   /**
    * Like the five-arg constructor, but with {@code treatAnyForbiddenAsRateLimit} set: pass {@code
-   * true} when the provider is known to return bare 403s as an anti-bot measure instead of a
-   * proper 429 (e.g. {@code doi.org}), so that every 403 — not just ones whose body mentions &quot;rate
-   * limit&quot; — is treated as a rate-limit signal.
+   * true} when the provider is known to return bare 403s as an anti-bot measure instead of a proper
+   * 429 (e.g. {@code doi.org}), so that every 403 — not just ones whose body mentions &quot;rate limit&quot;
+   * — is treated as a rate-limit signal.
    */
   public ApiRetryHelper(
       String apiName,
