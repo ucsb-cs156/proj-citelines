@@ -128,15 +128,13 @@ public class CitationFormattingService {
   /**
    * Convenience overload of {@link #formatBibTex(String, String, String)} that formats a single
    * stored {@link BibTexEntry} rather than raw BibTeX text.
+   *
+   * @throws IOException never in practice — see {@link
+   *     BibTexConverterService#convertEntryToBibTexString}
    */
-  public String formatEntry(BibTexEntry entry, String styleFormat, String outputFormat) {
-    try {
-      String rawBibTex = bibTexConverterService.convertEntryToBibTexString(entry);
-      return formatBibTex(rawBibTex, styleFormat, outputFormat);
-    } catch (IOException e) {
-      // convertEntryToBibTexString writes to an in-memory StringWriter, which cannot fail in
-      // practice; see its Javadoc.
-      throw new IllegalArgumentException("Could not convert entry to BibTeX: " + e.getMessage(), e);
-    }
+  public String formatEntry(BibTexEntry entry, String styleFormat, String outputFormat)
+      throws IOException {
+    String rawBibTex = bibTexConverterService.convertEntryToBibTexString(entry);
+    return formatBibTex(rawBibTex, styleFormat, outputFormat);
   }
 }

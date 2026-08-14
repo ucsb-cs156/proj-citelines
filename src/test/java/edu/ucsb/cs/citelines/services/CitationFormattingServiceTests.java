@@ -40,6 +40,13 @@ class CitationFormattingServiceTests {
   }
 
   @Test
+  void formats_bibtex_using_the_default_output_format_for_a_blank_but_non_null_value() {
+    String result = citationFormattingService.formatBibTex(SINGLE_ENTRY, null, "   ");
+
+    assertEquals("Smith, J. (2020). A Great Paper. Journal of Testing.", result);
+  }
+
+  @Test
   void formats_bibtex_using_a_common_alias_case_insensitively() {
     String upper = citationFormattingService.formatBibTex(SINGLE_ENTRY, "APA", null);
     String lower = citationFormattingService.formatBibTex(SINGLE_ENTRY, "apa", null);
@@ -90,7 +97,7 @@ class CitationFormattingServiceTests {
   }
 
   @Test
-  void formats_a_stored_bibtex_entry() {
+  void formats_a_stored_bibtex_entry() throws Exception {
     BibTexEntry entry = bibTexConverterService.parseToEntries(SINGLE_ENTRY, 1).get(0);
 
     String result = citationFormattingService.formatEntry(entry, "APA", null);
@@ -123,6 +130,28 @@ class CitationFormattingServiceTests {
             IllegalArgumentException.class,
             () -> citationFormattingService.formatBibTex("not bibtex at all", "APA", null));
     assertEquals("No BibTeX entries were found in the pasted text.", ex.getMessage());
+  }
+
+  @Test
+  void throws_for_malformed_bibtex() {
+    IllegalArgumentException ex =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                citationFormattingService.formatBibTex(
+                    "@article{smith2020, author = {unterminated", "APA", null));
+    assertTrue(ex.getMessage().startsWith("Could not parse BibTeX:"));
+  }
+
+  @Test
+  void throws_for_an_unknown_style() {
+    IllegalArgumentException ex =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                citationFormattingService.formatBibTex(
+                    SINGLE_ENTRY, "this-style-does-not-exist-xyz", null));
+    assertTrue(ex.getMessage().startsWith("Could not load CSL style"));
   }
 
   @Test
