@@ -55,7 +55,7 @@ public class CrossrefResolver implements CitationMetadataResolver {
 <span class="fc" id="L55">    this.restTemplate = restTemplate;</span>
 <span class="fc" id="L56">    this.doiService = doiService;</span>
 <span class="fc" id="L57">    this.mailto = mailto;</span>
-<span class="fc" id="L58">    this.retryHelper = new ApiRetryHelper(&quot;Crossref&quot;, &quot;CROSSREF_API_DELAY_MS&quot;, 2, 3, delayMs);</span>
+<span class="fc" id="L58">    this.retryHelper = new ApiRetryHelper(&quot;Crossref&quot;, &quot;CROSSREF_API_DELAY_MS&quot;, delayMs, 5, delayMs);</span>
 <span class="fc" id="L59">  }</span>
 
   @Override
