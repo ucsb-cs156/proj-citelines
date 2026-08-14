@@ -6,6 +6,7 @@ import edu.ucsb.cs.citelines.collections.CitationEdge;
 import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
 import edu.ucsb.cs.citelines.collections.UnresolvedCitation;
 import edu.ucsb.cs.citelines.collections.UnresolvedCitationRepository;
+import edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,12 +30,13 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = &quot;CitationEdges&quot;)
 @RequestMapping(&quot;/api/citationedges&quot;)
 @RestController
-<span class="fc" id="L32">@Slf4j</span>
-<span class="fc" id="L33">public class CitationEdgesController extends ApiController {</span>
+<span class="fc" id="L33">@Slf4j</span>
+<span class="fc" id="L34">public class CitationEdgesController extends ApiController {</span>
 
   @Autowired private CitationEdgeRepository citationEdgeRepository;
   @Autowired private BibTexEntryRepository bibTexEntryRepository;
   @Autowired private UnresolvedCitationRepository unresolvedCitationRepository;
+  @Autowired private BibTexEntryCoalescingService bibTexEntryCoalescingService;
 
   @Operation(summary = &quot;List the BibTeX entries that a given entry cites&quot;)
   @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
@@ -42,12 +44,12 @@ import org.springframework.web.bind.annotation.RestController;
   public List&lt;BibTexEntry&gt; references(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;citeKey&quot;) @RequestParam String citeKey) {
-<span class="fc" id="L45">    return relatedEntries(</span>
+<span class="fc" id="L47">    return relatedEntries(</span>
         projectId,
         citationEdgeRepository
-<span class="fc" id="L48">            .findByProjectIdAndCitingCiteKey(projectId.intValue(), citeKey)</span>
-<span class="fc" id="L49">            .stream()</span>
-<span class="fc" id="L50">            .map(CitationEdge::getCitedCiteKey));</span>
+<span class="fc" id="L50">            .findByProjectIdAndCitingCiteKey(projectId.intValue(), citeKey)</span>
+<span class="fc" id="L51">            .stream()</span>
+<span class="fc" id="L52">            .map(CitationEdge::getCitedCiteKey));</span>
   }
 
   @Operation(summary = &quot;List the BibTeX entries that cite a given entry&quot;)
@@ -56,12 +58,12 @@ import org.springframework.web.bind.annotation.RestController;
   public List&lt;BibTexEntry&gt; citations(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;citeKey&quot;) @RequestParam String citeKey) {
-<span class="fc" id="L59">    return relatedEntries(</span>
+<span class="fc" id="L61">    return relatedEntries(</span>
         projectId,
         citationEdgeRepository
-<span class="fc" id="L62">            .findByProjectIdAndCitedCiteKey(projectId.intValue(), citeKey)</span>
-<span class="fc" id="L63">            .stream()</span>
-<span class="fc" id="L64">            .map(CitationEdge::getCitingCiteKey));</span>
+<span class="fc" id="L64">            .findByProjectIdAndCitedCiteKey(projectId.intValue(), citeKey)</span>
+<span class="fc" id="L65">            .stream()</span>
+<span class="fc" id="L66">            .map(CitationEdge::getCitingCiteKey));</span>
   }
 
   @Operation(
@@ -71,14 +73,31 @@ import org.springframework.web.bind.annotation.RestController;
   @GetMapping(&quot;/unresolved&quot;)
   public List&lt;UnresolvedCitation&gt; unresolved(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) {
-<span class="fc" id="L74">    return unresolvedCitationRepository.findByProjectId(projectId.intValue());</span>
+<span class="fc" id="L76">    return unresolvedCitationRepository.findByProjectId(projectId.intValue());</span>
   }
 
   private List&lt;BibTexEntry&gt; relatedEntries(Long projectId, Stream&lt;String&gt; citeKeys) {
-<span class="fc" id="L78">    return citeKeys</span>
-<span class="fc" id="L79">        .map(key -&gt; bibTexEntryRepository.findByProjectIdAndCiteKey(projectId.intValue(), key))</span>
-<span class="fc" id="L80">        .flatMap(Optional::stream)</span>
-<span class="fc" id="L81">        .toList();</span>
+<span class="fc" id="L80">    return citeKeys</span>
+<span class="fc" id="L81">        .map(key -&gt; findOneByProjectIdAndCiteKey(projectId.intValue(), key))</span>
+<span class="fc" id="L82">        .flatMap(Optional::stream)</span>
+<span class="fc" id="L83">        .toList();</span>
+  }
+
+  // Same duplicate-tolerant lookup as BibTexEntriesController#reuseExistingIdIfPresent: if more
+  // than one entry is (incorrectly) stored for a citeKey, coalesce them into one instead of
+  // letting the ambiguity surface as an IncorrectResultSizeDataAccessException.
+  private Optional&lt;BibTexEntry&gt; findOneByProjectIdAndCiteKey(int projectId, String citeKey) {
+<span class="fc" id="L90">    List&lt;BibTexEntry&gt; matches =</span>
+<span class="fc" id="L91">        bibTexEntryRepository.findAllByProjectIdAndCiteKey(projectId, citeKey);</span>
+<span class="fc bfc" id="L92" title="All 2 branches covered.">    if (matches.isEmpty()) {</span>
+<span class="fc" id="L93">      return Optional.empty();</span>
+    }
+<span class="fc" id="L95">    BibTexEntry coalesced = bibTexEntryCoalescingService.coalesce(matches);</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">    if (matches.size() &gt; 1) {</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">      List&lt;BibTexEntry&gt; duplicates = matches.stream().filter(e -&gt; e != coalesced).toList();</span>
+<span class="fc" id="L98">      bibTexEntryRepository.deleteAll(duplicates);</span>
+    }
+<span class="fc" id="L100">    return Optional.of(coalesced);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
