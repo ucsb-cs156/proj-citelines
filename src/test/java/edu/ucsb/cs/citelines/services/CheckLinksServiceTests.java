@@ -484,4 +484,74 @@ public class CheckLinksServiceTests {
     assertNull(kvp2.get("CITELINES_invalid_doi"));
     assertTrue(job.getLog().contains("Done: checked 2 links, 0 flagged as suspicious."));
   }
+
+  @Test
+  void uses_the_bare_user_agent_when_neither_repo_nor_mailto_is_configured() {
+    Map<String, String> kvp = new HashMap<>(Map.of("doi", "10.1234/good"));
+    BibTexEntry entry = entry("good2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockDoi("10.1234/good", new ResponseEntity<>("{}", HttpStatus.OK));
+
+    serviceWith("", "").checkLinks(1, ctx);
+
+    ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+    verify(noRedirectRestTemplate)
+        .exchange(
+            eq("https://doi.org/10.1234/good"),
+            eq(HttpMethod.GET),
+            captor.capture(),
+            eq(String.class));
+    assertEquals("Citelines/1.0", captor.getValue().getHeaders().getFirst(HttpHeaders.USER_AGENT));
+  }
+
+  @Test
+  void includes_both_repo_and_mailto_in_the_doi_user_agent_when_both_are_configured() {
+    Map<String, String> kvp = new HashMap<>(Map.of("doi", "10.1234/good"));
+    BibTexEntry entry = entry("good2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockDoi("10.1234/good", new ResponseEntity<>("{}", HttpStatus.OK));
+
+    serviceWith("https://github.com/ucsb-cs156/proj-citelines", "you@example.com")
+        .checkLinks(1, ctx);
+
+    ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+    verify(noRedirectRestTemplate)
+        .exchange(
+            eq("https://doi.org/10.1234/good"),
+            eq(HttpMethod.GET),
+            captor.capture(),
+            eq(String.class));
+    String userAgent = captor.getValue().getHeaders().getFirst(HttpHeaders.USER_AGENT);
+    assertEquals(
+        "Citelines/1.0 (+https://github.com/ucsb-cs156/proj-citelines; mailto:you@example.com)",
+        userAgent);
+  }
+
+  @Test
+  void does_not_flag_when_the_get_fallback_fails_with_a_non_404_error() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", "https://example.org/head-not-allowed"));
+    BibTexEntry entry = entry("nohead2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockUrlHeadThrows(
+        "https://example.org/head-not-allowed",
+        HttpClientErrorException.create(
+            HttpStatus.METHOD_NOT_ALLOWED, "Method Not Allowed", null, null, null));
+    when(restTemplate.exchange(
+            eq("https://example.org/head-not-allowed"),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(String.class)))
+        .thenThrow(
+            HttpServerErrorException.create(
+                HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", null, null, null));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(bibTexEntryRepository, never()).save(any());
+    assertTrue(
+        job.getLog()
+            .contains(
+                "Could not check URL for nohead2020 (https://example.org/head-not-allowed):"));
+  }
 }
