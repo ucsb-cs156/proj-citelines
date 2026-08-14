@@ -41,8 +41,11 @@ public class CheckLinksServiceTests {
   }
 
   private static BibTexEntry entry(String citeKey, Map<String, String> keyValuePairs) {
-    return BibTexEntry.builder().id(citeKey).projectId(1).citeKey(citeKey).keyValuePairs(
-            keyValuePairs)
+    return BibTexEntry.builder()
+        .id(citeKey)
+        .projectId(1)
+        .citeKey(citeKey)
+        .keyValuePairs(keyValuePairs)
         .build();
   }
 

@@ -196,9 +196,7 @@ public class JobsControllerTests extends ControllerTestCase {
 
   @Test
   public void logged_out_users_cannot_launch_checkLinks() throws Exception {
-    mockMvc
-        .perform(post("/api/jobs/launch/checkLinks?projectId=1"))
-        .andExpect(status().is(403));
+    mockMvc.perform(post("/api/jobs/launch/checkLinks?projectId=1")).andExpect(status().is(403));
   }
 
   @WithMockUser(

@@ -12,10 +12,10 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Orchestrates the "Check Links" job: for every {@link BibTexEntry} in a project, resolves the
- * link that {@code CitationTable}'s "Link" column shows (DOI first, URL as a backup — see the
- * frontend {@code CitationTable.jsx}) and flags entries whose link looks broken, so the UI can
- * surface a warning next to them.
+ * Orchestrates the "Check Links" job: for every {@link BibTexEntry} in a project, resolves the link
+ * that {@code CitationTable}'s "Link" column shows (DOI first, URL as a backup — see the frontend
+ * {@code CitationTable.jsx}) and flags entries whose link looks broken, so the UI can surface a
+ * warning next to them.
  *
  * <ul>
  *   <li>A DOI is flagged ({@code CITELINES_invalid_doi=True}) if {@code https://doi.org/<doi>}
@@ -52,8 +52,7 @@ public class CheckLinksService {
 
   public void checkLinks(int projectId, JobContext ctx) {
     List<BibTexEntry> entries = bibTexEntryRepository.findByProjectId(projectId);
-    ctx.log(
-        "Checking links for %d entries in project %d.".formatted(entries.size(), projectId));
+    ctx.log("Checking links for %d entries in project %d.".formatted(entries.size(), projectId));
 
     int checked = 0;
     int flagged = 0;
@@ -100,14 +99,15 @@ public class CheckLinksService {
     try {
       String body = restTemplate.getForObject(url, String.class);
       boolean invalid =
-          body != null && body.contains(DOI_NOT_FOUND_TEXT) && body.contains(DOI_NOT_FOUND_DETAIL_TEXT);
+          body != null
+              && body.contains(DOI_NOT_FOUND_TEXT)
+              && body.contains(DOI_NOT_FOUND_DETAIL_TEXT);
       if (invalid) {
         ctx.log("Invalid DOI for %s: %s".formatted(citeKey, doi));
       }
       return invalid;
     } catch (RestClientException e) {
-      ctx.log(
-          "Could not check DOI for %s (%s): %s".formatted(citeKey, doi, e.getMessage()));
+      ctx.log("Could not check DOI for %s (%s): %s".formatted(citeKey, doi, e.getMessage()));
       return false;
     }
   }
@@ -120,8 +120,7 @@ public class CheckLinksService {
       ctx.log("Invalid URL (404) for %s: %s".formatted(citeKey, url));
       return true;
     } catch (RestClientException e) {
-      ctx.log(
-          "Could not check URL for %s (%s): %s".formatted(citeKey, url, e.getMessage()));
+      ctx.log("Could not check URL for %s (%s): %s".formatted(citeKey, url, e.getMessage()));
       return false;
     }
   }
