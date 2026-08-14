@@ -18,6 +18,7 @@ import { toast } from "react-toastify";
 import CitationTable from "main/components/Citations/CitationTable";
 import BibTexEntryModal from "main/components/Citations/BibTexEntryModal";
 import BibTexEntryComments from "main/components/Citations/BibTexEntryComments";
+import BibTexEntryLink from "main/components/Citations/BibTexEntryLink";
 import {
   RELEVANCE_OPTIONS,
   extractCitelinesFields,
@@ -297,31 +298,10 @@ export default function BibTexEntryShowPage({
             {entry.citeKey}
           </h1>
 
-          {entry.keyValuePairs?.doi ? (
-            <p className="mb-3">
-              <a
-                href={`https://doi.org/${entry.keyValuePairs.doi}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-testid={`${testId}-doi-link`}
-              >
-                {`https://doi.org/${entry.keyValuePairs.doi}`}
-              </a>
-            </p>
-          ) : (
-            entry.keyValuePairs?.url && (
-              <p className="mb-3">
-                <a
-                  href={entry.keyValuePairs.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-testid={`${testId}-url-link`}
-                >
-                  {entry.keyValuePairs.url}
-                </a>
-              </p>
-            )
-          )}
+          <BibTexEntryLink
+            keyValuePairs={entry.keyValuePairs}
+            testId={testId}
+          />
 
           <Form.Group className="mb-3" style={{ maxWidth: "200px" }}>
             <Form.Label htmlFor={`${testId}-relevance-select`}>
