@@ -6,6 +6,7 @@ import edu.ucsb.cs156.jobs.services.JobContext;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
@@ -27,6 +28,11 @@ import org.springframework.web.client.RestTemplate;
  *
  * Entries with neither a DOI nor a URL are skipped. A previously-set flag is cleared if the link
  * now resolves cleanly.
+ *
+ * <p>Like {@link OpenAlexService} and the other {@code CitationMetadataResolver}s, every link
+ * fetch is paced and retried through {@link ApiRetryHelper}, using {@code
+ * citelines.api.delay-ms}/{@code CITELINES_API_DELAY_MS} both as the minimum gap between calls and
+ * as the starting delay for exponential backoff on 5xx errors and rate-limit (429) responses.
  */
 @Slf4j
 @Service
@@ -44,10 +50,17 @@ public class CheckLinksService {
 
   private final BibTexEntryRepository bibTexEntryRepository;
   private final RestTemplate restTemplate;
+  private final ApiRetryHelper retryHelper;
 
-  public CheckLinksService(BibTexEntryRepository bibTexEntryRepository, RestTemplate restTemplate) {
+  public CheckLinksService(
+      BibTexEntryRepository bibTexEntryRepository,
+      RestTemplate restTemplate,
+      @Value("${citelines.api.delay-ms:100}") int citelinesApiDelayMs) {
     this.bibTexEntryRepository = bibTexEntryRepository;
     this.restTemplate = restTemplate;
+    this.retryHelper =
+        new ApiRetryHelper(
+            "CheckLinks", "CITELINES_API_DELAY_MS", citelinesApiDelayMs, 5, citelinesApiDelayMs);
   }
 
   public void checkLinks(int projectId, JobContext ctx) {
@@ -97,7 +110,8 @@ public class CheckLinksService {
   private boolean isInvalidDoi(String doi, String citeKey, JobContext ctx) {
     String url = "https://doi.org/" + doi;
     try {
-      String body = restTemplate.getForObject(url, String.class);
+      String body =
+          retryHelper.execute("GET " + url, () -> restTemplate.getForObject(url, String.class));
       boolean invalid =
           body != null
               && body.contains(DOI_NOT_FOUND_TEXT)
@@ -106,7 +120,7 @@ public class CheckLinksService {
         ctx.log("Invalid DOI for %s: %s".formatted(citeKey, doi));
       }
       return invalid;
-    } catch (RestClientException e) {
+    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {
       ctx.log("Could not check DOI for %s (%s): %s".formatted(citeKey, doi, e.getMessage()));
       return false;
     }
@@ -114,12 +128,12 @@ public class CheckLinksService {
 
   private boolean isInvalidUrl(String url, String citeKey, JobContext ctx) {
     try {
-      restTemplate.getForObject(url, String.class);
+      retryHelper.execute("GET " + url, () -> restTemplate.getForObject(url, String.class));
       return false;
     } catch (HttpClientErrorException.NotFound e) {
       ctx.log("Invalid URL (404) for %s: %s".formatted(citeKey, url));
       return true;
-    } catch (RestClientException e) {
+    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {
       ctx.log("Could not check URL for %s (%s): %s".formatted(citeKey, url, e.getMessage()));
       return false;
     }

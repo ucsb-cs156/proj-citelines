@@ -38,7 +38,7 @@ public class CheckLinksServiceTests {
   void setup() {
     bibTexEntryRepository = mock(BibTexEntryRepository.class);
     restTemplate = mock(RestTemplate.class);
-    checkLinksService = new CheckLinksService(bibTexEntryRepository, restTemplate);
+    checkLinksService = new CheckLinksService(bibTexEntryRepository, restTemplate, 0);
     job = Job.builder().build();
     ctx = new JobContext(null, job);
   }
