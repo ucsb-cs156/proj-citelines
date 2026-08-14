@@ -281,7 +281,9 @@
             <exclude>**/${app.packagePath}/services/CurrentUserServiceImpl.*</exclude>
             <exclude>**/${app.packagePath}/services/GrantedAuthoritiesService.*</exclude>
             <exclude>**/${app.packagePath}/services/GoogleSignInServiceImpl.*</exclude>
-            <exclude>**/${app.packagePath}/CitelinesApplication.*</exclude>
+            <!-- The trailing "*" (not ".*") is needed so this also excludes anonymous inner
+                 classes, e.g. CitelinesApplication$1.class for the request-factory override. -->
+            <exclude>**/${app.packagePath}/CitelinesApplication*</exclude>
           </excludes>
         </configuration>
         <executions>
