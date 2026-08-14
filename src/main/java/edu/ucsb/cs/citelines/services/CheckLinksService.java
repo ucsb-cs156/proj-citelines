@@ -101,10 +101,12 @@ public class CheckLinksService {
     this.doiUserAgent = buildDoiUserAgent(sourceRepo, mailto);
   }
 
+  // sourceRepo/mailto are always non-null here: the constructor's @Value defaults resolve to ""
+  // rather than null, so only isBlank() (not a null-check) needs to be tested.
   private static String buildDoiUserAgent(String sourceRepo, String mailto) {
     StringBuilder userAgent = new StringBuilder("Citelines/1.0");
-    boolean hasSourceRepo = sourceRepo != null && !sourceRepo.isBlank();
-    boolean hasMailto = mailto != null && !mailto.isBlank();
+    boolean hasSourceRepo = !sourceRepo.isBlank();
+    boolean hasMailto = !mailto.isBlank();
     if (hasSourceRepo || hasMailto) {
       userAgent.append(" (");
       if (hasSourceRepo) {
