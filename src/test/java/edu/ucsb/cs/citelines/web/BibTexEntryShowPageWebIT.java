@@ -16,8 +16,8 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 /**
  * Verifies the BibTexEntryShowPage end to end: navigating to it from the Citations tab, its raw
  * (non-editable) BibTeX display, the Get References/Get Citations buttons and their tooltips, that
- * launching a job shows up on the project's Jobs tab, and the page's four independently
- * collapsible cards (BibTex Entry, Comments, References, Citations — see issue #38).
+ * launching a job shows up on the project's Jobs tab, and the page's four independently collapsible
+ * cards (BibTex Entry, Comments, References, Citations — see issue #38).
  *
  * <p>The pasted entry deliberately has no DOI, so the launched job fails immediately with a clear,
  * local error (no live network call to OpenAlex) — keeping this test fast and hermetic, matching
