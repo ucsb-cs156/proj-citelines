@@ -1,0 +1,3331 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>SemanticScholarResolver.java</h1>
+
+<table class="src">
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package edu.ucsb.cs.citelines.services;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.fasterxml.jackson.core.JsonProcessingException;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.fasterxml.jackson.databind.JsonNode;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import com.fasterxml.jackson.databind.ObjectMapper;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.ArrayList;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.List;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.Optional;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import lombok.extern.slf4j.Slf4j;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.beans.factory.annotation.Value;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.http.HttpEntity;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.http.HttpHeaders;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.http.HttpMethod;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.http.ResponseEntity;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.stereotype.Service;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.client.HttpClientErrorException;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.client.RestTemplate;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_19'/>
+19
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_19'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Client for the Semantic Scholar Graph API (https://api.semanticscholar.org/graph/v1, an optional</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * API key raises the rate limit &#8212; see {@code docs/README_API_CONFIG.md}), tried after OpenAlex in</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_22'/>
+22
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_22'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * the resolver chain &#8212; see {@code docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md}.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_23'/>
+23
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_23'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_24'/>
+24
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_24'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;p&#62;Unlike OpenAlex, a single call returns both {@code references} and {@code citations} inline</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_25'/>
+25
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_25'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * (requested via the {@code fields} query parameter), so {@link #getReferences}/{@link</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_26'/>
+26
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_26'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * #getCitations} need no extra network call beyond the one that resolved the source work &#8212; they</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_27'/>
+27
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_27'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * just return what {@link #resolveByDoi} already parsed. Both fields come back as JSON {@code null}</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_28'/>
+28
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_28'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * (not an empty array) for a publisher-restricted paper &#8212; confirmed against the live API &#8212; so</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_29'/>
+29
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_29'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * parsing must null-check, not just empty-check.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_30'/>
+30
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_30'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_31'/>
+31
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_31'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>@Slf4j</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_32'/>
+32
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_32'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>@Service</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_33'/>
+33
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_33'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>public class SemanticScholarResolver implements CitationMetadataResolver {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_34'/>
+34
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_34'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_35'/>
+35
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_35'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private static final String BASE_URL = &#34;https://api.semanticscholar.org/graph/v1/paper&#34;;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_36'/>
+36
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_36'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private static final String FIELDS =</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_37'/>
+37
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_37'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      &#34;title,year,venue,externalIds,publicationTypes,authors,&#34;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_38'/>
+38
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_38'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          + &#34;references.title,references.year,references.externalIds,references.authors,references.venue,&#34;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_39'/>
+39
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_39'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          + &#34;citations.title,citations.year,citations.externalIds,citations.authors,citations.venue&#34;;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_40'/>
+40
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_40'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_41'/>
+41
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_41'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private final RestTemplate restTemplate;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_42'/>
+42
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_42'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private final DOIService doiService;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_43'/>
+43
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_43'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private final String apiKey;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_44'/>
+44
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_44'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private final ApiRetryHelper retryHelper;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_45'/>
+45
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_45'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  private final ObjectMapper objectMapper = new ObjectMapper();</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_46'/>
+46
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_46'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_47'/>
+47
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_47'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public SemanticScholarResolver(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_48'/>
+48
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_48'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      RestTemplate restTemplate,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_49'/>
+49
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_49'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      DOIService doiService,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_50'/>
+50
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_50'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @Value(&#34;${citelines.api.semanticscholar.delay-ms:100}&#34;) int delayMs,</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_51'/>
+51
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_51'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      @Value(&#34;${citelines.api.semanticscholar.api-key:}&#34;) String apiKey) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_52'/>
+52
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_52'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    this.restTemplate = restTemplate;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_53'/>
+53
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_53'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    this.doiService = doiService;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_54'/>
+54
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_54'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    this.apiKey = apiKey;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_55'/>
+55
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_55'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    this.retryHelper =</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_56'/>
+56
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_56'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        new ApiRetryHelper(&#34;SemanticScholar&#34;, &#34;SEMANTIC_SCHOLAR_API_DELAY_MS&#34;, 2, 3, delayMs);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_57'/>
+57
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_57'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_58'/>
+58
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_58'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_59'/>
+59
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_59'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Override</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_60'/>
+60
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_60'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public String name() {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_61'/>
+61
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_61'>1</a>
+<span>
+1. name : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::name &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return &#34;SemanticScholar&#34;;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_62'/>
+62
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_62'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_63'/>
+63
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_63'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_64'/>
+64
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_64'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Override</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_65'/>
+65
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_65'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public Optional&#60;ResolvedWork&#62; resolveByDoi(String doi) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_66'/>
+66
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_66'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    String url = BASE_URL + &#34;/DOI:&#34; + doi + &#34;?fields=&#34; + FIELDS;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_67'/>
+67
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_67'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    HttpEntity&#60;Void&#62; request = new HttpEntity&#60;&#62;(headers());</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_68'/>
+68
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_68'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    try {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_69'/>
+69
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_69'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      String body =</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_70'/>
+70
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_70'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>          retryHelper.execute(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_71'/>
+71
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_71'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>              &#34;GET /paper/DOI:&#34; + doi,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_72'/>
+72
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_72'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>              () -&#62; {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_73'/>
+73
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_73'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>                ResponseEntity&#60;String&#62; response =</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_74'/>
+74
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_74'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>                    restTemplate.exchange(url, HttpMethod.GET, request, String.class);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_75'/>
+75
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_75'>1</a>
+<span>
+1. lambda$resolveByDoi$0 : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::lambda$resolveByDoi$0 &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>                return response.getBody();</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_76'/>
+76
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_76'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>              });</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_77'/>
+77
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_77'>1</a>
+<span>
+1. resolveByDoi : replaced return value with Optional.empty for edu/ucsb/cs/citelines/services/SemanticScholarResolver::resolveByDoi &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      return Optional.of(parseWork(readTree(body)));</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_78'/>
+78
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_78'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    } catch (HttpClientErrorException.NotFound e) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_79'/>
+79
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_79'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      return Optional.empty();</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_80'/>
+80
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_80'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_81'/>
+81
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_81'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_82'/>
+82
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_82'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_83'/>
+83
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_83'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Override</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_84'/>
+84
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_84'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public List&#60;ResolvedWork&#62; getReferences(ResolvedWork sourceWork, int maxResults) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_85'/>
+85
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_85'>1</a>
+<span>
+1. getReferences : replaced return value with Collections.emptyList for edu/ucsb/cs/citelines/services/SemanticScholarResolver::getReferences &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return cap(sourceWork.embeddedReferences(), maxResults);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_86'/>
+86
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_86'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_87'/>
+87
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_87'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_88'/>
+88
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_88'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Override</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_89'/>
+89
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_89'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public List&#60;ResolvedWork&#62; getCitations(ResolvedWork sourceWork, int maxResults) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_90'/>
+90
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_90'>1</a>
+<span>
+1. getCitations : replaced return value with Collections.emptyList for edu/ucsb/cs/citelines/services/SemanticScholarResolver::getCitations &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return cap(sourceWork.embeddedCitations(), maxResults);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_91'/>
+91
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_91'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_92'/>
+92
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_92'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_93'/>
+93
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_93'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private static List&#60;ResolvedWork&#62; cap(List&#60;ResolvedWork&#62; works, int maxResults) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_94'/>
+94
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_94'>1</a>
+<span>
+1. cap : replaced return value with Collections.emptyList for edu/ucsb/cs/citelines/services/SemanticScholarResolver::cap &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return works.subList(0, Math.min(works.size(), maxResults));</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_95'/>
+95
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_95'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_96'/>
+96
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_96'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_97'/>
+97
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_97'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private HttpHeaders headers() {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_98'/>
+98
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_98'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    HttpHeaders headers = new HttpHeaders();</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_99'/>
+99
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_99'>2</a>
+<span>
+1. headers : negated conditional &rarr; KILLED<br/>
+2. headers : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (apiKey != null &#38;&#38; !apiKey.isBlank()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_100'/>
+100
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_100'>1</a>
+<span>
+1. headers : removed call to org/springframework/http/HttpHeaders::set &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      headers.set(&#34;x-api-key&#34;, apiKey);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_101'/>
+101
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_101'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_102'/>
+102
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_102'>1</a>
+<span>
+1. headers : replaced return value with null for edu/ucsb/cs/citelines/services/SemanticScholarResolver::headers &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return headers;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_103'/>
+103
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_103'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_104'/>
+104
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_104'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_105'/>
+105
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_105'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private ResolvedWork parseWork(JsonNode node) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_106'/>
+106
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_106'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    List&#60;String&#62; authorNames = new ArrayList&#60;&#62;();</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_107'/>
+107
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_107'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    for (JsonNode author : node.path(&#34;authors&#34;)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_108'/>
+108
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_108'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      String name = textOrNull(author, &#34;name&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_109'/>
+109
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_109'>1</a>
+<span>
+1. parseWork : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      if (name != null) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_110'/>
+110
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_110'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        authorNames.add(name);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_111'/>
+111
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_111'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_112'/>
+112
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_112'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_113'/>
+113
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_113'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_114'/>
+114
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_114'>1</a>
+<span>
+1. parseWork : replaced return value with null for edu/ucsb/cs/citelines/services/SemanticScholarResolver::parseWork &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return new ResolvedWork(</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_115'/>
+115
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_115'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        textOrNull(node, &#34;paperId&#34;),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_116'/>
+116
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_116'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        normalizeDoiOrNull(textOrNull(node.path(&#34;externalIds&#34;), &#34;DOI&#34;)),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_117'/>
+117
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_117'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        textOrNull(node, &#34;title&#34;),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_118'/>
+118
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_118'>1</a>
+<span>
+1. parseWork : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        node.path(&#34;year&#34;).isInt() ? node.path(&#34;year&#34;).asInt() : null,</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_119'/>
+119
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_119'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        translateType(node.path(&#34;publicationTypes&#34;)),</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_120'/>
+120
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_120'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        authorNames,</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_121'/>
+121
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_121'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        textOrNull(node, &#34;venue&#34;),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_122'/>
+122
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_122'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        List.of(),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_123'/>
+123
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_123'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        parseEmbeddedList(node.path(&#34;references&#34;)),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_124'/>
+124
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_124'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        parseEmbeddedList(node.path(&#34;citations&#34;)));</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_125'/>
+125
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_125'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_126'/>
+126
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_126'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_127'/>
+127
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_127'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // A reference/citation item shares its parent&#39;s shape, minus publicationTypes (never requested</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_128'/>
+128
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_128'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // for embedded items) and referenced/citing lists of its own (this project only needs one hop).</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_129'/>
+129
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_129'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private ResolvedWork parseEmbeddedItem(JsonNode node) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_130'/>
+130
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_130'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    List&#60;String&#62; authorNames = new ArrayList&#60;&#62;();</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_131'/>
+131
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_131'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    for (JsonNode author : node.path(&#34;authors&#34;)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_132'/>
+132
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_132'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      String name = textOrNull(author, &#34;name&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_133'/>
+133
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_133'>1</a>
+<span>
+1. parseEmbeddedItem : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      if (name != null) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_134'/>
+134
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_134'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        authorNames.add(name);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_135'/>
+135
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_135'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_136'/>
+136
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_136'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_137'/>
+137
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_137'>1</a>
+<span>
+1. parseEmbeddedItem : replaced return value with null for edu/ucsb/cs/citelines/services/SemanticScholarResolver::parseEmbeddedItem &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return new ResolvedWork(</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_138'/>
+138
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_138'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        textOrNull(node, &#34;paperId&#34;),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_139'/>
+139
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_139'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        normalizeDoiOrNull(textOrNull(node.path(&#34;externalIds&#34;), &#34;DOI&#34;)),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_140'/>
+140
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_140'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        textOrNull(node, &#34;title&#34;),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_141'/>
+141
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_141'>1</a>
+<span>
+1. parseEmbeddedItem : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        node.path(&#34;year&#34;).isInt() ? node.path(&#34;year&#34;).asInt() : null,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_142'/>
+142
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_142'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        null,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_143'/>
+143
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_143'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        authorNames,</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_144'/>
+144
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_144'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        textOrNull(node, &#34;venue&#34;),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_145'/>
+145
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_145'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        List.of(),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_146'/>
+146
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_146'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        List.of(),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_147'/>
+147
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_147'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        List.of());</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_148'/>
+148
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_148'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_149'/>
+149
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_149'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_150'/>
+150
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_150'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // `references`/`citations` are JSON null (not []) when the publisher has restricted them.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_151'/>
+151
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_151'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private List&#60;ResolvedWork&#62; parseEmbeddedList(JsonNode arrayNode) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_152'/>
+152
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_152'>2</a>
+<span>
+1. parseEmbeddedList : negated conditional &rarr; KILLED<br/>
+2. parseEmbeddedList : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (arrayNode.isMissingNode() || arrayNode.isNull()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_153'/>
+153
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_153'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      return List.of();</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_154'/>
+154
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_154'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_155'/>
+155
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_155'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    List&#60;ResolvedWork&#62; works = new ArrayList&#60;&#62;();</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_156'/>
+156
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_156'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    for (JsonNode item : arrayNode) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_157'/>
+157
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_157'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      works.add(parseEmbeddedItem(item));</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_158'/>
+158
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_158'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_159'/>
+159
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_159'>1</a>
+<span>
+1. parseEmbeddedList : replaced return value with Collections.emptyList for edu/ucsb/cs/citelines/services/SemanticScholarResolver::parseEmbeddedList &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return works;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_160'/>
+160
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_160'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_161'/>
+161
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_161'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_162'/>
+162
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_162'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // publicationTypes is a list (e.g. [&#34;JournalArticle&#34;,&#34;Conference&#34;]); translated to the single</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_163'/>
+163
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_163'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // OpenAlex-style vocabulary string BibTexSynthesisService&#39;s ENTRY_TYPE_MAP understands, in</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_164'/>
+164
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_164'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // priority order. An unmapped/absent set of types falls back to &#34;misc&#34; there, same as Crossref.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_165'/>
+165
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_165'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private static String translateType(JsonNode publicationTypes) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_166'/>
+166
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_166'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    List&#60;String&#62; types = new ArrayList&#60;&#62;();</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_167'/>
+167
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_167'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    for (JsonNode t : publicationTypes) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_168'/>
+168
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_168'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      types.add(t.asText());</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_169'/>
+169
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_169'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_170'/>
+170
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_170'>1</a>
+<span>
+1. translateType : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (types.contains(&#34;Conference&#34;)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_171'/>
+171
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_171'>1</a>
+<span>
+1. translateType : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::translateType &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      return &#34;proceedings-article&#34;;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_172'/>
+172
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_172'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_173'/>
+173
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_173'>1</a>
+<span>
+1. translateType : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (types.contains(&#34;JournalArticle&#34;)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_174'/>
+174
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_174'>1</a>
+<span>
+1. translateType : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::translateType &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      return &#34;article&#34;;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_175'/>
+175
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_175'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_176'/>
+176
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_176'>1</a>
+<span>
+1. translateType : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (types.contains(&#34;Book&#34;)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_177'/>
+177
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_177'>1</a>
+<span>
+1. translateType : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::translateType &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      return &#34;book&#34;;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_178'/>
+178
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_178'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_179'/>
+179
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_179'>1</a>
+<span>
+1. translateType : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::translateType &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return null;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_180'/>
+180
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_180'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_181'/>
+181
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_181'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_182'/>
+182
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_182'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private String normalizeDoiOrNull(String rawDoi) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_183'/>
+183
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_183'>1</a>
+<span>
+1. normalizeDoiOrNull : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (rawDoi == null) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_184'/>
+184
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_184'>1</a>
+<span>
+1. normalizeDoiOrNull : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::normalizeDoiOrNull &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      return null;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_185'/>
+185
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_185'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_186'/>
+186
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_186'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    try {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_187'/>
+187
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_187'>1</a>
+<span>
+1. normalizeDoiOrNull : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::normalizeDoiOrNull &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      return doiService.normalizeRawDOI(rawDoi);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_188'/>
+188
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_188'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    } catch (IllegalArgumentException e) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_189'/>
+189
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_189'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      log.debug(&#34;Could not normalize DOI from Semantic Scholar: {}&#34;, rawDoi);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_190'/>
+190
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_190'>1</a>
+<span>
+1. normalizeDoiOrNull : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::normalizeDoiOrNull &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      return null;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_191'/>
+191
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_191'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_192'/>
+192
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_192'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_193'/>
+193
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_193'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_194'/>
+194
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_194'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private static String textOrNull(JsonNode node, String field) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_195'/>
+195
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_195'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    JsonNode child = node.path(field);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_196'/>
+196
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_196'>3</a>
+<span>
+1. textOrNull : negated conditional &rarr; KILLED<br/>
+2. textOrNull : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::textOrNull &rarr; KILLED<br/>
+3. textOrNull : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return child.isMissingNode() || child.isNull() ? null : child.asText();</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_197'/>
+197
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_197'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_198'/>
+198
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_198'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_199'/>
+199
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_199'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private JsonNode readTree(String json) {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_200'/>
+200
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_200'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    try {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_201'/>
+201
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_201'>1</a>
+<span>
+1. readTree : replaced return value with null for edu/ucsb/cs/citelines/services/SemanticScholarResolver::readTree &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      return objectMapper.readTree(json);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_202'/>
+202
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_202'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    } catch (JsonProcessingException e) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_203'/>
+203
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_203'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      throw new IllegalStateException(&#34;Could not parse Semantic Scholar API response as JSON&#34;, e);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_204'/>
+204
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_204'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_205'/>
+205
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_205'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@4d76f990_206'/>
+206
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_206'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_61'>61</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_61'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>name<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:name_is_SemanticScholar()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::name &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_75'>75</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_75'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>lambda$resolveByDoi$0<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:throws_a_clear_error_when_the_response_body_is_not_valid_json()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::lambda$resolveByDoi$0 &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_77'>77</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_77'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>resolveByDoi<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:a_missing_externalIds_field_parses_with_a_null_doi()]</span></span> replaced return value with Optional.empty for edu/ucsb/cs/citelines/services/SemanticScholarResolver::resolveByDoi &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_85'>85</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_85'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>getReferences<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:getReferences_returns_the_embedded_references_with_no_extra_network_call()]</span></span> replaced return value with Collections.emptyList for edu/ucsb/cs/citelines/services/SemanticScholarResolver::getReferences &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_90'>90</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_90'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>getCitations<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:getCitations_returns_the_embedded_citations_with_no_extra_network_call()]</span></span> replaced return value with Collections.emptyList for edu/ucsb/cs/citelines/services/SemanticScholarResolver::getCitations &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_94'>94</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_94'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>cap<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:getReferences_returns_the_embedded_references_with_no_extra_network_call()]</span></span> replaced return value with Collections.emptyList for edu/ucsb/cs/citelines/services/SemanticScholarResolver::cap &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_99'>99</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_99'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>headers<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:no_x_api_key_header_is_sent_when_not_configured()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>headers<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_x_api_key_header_is_sent_when_configured()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_100'>100</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_100'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>headers<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_x_api_key_header_is_sent_when_configured()]</span></span> removed call to org/springframework/http/HttpHeaders::set &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_102'>102</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_102'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>headers<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_x_api_key_header_is_sent_when_configured()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/services/SemanticScholarResolver::headers &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_109'>109</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_109'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>parseWork<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:skips_an_author_with_no_name_field()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_114'>114</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_114'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>parseWork<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:a_missing_externalIds_field_parses_with_a_null_doi()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/services/SemanticScholarResolver::parseWork &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_118'>118</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_118'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>parseWork<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:resolveByDoi_parses_the_work_with_both_embedded_directions()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_133'>133</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_133'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>parseEmbeddedItem<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:skips_an_author_with_no_name_field()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_137'>137</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_137'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>parseEmbeddedItem<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_embedded_item_with_no_year_field_parses_with_a_null_year()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/services/SemanticScholarResolver::parseEmbeddedItem &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_141'>141</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_141'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>parseEmbeddedItem<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_embedded_item_with_no_year_field_parses_with_a_null_year()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_152'>152</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_152'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>parseEmbeddedList<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_embedded_item_with_no_year_field_parses_with_a_null_year()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>parseEmbeddedList<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_embedded_item_with_no_year_field_parses_with_a_null_year()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_159'>159</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_159'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>parseEmbeddedList<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_embedded_item_with_no_year_field_parses_with_a_null_year()]</span></span> replaced return value with Collections.emptyList for edu/ucsb/cs/citelines/services/SemanticScholarResolver::parseEmbeddedList &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_170'>170</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_170'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>translateType<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:publicationTypes_conference_maps_to_proceedings_article()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_171'>171</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_171'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>translateType<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:publicationTypes_conference_maps_to_proceedings_article()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::translateType &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_173'>173</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_173'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>translateType<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:a_missing_publicationTypes_field_parses_as_a_null_type()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_174'>174</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_174'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>translateType<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:resolveByDoi_parses_the_work_with_both_embedded_directions()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::translateType &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_176'>176</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_176'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>translateType<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:publicationTypes_book_maps_to_book_when_no_conference_or_journalArticle()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_177'>177</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_177'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>translateType<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:publicationTypes_book_maps_to_book_when_no_conference_or_journalArticle()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::translateType &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_179'>179</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_179'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>translateType<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:a_missing_publicationTypes_field_parses_as_a_null_type()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::translateType &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_183'>183</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_183'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>normalizeDoiOrNull<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_embedded_citation_parses_correctly()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_184'>184</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_184'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>normalizeDoiOrNull<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:a_missing_externalIds_field_parses_with_a_null_doi()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::normalizeDoiOrNull &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_187'>187</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_187'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>normalizeDoiOrNull<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_embedded_citation_parses_correctly()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::normalizeDoiOrNull &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_190'>190</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_190'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>normalizeDoiOrNull<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_unparseable_doi_is_dropped_rather_than_kept_raw()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::normalizeDoiOrNull &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_196'>196</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_196'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>textOrNull<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_explicit_json_null_title_parses_as_null()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>textOrNull<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_explicit_json_null_title_parses_as_null()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/SemanticScholarResolver::textOrNull &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>3.<span><b>3</b><br/><b>Location : </b>textOrNull<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_embedded_reference_with_no_doi_still_parses_its_other_fields()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@4d76f990_201'>201</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@4d76f990_201'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>readTree<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:a_missing_externalIds_field_parses_with_a_null_doi()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/services/SemanticScholarResolver::readTree &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+<li class='mutator'>EMPTY_RETURNS</li>
+<li class='mutator'>FALSE_RETURNS</li>
+<li class='mutator'>INCREMENTS</li>
+<li class='mutator'>INVERT_NEGS</li>
+<li class='mutator'>MATH</li>
+<li class='mutator'>NEGATE_CONDITIONALS</li>
+<li class='mutator'>NULL_RETURNS</li>
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+<li class='mutator'>TRUE_RETURNS</li>
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:a_missing_externalIds_field_parses_with_a_null_doi()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:publicationTypes_conference_maps_to_proceedings_article()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:no_x_api_key_header_is_sent_when_not_configured()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_explicit_json_null_title_parses_as_null()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:a_missing_publicationTypes_field_parses_as_a_null_type()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_x_api_key_header_is_sent_when_configured()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:publicationTypes_book_maps_to_book_when_no_conference_or_journalArticle()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_unrecognized_publicationTypes_set_parses_as_a_null_type()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:a_null_api_key_sends_no_x_api_key_header()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_embedded_item_with_no_year_field_parses_with_a_null_year()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:getReferences_returns_the_embedded_references_with_no_extra_network_call()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:getReferences_caps_to_maxResults()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_embedded_reference_with_no_doi_still_parses_its_other_fields()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:skips_an_author_with_no_name_field()] (3 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_embedded_citation_parses_correctly()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:getCitations_returns_the_embedded_citations_with_no_extra_network_call()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:resolveByDoi_parses_the_work_with_both_embedded_directions()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_unparseable_doi_is_dropped_rather_than_kept_raw()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:a_missing_references_field_parses_as_an_empty_list()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:references_and_citations_null_for_a_publisher_restricted_paper_parse_as_empty_lists()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:throws_a_clear_error_when_the_response_body_is_not_valid_json()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:resolveByDoi_returns_empty_on_404()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:getReferences_returns_an_empty_list_when_embeddedReferences_is_empty()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:name_is_SemanticScholar()] (0 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.17.0
+
+</body>
+</html>

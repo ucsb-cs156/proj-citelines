@@ -1,0 +1,3937 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>BibTexEntriesController.java</h1>
+
+<table class="src">
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package edu.ucsb.cs.citelines.controller;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import edu.ucsb.cs.citelines.collections.BibTexEntry;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import edu.ucsb.cs.citelines.collections.CitationEdge;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import edu.ucsb.cs.citelines.errors.EntityNotFoundException;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import edu.ucsb.cs.citelines.services.BibTexConverterService;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import io.swagger.v3.oas.annotations.Operation;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import io.swagger.v3.oas.annotations.Parameter;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import io.swagger.v3.oas.annotations.tags.Tag;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.io.IOException;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.List;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import lombok.extern.slf4j.Slf4j;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.beans.factory.annotation.Autowired;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.http.MediaType;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.http.ResponseEntity;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_19'/>
+19
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_19'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.security.access.prepost.PreAuthorize;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.bind.annotation.DeleteMapping;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.bind.annotation.GetMapping;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_22'/>
+22
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_22'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.bind.annotation.PostMapping;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_23'/>
+23
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_23'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.bind.annotation.PutMapping;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_24'/>
+24
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_24'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.bind.annotation.RequestBody;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_25'/>
+25
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_25'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.bind.annotation.RequestMapping;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_26'/>
+26
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_26'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.bind.annotation.RequestParam;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_27'/>
+27
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_27'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.bind.annotation.RestController;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_28'/>
+28
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_28'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_29'/>
+29
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_29'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_30'/>
+30
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_30'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * CRUD endpoints for BibTeX citation entries, stored in MongoDB and scoped to a Project. All</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_31'/>
+31
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_31'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * operations are available to a project&#39;s owner and its collaborators alike (matching how they</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_32'/>
+32
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_32'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * jointly manage other project content) &#8212; only managing the collaborator list itself is owner-only</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_33'/>
+33
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_33'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * (see ProjectCollaboratorsController).</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_34'/>
+34
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_34'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_35'/>
+35
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_35'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>@Tag(name = &#34;BibTexEntries&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_36'/>
+36
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_36'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>@RequestMapping(&#34;/api/bibtexentries&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_37'/>
+37
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_37'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>@RestController</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_38'/>
+38
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_38'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>@Slf4j</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_39'/>
+39
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_39'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>public class BibTexEntriesController extends ApiController {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_40'/>
+40
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_40'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_41'/>
+41
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_41'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Autowired private BibTexEntryRepository bibTexEntryRepository;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_42'/>
+42
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_42'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_43'/>
+43
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_43'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Autowired private BibTexConverterService bibTexConverterService;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_44'/>
+44
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_44'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_45'/>
+45
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_45'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Autowired private CitationEdgeRepository citationEdgeRepository;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_46'/>
+46
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_46'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_47'/>
+47
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_47'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Autowired private BibTexEntryCoalescingService bibTexEntryCoalescingService;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_48'/>
+48
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_48'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_49'/>
+49
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_49'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_50'/>
+50
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_50'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * Parses pasted BibTeX text (which may contain more than one entry) and saves the resulting</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_51'/>
+51
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_51'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * entries. An entry whose citeKey already exists for this project updates that entry rather than</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_52'/>
+52
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_52'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * creating a duplicate (see {@link #reuseExistingIdIfPresent}).</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_53'/>
+53
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_53'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_54'/>
+54
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_54'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * &#60;p&#62;If {@code relatedCiteKey} and {@code relationship} are both provided, a {@link CitationEdge}</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_55'/>
+55
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_55'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * is also recorded between {@code relatedCiteKey} and each newly saved entry, so that a citation</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_56'/>
+56
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_56'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * the external APIs failed to find can be entered manually from the BibTexEntryShowPage (see</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_57'/>
+57
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_57'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * issue #24). When {@code relationship} is {@code &#34;reference&#34;} the related entry is treated as</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_58'/>
+58
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_58'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * citing the new entries; when it is {@code &#34;citation&#34;} the new entries are treated as citing the</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_59'/>
+59
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_59'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * related entry.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_60'/>
+60
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_60'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_61'/>
+61
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_61'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param projectId the project the entries belong to</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_62'/>
+62
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_62'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param relatedCiteKey the citeKey of the entry to link the new entries to, if any</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_63'/>
+63
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_63'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param relationship {@code &#34;reference&#34;} or {@code &#34;citation&#34;}, if linking to a related entry</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_64'/>
+64
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_64'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param rawBibTex the pasted BibTeX text</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_65'/>
+65
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_65'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @return the saved entries</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_66'/>
+66
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_66'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_67'/>
+67
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_67'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Operation(summary = &#34;Parse and save one or more BibTeX entries pasted for a project&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_68'/>
+68
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_68'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @PreAuthorize(&#34;@ProjectSecurity.hasManagePermissions(#root, #projectId)&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_69'/>
+69
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_69'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @PostMapping(&#34;/post&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_70'/>
+70
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_70'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public List&#60;BibTexEntry&#62; postBibTexEntries(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_71'/>
+71
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_71'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @Parameter(name = &#34;projectId&#34;) @RequestParam Long projectId,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_72'/>
+72
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_72'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @Parameter(name = &#34;relatedCiteKey&#34;) @RequestParam(required = false) String relatedCiteKey,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_73'/>
+73
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_73'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @Parameter(name = &#34;relationship&#34;) @RequestParam(required = false) String relationship,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_74'/>
+74
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_74'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @RequestBody String rawBibTex) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_75'/>
+75
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_75'>2</a>
+<span>
+1. postBibTexEntries : negated conditional &rarr; KILLED<br/>
+2. postBibTexEntries : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (relatedCiteKey != null</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_76'/>
+76
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_76'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        &#38;&#38; relationship != null</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_77'/>
+77
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_77'>1</a>
+<span>
+1. postBibTexEntries : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        &#38;&#38; !&#34;reference&#34;.equals(relationship)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_78'/>
+78
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_78'>1</a>
+<span>
+1. postBibTexEntries : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        &#38;&#38; !&#34;citation&#34;.equals(relationship)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_79'/>
+79
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_79'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      throw new IllegalArgumentException(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_80'/>
+80
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_80'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;relationship must be &#39;reference&#39; or &#39;citation&#39;, but was: &#34; + relationship);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_81'/>
+81
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_81'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_82'/>
+82
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_82'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_83'/>
+83
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_83'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    List&#60;BibTexEntry&#62; entries =</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_84'/>
+84
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_84'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_85'/>
+85
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_85'>2</a>
+<span>
+1. lambda$postBibTexEntries$0 : removed call to edu/ucsb/cs/citelines/controller/BibTexEntriesController::reuseExistingIdIfPresent &rarr; KILLED<br/>
+2. postBibTexEntries : removed call to java/util/List::forEach &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    entries.forEach(entry -&#62; reuseExistingIdIfPresent(projectId.intValue(), entry));</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_86'/>
+86
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_86'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    List&#60;BibTexEntry&#62; saved = bibTexEntryRepository.saveAll(entries);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_87'/>
+87
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_87'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_88'/>
+88
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_88'>2</a>
+<span>
+1. postBibTexEntries : negated conditional &rarr; KILLED<br/>
+2. postBibTexEntries : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (relatedCiteKey != null &#38;&#38; relationship != null) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_89'/>
+89
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_89'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      for (BibTexEntry entry : saved) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_90'/>
+90
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_90'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        citationEdgeRepository.save(</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_91'/>
+91
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_91'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>            makeCitationEdge(projectId.intValue(), relatedCiteKey, relationship, entry));</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_92'/>
+92
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_92'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_93'/>
+93
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_93'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_94'/>
+94
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_94'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_95'/>
+95
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_95'>1</a>
+<span>
+1. postBibTexEntries : replaced return value with Collections.emptyList for edu/ucsb/cs/citelines/controller/BibTexEntriesController::postBibTexEntries &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return saved;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_96'/>
+96
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_96'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_97'/>
+97
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_97'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_98'/>
+98
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_98'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // A pasted entry may share a citeKey with one already stored for this project (e.g. a paper</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_99'/>
+99
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_99'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // already recorded via the &#34;Get References&#34;/&#34;Get Citations&#34; jobs, or re-pasted by mistake).</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_100'/>
+100
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_100'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // Reusing the existing id makes save() overwrite that entry instead of inserting a duplicate,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_101'/>
+101
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_101'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // which would otherwise break the assumption (relied on throughout, e.g. by</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_102'/>
+102
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_102'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // CitationEdgesController) that a project has at most one entry per citeKey.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_103'/>
+103
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_103'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  //</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_104'/>
+104
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_104'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // If more than one entry is already stored for that citeKey (e.g. duplicates created before</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_105'/>
+105
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_105'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // this de-duplication existed), they are coalesced into a single entry first (via</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_106'/>
+106
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_106'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // BibTexEntryCoalescingService) so that assumption holds going forward.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_107'/>
+107
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_107'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private void reuseExistingIdIfPresent(int projectId, BibTexEntry entry) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_108'/>
+108
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_108'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    List&#60;BibTexEntry&#62; existing =</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_109'/>
+109
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_109'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        bibTexEntryRepository.findAllByProjectIdAndCiteKey(projectId, entry.getCiteKey());</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_110'/>
+110
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_110'>1</a>
+<span>
+1. reuseExistingIdIfPresent : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (existing.isEmpty()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_111'/>
+111
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_111'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      return;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_112'/>
+112
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_112'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_113'/>
+113
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_113'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    BibTexEntry coalesced = bibTexEntryCoalescingService.coalesce(existing);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_114'/>
+114
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_114'>2</a>
+<span>
+1. reuseExistingIdIfPresent : negated conditional &rarr; KILLED<br/>
+2. reuseExistingIdIfPresent : changed conditional boundary &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (existing.size() &#62; 1) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_115'/>
+115
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_115'>2</a>
+<span>
+1. lambda$reuseExistingIdIfPresent$1 : negated conditional &rarr; KILLED<br/>
+2. lambda$reuseExistingIdIfPresent$1 : replaced boolean return with true for edu/ucsb/cs/citelines/controller/BibTexEntriesController::lambda$reuseExistingIdIfPresent$1 &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      List&#60;BibTexEntry&#62; duplicates = existing.stream().filter(e -&#62; e != coalesced).toList();</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_116'/>
+116
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_116'>1</a>
+<span>
+1. reuseExistingIdIfPresent : removed call to edu/ucsb/cs/citelines/collections/BibTexEntryRepository::deleteAll &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      bibTexEntryRepository.deleteAll(duplicates);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_117'/>
+117
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_117'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_118'/>
+118
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_118'>1</a>
+<span>
+1. reuseExistingIdIfPresent : removed call to edu/ucsb/cs/citelines/collections/BibTexEntry::setId &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    entry.setId(coalesced.getId());</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_119'/>
+119
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_119'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_120'/>
+120
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_120'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_121'/>
+121
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_121'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private static CitationEdge makeCitationEdge(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_122'/>
+122
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_122'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      int projectId, String relatedCiteKey, String relationship, BibTexEntry entry) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_123'/>
+123
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_123'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    boolean isReference = &#34;reference&#34;.equals(relationship);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_124'/>
+124
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_124'>1</a>
+<span>
+1. makeCitationEdge : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    String citingCiteKey = isReference ? relatedCiteKey : entry.getCiteKey();</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_125'/>
+125
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_125'>1</a>
+<span>
+1. makeCitationEdge : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    String citedCiteKey = isReference ? entry.getCiteKey() : relatedCiteKey;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_126'/>
+126
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_126'>1</a>
+<span>
+1. makeCitationEdge : replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::makeCitationEdge &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return CitationEdge.builder()</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_127'/>
+127
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_127'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        .id(CitationEdge.makeId(projectId, citingCiteKey, citedCiteKey))</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_128'/>
+128
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_128'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        .projectId(projectId)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_129'/>
+129
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_129'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        .citingCiteKey(citingCiteKey)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_130'/>
+130
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_130'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        .citedCiteKey(citedCiteKey)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_131'/>
+131
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_131'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        .build();</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_132'/>
+132
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_132'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_133'/>
+133
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_133'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_134'/>
+134
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_134'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_135'/>
+135
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_135'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * Lists the BibTeX entries associated with a project.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_136'/>
+136
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_136'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_137'/>
+137
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_137'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param projectId the project to list entries for</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_138'/>
+138
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_138'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @return the entries for that project</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_139'/>
+139
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_139'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_140'/>
+140
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_140'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Operation(summary = &#34;List all BibTeX entries for a project&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_141'/>
+141
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_141'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @PreAuthorize(&#34;@ProjectSecurity.hasManagePermissions(#root, #projectId)&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_142'/>
+142
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_142'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @GetMapping(&#34;/project&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_143'/>
+143
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_143'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public List&#60;BibTexEntry&#62; bibTexEntriesForProject(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_144'/>
+144
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_144'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @Parameter(name = &#34;projectId&#34;) @RequestParam Long projectId) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_145'/>
+145
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_145'>1</a>
+<span>
+1. bibTexEntriesForProject : replaced return value with Collections.emptyList for edu/ucsb/cs/citelines/controller/BibTexEntriesController::bibTexEntriesForProject &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return bibTexEntryRepository.findByProjectId(projectId.intValue());</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_146'/>
+146
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_146'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_147'/>
+147
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_147'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_148'/>
+148
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_148'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_149'/>
+149
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_149'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * Looks up a single BibTeX entry by its (Mongo) id, e.g. for the BibTexEntryShowPage.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_150'/>
+150
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_150'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_151'/>
+151
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_151'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * &#60;p&#62;Looked up by id rather than citeKey since a citeKey may itself contain a {@code /} (e.g. a</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_152'/>
+152
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_152'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * DOI-derived key like {@code 10.1145/3770762.3772609}), which breaks when used as a path segment</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_153'/>
+153
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_153'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * in the frontend&#39;s route &#8212; see issue #24.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_154'/>
+154
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_154'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_155'/>
+155
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_155'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param projectId the project the entry belongs to</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_156'/>
+156
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_156'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param id the id of the entry</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_157'/>
+157
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_157'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @return the entry</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_158'/>
+158
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_158'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_159'/>
+159
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_159'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Operation(summary = &#34;Get a single BibTeX entry by id&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_160'/>
+160
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_160'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @PreAuthorize(&#34;@ProjectSecurity.hasManagePermissions(#root, #projectId)&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_161'/>
+161
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_161'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @GetMapping(&#34;/entry&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_162'/>
+162
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_162'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public BibTexEntry bibTexEntryById(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_163'/>
+163
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_163'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @Parameter(name = &#34;projectId&#34;) @RequestParam Long projectId,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_164'/>
+164
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_164'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @Parameter(name = &#34;id&#34;) @RequestParam String id) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_165'/>
+165
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_165'>1</a>
+<span>
+1. bibTexEntryById : replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::bibTexEntryById &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return bibTexEntryRepository</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_166'/>
+166
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_166'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        .findById(id)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_167'/>
+167
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_167'>1</a>
+<span>
+1. lambda$bibTexEntryById$2 : replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::lambda$bibTexEntryById$2 &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        .orElseThrow(() -&#62; new EntityNotFoundException(BibTexEntry.class, id));</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_168'/>
+168
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_168'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_169'/>
+169
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_169'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_170'/>
+170
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_170'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_171'/>
+171
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_171'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * Converts a stored entry back into raw BibTeX text, e.g. to pre-fill an edit form.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_172'/>
+172
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_172'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_173'/>
+173
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_173'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param id the id of the entry to export</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_174'/>
+174
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_174'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param projectId the project the entry belongs to</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_175'/>
+175
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_175'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @return the entry, formatted as BibTeX text</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_176'/>
+176
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_176'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_177'/>
+177
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_177'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Operation(summary = &#34;Export a BibTeX entry back to BibTeX text, for editing&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_178'/>
+178
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_178'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @PreAuthorize(&#34;@ProjectSecurity.hasManagePermissions(#root, #projectId)&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_179'/>
+179
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_179'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @GetMapping(&#34;/export&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_180'/>
+180
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_180'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public ResponseEntity&#60;String&#62; exportBibTexEntry(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_181'/>
+181
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_181'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @Parameter(name = &#34;id&#34;) @RequestParam String id,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_182'/>
+182
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_182'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @Parameter(name = &#34;projectId&#34;) @RequestParam Long projectId)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_183'/>
+183
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_183'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      throws IOException {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_184'/>
+184
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_184'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    BibTexEntry entry =</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_185'/>
+185
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_185'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        bibTexEntryRepository</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_186'/>
+186
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_186'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>            .findById(id)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_187'/>
+187
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_187'>1</a>
+<span>
+1. lambda$exportBibTexEntry$3 : replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::lambda$exportBibTexEntry$3 &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>            .orElseThrow(() -&#62; new EntityNotFoundException(BibTexEntry.class, id));</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_188'/>
+188
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_188'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    String bibtex = bibTexConverterService.convertEntryToBibTexString(entry);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_189'/>
+189
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_189'>1</a>
+<span>
+1. exportBibTexEntry : replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::exportBibTexEntry &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(bibtex);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_190'/>
+190
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_190'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_191'/>
+191
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_191'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_192'/>
+192
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_192'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_193'/>
+193
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_193'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * Re-parses edited BibTeX text (which must contain exactly one entry) and replaces the stored</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_194'/>
+194
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_194'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * entry with the same id.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_195'/>
+195
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_195'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_196'/>
+196
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_196'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param id the id of the entry to update</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_197'/>
+197
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_197'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param projectId the project the entry belongs to</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_198'/>
+198
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_198'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param rawBibTex the edited BibTeX text</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_199'/>
+199
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_199'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @return the updated entry</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_200'/>
+200
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_200'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_201'/>
+201
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_201'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Operation(summary = &#34;Update a BibTeX entry from edited BibTeX text&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_202'/>
+202
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_202'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @PreAuthorize(&#34;@ProjectSecurity.hasManagePermissions(#root, #projectId)&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_203'/>
+203
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_203'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @PutMapping(&#34;&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_204'/>
+204
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_204'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public BibTexEntry updateBibTexEntry(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_205'/>
+205
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_205'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @Parameter(name = &#34;id&#34;) @RequestParam String id,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_206'/>
+206
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_206'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @Parameter(name = &#34;projectId&#34;) @RequestParam Long projectId,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_207'/>
+207
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_207'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @RequestBody String rawBibTex) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_208'/>
+208
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_208'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    BibTexEntry existing =</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_209'/>
+209
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_209'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        bibTexEntryRepository</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_210'/>
+210
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_210'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>            .findById(id)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_211'/>
+211
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_211'>1</a>
+<span>
+1. lambda$updateBibTexEntry$4 : replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::lambda$updateBibTexEntry$4 &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>            .orElseThrow(() -&#62; new EntityNotFoundException(BibTexEntry.class, id));</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_212'/>
+212
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_212'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_213'/>
+213
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_213'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    List&#60;BibTexEntry&#62; parsed =</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_214'/>
+214
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_214'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_215'/>
+215
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_215'>1</a>
+<span>
+1. updateBibTexEntry : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (parsed.size() != 1) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_216'/>
+216
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_216'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      throw new IllegalArgumentException(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_217'/>
+217
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_217'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;Please provide exactly one BibTeX entry when editing (found %d).&#34;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_218'/>
+218
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_218'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>              .formatted(parsed.size()));</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_219'/>
+219
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_219'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_220'/>
+220
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_220'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_221'/>
+221
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_221'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    BibTexEntry updated = parsed.get(0);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_222'/>
+222
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_222'>1</a>
+<span>
+1. updateBibTexEntry : removed call to edu/ucsb/cs/citelines/collections/BibTexEntry::setEntryType &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    existing.setEntryType(updated.getEntryType());</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_223'/>
+223
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_223'>1</a>
+<span>
+1. updateBibTexEntry : removed call to edu/ucsb/cs/citelines/collections/BibTexEntry::setCiteKey &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    existing.setCiteKey(updated.getCiteKey());</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_224'/>
+224
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_224'>1</a>
+<span>
+1. updateBibTexEntry : removed call to edu/ucsb/cs/citelines/collections/BibTexEntry::setKeyValuePairs &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    existing.setKeyValuePairs(updated.getKeyValuePairs());</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_225'/>
+225
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_225'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_226'/>
+226
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_226'>1</a>
+<span>
+1. updateBibTexEntry : replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::updateBibTexEntry &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return bibTexEntryRepository.save(existing);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_227'/>
+227
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_227'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_228'/>
+228
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_228'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_229'/>
+229
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_229'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_230'/>
+230
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_230'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * Deletes a BibTeX entry.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_231'/>
+231
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_231'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_232'/>
+232
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_232'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param id the id of the entry to delete</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_233'/>
+233
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_233'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param projectId the project the entry belongs to</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_234'/>
+234
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_234'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @return a confirmation message</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_235'/>
+235
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_235'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_236'/>
+236
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_236'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Operation(summary = &#34;Delete a BibTeX entry&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_237'/>
+237
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_237'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @PreAuthorize(&#34;@ProjectSecurity.hasManagePermissions(#root, #projectId)&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_238'/>
+238
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_238'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @DeleteMapping(&#34;/delete&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_239'/>
+239
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_239'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public Object deleteBibTexEntry(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_240'/>
+240
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_240'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @Parameter(name = &#34;id&#34;) @RequestParam String id,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_241'/>
+241
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_241'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      @Parameter(name = &#34;projectId&#34;) @RequestParam Long projectId) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_242'/>
+242
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_242'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    BibTexEntry entry =</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_243'/>
+243
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_243'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>        bibTexEntryRepository</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_244'/>
+244
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_244'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>            .findById(id)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_245'/>
+245
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_245'>1</a>
+<span>
+1. lambda$deleteBibTexEntry$5 : replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::lambda$deleteBibTexEntry$5 &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>            .orElseThrow(() -&#62; new EntityNotFoundException(BibTexEntry.class, id));</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_246'/>
+246
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_246'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_247'/>
+247
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_247'>1</a>
+<span>
+1. deleteBibTexEntry : removed call to edu/ucsb/cs/citelines/collections/BibTexEntryRepository::delete &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    bibTexEntryRepository.delete(entry);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_248'/>
+248
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_248'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_249'/>
+249
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_249'>1</a>
+<span>
+1. deleteBibTexEntry : replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::deleteBibTexEntry &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return genericMessage(&#34;BibTexEntry with id %s deleted&#34;.formatted(entry.getId()));</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_250'/>
+250
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_250'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@62267a22_251'/>
+251
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_251'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_75'>75</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_75'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>postBibTexEntries<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_with_an_invalid_relationship_returns_a_bad_request()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>postBibTexEntries<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_with_an_invalid_relationship_returns_a_bad_request()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_77'>77</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_77'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>postBibTexEntries<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_with_an_invalid_relationship_returns_a_bad_request()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_78'>78</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_78'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>postBibTexEntries<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_with_an_invalid_relationship_returns_a_bad_request()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_85'>85</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_85'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>lambda$postBibTexEntries$0<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_that_matches_multiple_existing_duplicates_coalesces_them_before_updating()]</span></span> removed call to edu/ucsb/cs/citelines/controller/BibTexEntriesController::reuseExistingIdIfPresent &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>postBibTexEntries<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_that_matches_multiple_existing_duplicates_coalesces_them_before_updating()]</span></span> removed call to java/util/List::forEach &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_88'>88</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_88'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>postBibTexEntries<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_post_bibtex_as_a_reference_and_it_creates_a_citation_edge()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>postBibTexEntries<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_post_bibtex_as_a_reference_and_it_creates_a_citation_edge()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_95'>95</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_95'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>postBibTexEntries<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_post_bibtex_and_it_is_parsed_and_saved()]</span></span> replaced return value with Collections.emptyList for edu/ucsb/cs/citelines/controller/BibTexEntriesController::postBibTexEntries &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_110'>110</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_110'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>reuseExistingIdIfPresent<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_without_relatedCiteKey_or_relationship_does_not_create_an_edge()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_114'>114</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_114'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>reuseExistingIdIfPresent<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_that_matches_multiple_existing_duplicates_coalesces_them_before_updating()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>reuseExistingIdIfPresent<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_that_matches_an_existing_citeKey_updates_it_instead_of_creating_a_duplicate()]</span></span> changed conditional boundary &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_115'>115</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_115'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>lambda$reuseExistingIdIfPresent$1<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_that_matches_multiple_existing_duplicates_coalesces_them_before_updating()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>lambda$reuseExistingIdIfPresent$1<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_that_matches_multiple_existing_duplicates_coalesces_them_before_updating()]</span></span> replaced boolean return with true for edu/ucsb/cs/citelines/controller/BibTexEntriesController::lambda$reuseExistingIdIfPresent$1 &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_116'>116</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_116'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>reuseExistingIdIfPresent<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_that_matches_multiple_existing_duplicates_coalesces_them_before_updating()]</span></span> removed call to edu/ucsb/cs/citelines/collections/BibTexEntryRepository::deleteAll &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_118'>118</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_118'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>reuseExistingIdIfPresent<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_that_matches_multiple_existing_duplicates_coalesces_them_before_updating()]</span></span> removed call to edu/ucsb/cs/citelines/collections/BibTexEntry::setId &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_124'>124</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_124'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>makeCitationEdge<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_post_bibtex_as_a_reference_and_it_creates_a_citation_edge()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_125'>125</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_125'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>makeCitationEdge<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_post_bibtex_as_a_reference_and_it_creates_a_citation_edge()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_126'>126</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_126'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>makeCitationEdge<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_post_bibtex_as_a_reference_and_it_creates_a_citation_edge()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::makeCitationEdge &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_145'>145</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_145'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>bibTexEntriesForProject<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_list_entries_for_their_project()]</span></span> replaced return value with Collections.emptyList for edu/ucsb/cs/citelines/controller/BibTexEntriesController::bibTexEntriesForProject &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_165'>165</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_165'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>bibTexEntryById<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_get_a_single_entry_by_id()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::bibTexEntryById &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_167'>167</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_167'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>lambda$bibTexEntryById$2<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:get_single_entry_throws_not_found_for_nonexistent_id()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::lambda$bibTexEntryById$2 &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_187'>187</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_187'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>lambda$exportBibTexEntry$3<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:export_throws_not_found_for_nonexistent_entry()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::lambda$exportBibTexEntry$3 &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_189'>189</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_189'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>exportBibTexEntry<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_export_an_entry_to_bibtex_text()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::exportBibTexEntry &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_211'>211</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_211'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>lambda$updateBibTexEntry$4<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:update_throws_not_found_for_nonexistent_entry()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::lambda$updateBibTexEntry$4 &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_215'>215</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_215'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>updateBibTexEntry<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:update_rejects_bibtex_text_with_more_than_one_entry()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_222'>222</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_222'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>updateBibTexEntry<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_update_an_entry_from_edited_bibtex()]</span></span> removed call to edu/ucsb/cs/citelines/collections/BibTexEntry::setEntryType &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_223'>223</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_223'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>updateBibTexEntry<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_update_an_entry_from_edited_bibtex()]</span></span> removed call to edu/ucsb/cs/citelines/collections/BibTexEntry::setCiteKey &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_224'>224</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_224'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>updateBibTexEntry<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_update_an_entry_from_edited_bibtex()]</span></span> removed call to edu/ucsb/cs/citelines/collections/BibTexEntry::setKeyValuePairs &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_226'>226</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_226'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>updateBibTexEntry<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_update_an_entry_from_edited_bibtex()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::updateBibTexEntry &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_245'>245</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_245'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>lambda$deleteBibTexEntry$5<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:delete_throws_not_found_for_nonexistent_entry()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::lambda$deleteBibTexEntry$5 &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_247'>247</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_247'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>deleteBibTexEntry<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_delete_an_entry()]</span></span> removed call to edu/ucsb/cs/citelines/collections/BibTexEntryRepository::delete &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@62267a22_249'>249</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@62267a22_249'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>deleteBibTexEntry<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_delete_an_entry()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/BibTexEntriesController::deleteBibTexEntry &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+<li class='mutator'>EMPTY_RETURNS</li>
+<li class='mutator'>FALSE_RETURNS</li>
+<li class='mutator'>INCREMENTS</li>
+<li class='mutator'>INVERT_NEGS</li>
+<li class='mutator'>MATH</li>
+<li class='mutator'>NEGATE_CONDITIONALS</li>
+<li class='mutator'>NULL_RETURNS</li>
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+<li class='mutator'>TRUE_RETURNS</li>
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_with_an_invalid_relationship_returns_a_bad_request()] (5 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_post_bibtex_as_a_reference_and_it_creates_a_citation_edge()] (6 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_post_bibtex_as_a_citation_and_it_creates_a_citation_edge()] (7 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_that_matches_an_existing_citeKey_updates_it_instead_of_creating_a_duplicate()] (9 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_with_relatedCiteKey_but_no_relationship_does_not_create_an_edge()] (22 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:export_throws_not_found_for_nonexistent_entry()] (17 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_without_relatedCiteKey_or_relationship_does_not_create_an_edge()] (6 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_post_bibtex_and_it_is_parsed_and_saved()] (6 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_that_matches_multiple_existing_duplicates_coalesces_them_before_updating()] (6 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:post_with_malformed_bibtex_returns_a_useful_error()] (10 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:delete_throws_not_found_for_nonexistent_entry()] (6 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_delete_an_entry()] (9 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:update_throws_not_found_for_nonexistent_entry()] (5 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:get_single_entry_throws_not_found_for_nonexistent_id()] (7 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_export_an_entry_to_bibtex_text()] (6 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_update_an_entry_from_edited_bibtex()] (9 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:update_rejects_bibtex_text_with_more_than_one_entry()] (6 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:a_collaborator_can_list_entries_for_a_project_they_collaborate_on()] (9 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_list_entries_for_their_project()] (20 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_get_a_single_entry_by_id()] (6 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_get_a_single_entry_by_id_when_citekey_contains_a_slash()] (9 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.17.0
+
+</body>
+</html>
