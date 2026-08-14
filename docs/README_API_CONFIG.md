@@ -130,6 +130,40 @@ The minimum delay, in milliseconds, between consecutive Semantic Scholar calls.
   dokku config:set --no-restart <app-name> SEMANTIC_SCHOLAR_API_DELAY_MS=250
   ```
 
+## The "Check Links" job
+
+`CheckLinksService` (via `CheckLinksJob`) checks each entry's DOI (or URL, if it has no DOI) and
+flags it if the link looks broken. Both checks are designed to avoid tripping bot-management
+challenges (e.g. Cloudflare 403s) rather than merely tolerating them:
+
+- **DOI**: instead of a plain `GET https://doi.org/<doi>` (which follows the resolver's redirect
+  all the way to the publisher's, often WAF-protected, page), it asks `doi.org` to
+  content-negotiate a machine-readable citation format (`Accept: application/citeproc+json`) and
+  disables redirect-following, so a nonexistent DOI is reported directly by the resolver as a 404
+  instead of chasing a redirect into a publisher's bot defenses.
+- **URL**: checked with a `HEAD` request first (falling back to `GET` only if the server rejects
+  `HEAD` with a 405), using browser-like request headers.
+
+In both cases, a 403 or 429 is logged but never flags the entry as invalid, since it more likely
+indicates bot protection than a genuinely broken link — only a definitive 404/410 does. It shares
+`CITELINES_API_DELAY_MS` (above) for pacing/backoff, and also treats a bare 403 the same as a 429
+for backoff purposes, since `doi.org` and arbitrary publisher sites have been observed returning
+one as an anti-bot measure instead of the other.
+
+### `CHECKLINKS_MAILTO` (optional)
+
+An optional contact email included in the `User-Agent` sent with the Check Links job's DOI
+content-negotiation requests, alongside `app.sourceRepo`'s URL. Not required.
+
+- **Localhost**: add to `.env`:
+  ```
+  CHECKLINKS_MAILTO=you@example.com
+  ```
+- **Dokku**:
+  ```
+  dokku config:set --no-restart <app-name> CHECKLINKS_MAILTO=you@example.com
+  ```
+
 ## Where this is used
 
 - `edu.ucsb.cs.citelines.services.OpenAlexService`,
@@ -142,3 +176,5 @@ The minimum delay, in milliseconds, between consecutive Semantic Scholar calls.
 - `edu.ucsb.cs.citelines.jobs.GetReferencesJob` / `GetCitationsJob` — the background jobs
   launched from the BibTexEntryShowPage's "Get References"/"Get Citations" buttons, tracked via
   the project's Jobs tab.
+- `edu.ucsb.cs.citelines.services.CheckLinksService` / `edu.ucsb.cs.citelines.jobs.CheckLinksJob`
+  — the "Check Links" job, launched per-project from the Jobs tab.

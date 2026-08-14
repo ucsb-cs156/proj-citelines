@@ -21,7 +21,12 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -31,14 +36,21 @@ public class CheckLinksServiceTests {
   private CheckLinksService checkLinksService;
   private BibTexEntryRepository bibTexEntryRepository;
   private RestTemplate restTemplate;
+  private RestTemplate noRedirectRestTemplate;
   private Job job;
   private JobContext ctx;
+
+  private CheckLinksService serviceWith(String sourceRepo, String mailto) {
+    return new CheckLinksService(
+        bibTexEntryRepository, restTemplate, noRedirectRestTemplate, 0, sourceRepo, mailto);
+  }
 
   @BeforeEach
   void setup() {
     bibTexEntryRepository = mock(BibTexEntryRepository.class);
     restTemplate = mock(RestTemplate.class);
-    checkLinksService = new CheckLinksService(bibTexEntryRepository, restTemplate, 0);
+    noRedirectRestTemplate = mock(RestTemplate.class);
+    checkLinksService = serviceWith("https://github.com/ucsb-cs156/proj-citelines", "");
     job = Job.builder().build();
     ctx = new JobContext(null, job);
   }
@@ -52,14 +64,42 @@ public class CheckLinksServiceTests {
         .build();
   }
 
+  private void mockDoi(String doi, ResponseEntity<String> response) {
+    when(noRedirectRestTemplate.exchange(
+            eq("https://doi.org/" + doi),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(String.class)))
+        .thenReturn(response);
+  }
+
+  private void mockDoiThrows(String doi, RuntimeException exception) {
+    when(noRedirectRestTemplate.exchange(
+            eq("https://doi.org/" + doi),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(String.class)))
+        .thenThrow(exception);
+  }
+
+  private void mockUrlHead(String url, ResponseEntity<Void> response) {
+    when(restTemplate.exchange(eq(url), eq(HttpMethod.HEAD), any(HttpEntity.class), eq(Void.class)))
+        .thenReturn(response);
+  }
+
+  private void mockUrlHeadThrows(String url, RuntimeException exception) {
+    when(restTemplate.exchange(eq(url), eq(HttpMethod.HEAD), any(HttpEntity.class), eq(Void.class)))
+        .thenThrow(exception);
+  }
+
   @Test
-  void flags_a_doi_whose_page_says_doi_not_found() {
+  void flags_a_doi_that_returns_404() {
     Map<String, String> kvp = new HashMap<>(Map.of("doi", "10.1234/bad"));
     BibTexEntry entry = entry("bad2020", kvp);
     when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
-    when(restTemplate.getForObject(eq("https://doi.org/10.1234/bad"), eq(String.class)))
-        .thenReturn(
-            "<html><body>DOI Not Found - This DOI cannot be found in the DOI System</body></html>");
+    mockDoiThrows(
+        "10.1234/bad",
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
 
     checkLinksService.checkLinks(1, ctx);
 
@@ -74,8 +114,7 @@ public class CheckLinksServiceTests {
     Map<String, String> kvp = new HashMap<>(Map.of("doi", "10.1234/good"));
     BibTexEntry entry = entry("good2020", kvp);
     when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
-    when(restTemplate.getForObject(eq("https://doi.org/10.1234/good"), eq(String.class)))
-        .thenReturn("<html><body>Some Paper Title</body></html>");
+    mockDoi("10.1234/good", new ResponseEntity<>("{\"title\":\"Some Paper\"}", HttpStatus.OK));
 
     checkLinksService.checkLinks(1, ctx);
 
@@ -89,8 +128,7 @@ public class CheckLinksServiceTests {
         new HashMap<>(Map.of("doi", "10.1234/good", "CITELINES_invalid_doi", "True"));
     BibTexEntry entry = entry("good2020", kvp);
     when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
-    when(restTemplate.getForObject(eq("https://doi.org/10.1234/good"), eq(String.class)))
-        .thenReturn("<html><body>Some Paper Title</body></html>");
+    mockDoi("10.1234/good", new ResponseEntity<>("{\"title\":\"Some Paper\"}", HttpStatus.OK));
 
     checkLinksService.checkLinks(1, ctx);
 
@@ -99,13 +137,105 @@ public class CheckLinksServiceTests {
   }
 
   @Test
+  void does_not_flag_a_doi_whose_resolver_returns_an_unfollowed_redirect() {
+    Map<String, String> kvp = new HashMap<>(Map.of("doi", "10.1234/redirect"));
+    BibTexEntry entry = entry("redirect2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockDoi("10.1234/redirect", new ResponseEntity<>(HttpStatus.FOUND));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_doi"));
+    verify(bibTexEntryRepository, never()).save(any());
+    assertTrue(job.getLog().contains("Could not verify DOI for redirect2020 (10.1234/redirect):"));
+  }
+
+  @Test
+  void does_not_flag_a_doi_when_the_lookup_is_forbidden() {
+    Map<String, String> kvp = new HashMap<>(Map.of("doi", "10.1234/forbidden"));
+    BibTexEntry entry = entry("forbidden2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockDoiThrows(
+        "10.1234/forbidden",
+        HttpClientErrorException.create(HttpStatus.FORBIDDEN, "Forbidden", null, null, null));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_doi"));
+    verify(bibTexEntryRepository, never()).save(any());
+    assertTrue(job.getLog().contains("Could not check DOI for forbidden2020 (10.1234/forbidden):"));
+  }
+
+  @Test
+  void does_not_flag_when_the_doi_lookup_fails_with_a_non_404_error() {
+    Map<String, String> kvp = new HashMap<>(Map.of("doi", "10.1234/error"));
+    BibTexEntry entry = entry("error2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockDoiThrows(
+        "10.1234/error",
+        HttpServerErrorException.create(
+            HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", null, null, null));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_doi"));
+    verify(bibTexEntryRepository, never()).save(any());
+    assertTrue(job.getLog().contains("Could not check DOI for error2020 (10.1234/error):"));
+  }
+
+  @Test
+  void sends_content_negotiation_headers_for_the_doi_request() {
+    Map<String, String> kvp = new HashMap<>(Map.of("doi", "10.1234/good"));
+    BibTexEntry entry = entry("good2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockDoi("10.1234/good", new ResponseEntity<>("{}", HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+    verify(noRedirectRestTemplate)
+        .exchange(
+            eq("https://doi.org/10.1234/good"),
+            eq(HttpMethod.GET),
+            captor.capture(),
+            eq(String.class));
+    HttpHeaders headers = captor.getValue().getHeaders();
+    assertEquals("application/citeproc+json", headers.getFirst(HttpHeaders.ACCEPT));
+    assertTrue(headers.getFirst(HttpHeaders.USER_AGENT).contains("proj-citelines"));
+  }
+
+  @Test
+  void includes_mailto_in_the_doi_user_agent_when_configured() {
+    Map<String, String> kvp = new HashMap<>(Map.of("doi", "10.1234/good"));
+    BibTexEntry entry = entry("good2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockDoi("10.1234/good", new ResponseEntity<>("{}", HttpStatus.OK));
+
+    serviceWith("", "you@example.com").checkLinks(1, ctx);
+
+    ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+    verify(noRedirectRestTemplate)
+        .exchange(
+            eq("https://doi.org/10.1234/good"),
+            eq(HttpMethod.GET),
+            captor.capture(),
+            eq(String.class));
+    assertTrue(
+        captor
+            .getValue()
+            .getHeaders()
+            .getFirst(HttpHeaders.USER_AGENT)
+            .contains("mailto:you@example.com"));
+  }
+
+  @Test
   void flags_a_url_that_returns_404() {
     Map<String, String> kvp = new HashMap<>(Map.of("url", "https://example.org/missing"));
     BibTexEntry entry = entry("missing2020", kvp);
     when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
-    when(restTemplate.getForObject(eq("https://example.org/missing"), eq(String.class)))
-        .thenThrow(
-            HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    mockUrlHeadThrows(
+        "https://example.org/missing",
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
 
     checkLinksService.checkLinks(1, ctx);
 
@@ -116,12 +246,26 @@ public class CheckLinksServiceTests {
   }
 
   @Test
+  void flags_a_url_that_returns_410_gone() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", "https://example.org/gone"));
+    BibTexEntry entry = entry("gone2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockUrlHeadThrows(
+        "https://example.org/gone",
+        HttpClientErrorException.create(HttpStatus.GONE, "Gone", null, null, null));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertEquals("True", kvp.get("CITELINES_invalid_url"));
+    assertTrue(job.getLog().contains("Invalid URL (410) for gone2020: https://example.org/gone"));
+  }
+
+  @Test
   void does_not_flag_a_url_that_resolves_normally() {
     Map<String, String> kvp = new HashMap<>(Map.of("url", "https://example.org/ok"));
     BibTexEntry entry = entry("ok2020", kvp);
     when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
-    when(restTemplate.getForObject(eq("https://example.org/ok"), eq(String.class)))
-        .thenReturn("<html><body>OK</body></html>");
+    mockUrlHead("https://example.org/ok", new ResponseEntity<>(HttpStatus.OK));
 
     checkLinksService.checkLinks(1, ctx);
 
@@ -130,17 +274,127 @@ public class CheckLinksServiceTests {
   }
 
   @Test
+  void sends_browser_like_headers_for_the_url_head_request() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", "https://example.org/ok"));
+    BibTexEntry entry = entry("ok2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockUrlHead("https://example.org/ok", new ResponseEntity<>(HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+    verify(restTemplate)
+        .exchange(
+            eq("https://example.org/ok"), eq(HttpMethod.HEAD), captor.capture(), eq(Void.class));
+    HttpHeaders headers = captor.getValue().getHeaders();
+    assertTrue(headers.getFirst(HttpHeaders.USER_AGENT).contains("Mozilla"));
+    assertTrue(headers.getFirst(HttpHeaders.ACCEPT).contains("text/html"));
+  }
+
+  @Test
+  void falls_back_to_get_when_the_server_rejects_head() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", "https://example.org/head-not-allowed"));
+    BibTexEntry entry = entry("nohead2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockUrlHeadThrows(
+        "https://example.org/head-not-allowed",
+        HttpClientErrorException.create(
+            HttpStatus.METHOD_NOT_ALLOWED, "Method Not Allowed", null, null, null));
+    when(restTemplate.exchange(
+            eq("https://example.org/head-not-allowed"),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(String.class)))
+        .thenReturn(new ResponseEntity<>("<html>OK</html>", HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(restTemplate)
+        .exchange(
+            eq("https://example.org/head-not-allowed"),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(String.class));
+  }
+
+  @Test
+  void flags_a_url_as_invalid_via_get_fallback_when_head_is_rejected() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", "https://example.org/head-not-allowed"));
+    BibTexEntry entry = entry("nohead2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockUrlHeadThrows(
+        "https://example.org/head-not-allowed",
+        HttpClientErrorException.create(
+            HttpStatus.METHOD_NOT_ALLOWED, "Method Not Allowed", null, null, null));
+    when(restTemplate.exchange(
+            eq("https://example.org/head-not-allowed"),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(String.class)))
+        .thenThrow(
+            HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertEquals("True", kvp.get("CITELINES_invalid_url"));
+    assertTrue(
+        job.getLog()
+            .contains("Invalid URL (404) for nohead2020: https://example.org/head-not-allowed"));
+  }
+
+  @Test
+  void does_not_flag_a_url_when_the_check_is_forbidden() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", "https://example.org/forbidden"));
+    BibTexEntry entry = entry("forbidden2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockUrlHeadThrows(
+        "https://example.org/forbidden",
+        HttpClientErrorException.create(HttpStatus.FORBIDDEN, "Forbidden", null, null, null));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(bibTexEntryRepository, never()).save(any());
+    assertTrue(
+        job.getLog()
+            .contains("Could not check URL for forbidden2020 (https://example.org/forbidden):"));
+  }
+
+  @Test
+  void does_not_flag_when_the_url_lookup_fails_with_a_non_404_error() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", "https://example.org/error"));
+    BibTexEntry entry = entry("error2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockUrlHeadThrows(
+        "https://example.org/error",
+        HttpServerErrorException.create(
+            HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", null, null, null));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(bibTexEntryRepository, never()).save(any());
+    assertTrue(
+        job.getLog().contains("Could not check URL for error2020 (https://example.org/error):"));
+  }
+
+  @Test
   void prefers_doi_over_url_when_both_present() {
     Map<String, String> kvp =
         new HashMap<>(Map.of("doi", "10.1234/good", "url", "https://example.org/unused"));
     BibTexEntry entry = entry("both2020", kvp);
     when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
-    when(restTemplate.getForObject(eq("https://doi.org/10.1234/good"), eq(String.class)))
-        .thenReturn("<html><body>Some Paper Title</body></html>");
+    mockDoi("10.1234/good", new ResponseEntity<>("{}", HttpStatus.OK));
 
     checkLinksService.checkLinks(1, ctx);
 
-    verify(restTemplate, never()).getForObject(eq("https://example.org/unused"), eq(String.class));
+    verify(restTemplate, never())
+        .exchange(
+            eq("https://example.org/unused"),
+            eq(HttpMethod.HEAD),
+            any(HttpEntity.class),
+            eq(Void.class));
   }
 
   @Test
@@ -151,7 +405,8 @@ public class CheckLinksServiceTests {
 
     checkLinksService.checkLinks(1, ctx);
 
-    verify(restTemplate, never()).getForObject(any(String.class), eq(String.class));
+    verify(restTemplate, never())
+        .exchange(any(String.class), any(HttpMethod.class), any(HttpEntity.class), eq(Void.class));
     verify(bibTexEntryRepository, never()).save(any());
     assertTrue(job.getLog().contains("Checking links for 1 entries in project 1."));
   }
@@ -167,79 +422,20 @@ public class CheckLinksServiceTests {
   }
 
   @Test
-  void does_not_flag_when_the_doi_lookup_fails_with_a_non_404_error() {
-    Map<String, String> kvp = new HashMap<>(Map.of("doi", "10.1234/error"));
-    BibTexEntry entry = entry("error2020", kvp);
-    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
-    when(restTemplate.getForObject(eq("https://doi.org/10.1234/error"), eq(String.class)))
-        .thenThrow(
-            HttpServerErrorException.create(
-                HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", null, null, null));
-
-    checkLinksService.checkLinks(1, ctx);
-
-    assertNull(kvp.get("CITELINES_invalid_doi"));
-    verify(bibTexEntryRepository, never()).save(any());
-    assertTrue(job.getLog().contains("Could not check DOI for error2020 (10.1234/error):"));
-  }
-
-  @Test
-  void does_not_flag_when_the_url_lookup_fails_with_a_non_404_error() {
-    Map<String, String> kvp = new HashMap<>(Map.of("url", "https://example.org/error"));
-    BibTexEntry entry = entry("error2020", kvp);
-    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
-    when(restTemplate.getForObject(eq("https://example.org/error"), eq(String.class)))
-        .thenThrow(
-            HttpServerErrorException.create(
-                HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", null, null, null));
-
-    checkLinksService.checkLinks(1, ctx);
-
-    assertNull(kvp.get("CITELINES_invalid_url"));
-    verify(bibTexEntryRepository, never()).save(any());
-    assertTrue(
-        job.getLog().contains("Could not check URL for error2020 (https://example.org/error):"));
-  }
-
-  @Test
-  void does_not_flag_a_doi_page_that_only_contains_one_of_the_two_not_found_phrases() {
-    Map<String, String> kvp = new HashMap<>(Map.of("doi", "10.1234/partial"));
-    BibTexEntry entry = entry("partial2020", kvp);
-    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
-    when(restTemplate.getForObject(eq("https://doi.org/10.1234/partial"), eq(String.class)))
-        .thenReturn("<html><body>DOI Not Found</body></html>");
-
-    checkLinksService.checkLinks(1, ctx);
-
-    assertNull(kvp.get("CITELINES_invalid_doi"));
-    verify(bibTexEntryRepository, never()).save(any());
-  }
-
-  @Test
-  void does_not_flag_a_doi_when_the_resolver_returns_no_body() {
-    Map<String, String> kvp = new HashMap<>(Map.of("doi", "10.1234/nobody"));
-    BibTexEntry entry = entry("nobody2020", kvp);
-    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
-    when(restTemplate.getForObject(eq("https://doi.org/10.1234/nobody"), eq(String.class)))
-        .thenReturn(null);
-
-    checkLinksService.checkLinks(1, ctx);
-
-    assertNull(kvp.get("CITELINES_invalid_doi"));
-    verify(bibTexEntryRepository, never()).save(any());
-  }
-
-  @Test
   void falls_back_to_url_when_the_doi_is_blank() {
     Map<String, String> kvp = new HashMap<>(Map.of("doi", "", "url", "https://example.org/ok"));
     BibTexEntry entry = entry("blankdoi2020", kvp);
     when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
-    when(restTemplate.getForObject(eq("https://example.org/ok"), eq(String.class)))
-        .thenReturn("<html><body>OK</body></html>");
+    mockUrlHead("https://example.org/ok", new ResponseEntity<>(HttpStatus.OK));
 
     checkLinksService.checkLinks(1, ctx);
 
-    verify(restTemplate, times(1)).getForObject(eq("https://example.org/ok"), eq(String.class));
+    verify(restTemplate)
+        .exchange(
+            eq("https://example.org/ok"),
+            eq(HttpMethod.HEAD),
+            any(HttpEntity.class),
+            eq(Void.class));
     assertNull(kvp.get("CITELINES_invalid_url"));
   }
 
@@ -251,7 +447,8 @@ public class CheckLinksServiceTests {
 
     checkLinksService.checkLinks(1, ctx);
 
-    verify(restTemplate, never()).getForObject(any(String.class), eq(String.class));
+    verify(restTemplate, never())
+        .exchange(any(String.class), any(HttpMethod.class), any(HttpEntity.class), eq(Void.class));
     verify(bibTexEntryRepository, never()).save(any());
   }
 
@@ -261,9 +458,9 @@ public class CheckLinksServiceTests {
         new HashMap<>(Map.of("doi", "10.1234/bad", "CITELINES_invalid_doi", "True"));
     BibTexEntry entry = entry("bad2020", kvp);
     when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
-    when(restTemplate.getForObject(eq("https://doi.org/10.1234/bad"), eq(String.class)))
-        .thenReturn(
-            "<html><body>DOI Not Found - This DOI cannot be found in the DOI System</body></html>");
+    mockDoiThrows(
+        "10.1234/bad",
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
 
     checkLinksService.checkLinks(1, ctx);
 
@@ -278,10 +475,8 @@ public class CheckLinksServiceTests {
     BibTexEntry entry1 = entry("good2020a", kvp1);
     BibTexEntry entry2 = entry("good2020b", kvp2);
     when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry1, entry2));
-    when(restTemplate.getForObject(eq("https://doi.org/10.1234/good1"), eq(String.class)))
-        .thenReturn("<html><body>Some Paper Title</body></html>");
-    when(restTemplate.getForObject(eq("https://doi.org/10.1234/good2"), eq(String.class)))
-        .thenReturn("<html><body>Some Paper Title</body></html>");
+    mockDoi("10.1234/good1", new ResponseEntity<>("{}", HttpStatus.OK));
+    mockDoi("10.1234/good2", new ResponseEntity<>("{}", HttpStatus.OK));
 
     checkLinksService.checkLinks(1, ctx);
 

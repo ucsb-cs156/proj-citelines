@@ -7,6 +7,10 @@ import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
@@ -18,23 +22,35 @@ import org.springframework.web.client.RestTemplate;
  * {@code CitationTable.jsx}) and flags entries whose link looks broken, so the UI can surface a
  * warning next to them.
  *
+ * <p>Both checks are designed to avoid tripping bot-management challenges (e.g. Cloudflare 403s)
+ * rather than merely tolerating them:
+ *
  * <ul>
- *   <li>A DOI is flagged ({@code CITELINES_invalid_doi=True}) if {@code https://doi.org/<doi>}
- *       returns a page containing both "DOI Not Found" and "This DOI cannot be found in the DOI
- *       System" — the DOI resolver's own not-found page text, since it responds 200 even for
- *       unknown DOIs.
- *   <li>A URL is flagged ({@code CITELINES_invalid_url=True}) if fetching it returns a 404.
+ *   <li><b>DOI</b> ({@code CITELINES_invalid_doi=True} on a 404): rather than a plain {@code GET
+ *       https://doi.org/<doi>} — which follows the resolver's redirect all the way to the
+ *       publisher's (often WAF-protected) page — this asks {@code doi.org} to content-negotiate a
+ *       machine-readable citation format ({@code Accept: application/citeproc+json}) and disables
+ *       redirect-following, so a nonexistent DOI is reported directly by the resolver as a 404
+ *       instead of chasing a redirect into a publisher's bot defenses.
+ *   <li><b>URL</b> ({@code CITELINES_invalid_url=True} on a 404 or 410): checked with a {@code
+ *       HEAD} request first (falling back to {@code GET} only if the server rejects {@code HEAD}
+ *       with a 405) and browser-like request headers, to look as little like a bot as possible.
  * </ul>
  *
- * Entries with neither a DOI nor a URL are skipped. A previously-set flag is cleared if the link
- * now resolves cleanly.
+ * In both cases, a 403 or 429 — likely bot protection rather than a genuinely broken link — is
+ * logged but never flags the entry as invalid; only a definitive "not found" response does. Any
+ * other error (5xx, network failure, or a persistent 403/429 after {@link ApiRetryHelper}'s retries
+ * are exhausted) is treated the same way: logged, not flagged.
+ *
+ * <p>Entries with neither a DOI nor a URL are skipped. A previously-set flag is cleared once the
+ * link resolves cleanly.
  *
  * <p>Like {@link OpenAlexService} and the other {@code CitationMetadataResolver}s, every link fetch
  * is paced and retried through {@link ApiRetryHelper}, using {@code citelines.api.delay-ms}/{@code
  * CITELINES_API_DELAY_MS} both as the minimum gap between calls and as the starting delay for
- * exponential backoff on 5xx errors and rate-limit (429) responses. Because {@code doi.org} has
- * been observed returning bare 403s as an anti-bot measure rather than a proper 429, the helper is
- * configured to treat any 403 the same as a 429 for this job.
+ * exponential backoff on 5xx errors and rate-limit responses; since {@code doi.org} and arbitrary
+ * publisher sites have been observed returning bare 403s as an anti-bot measure rather than a
+ * proper 429, the helper is configured to back off on any 403 the same way it does on a 429.
  */
 @Slf4j
 @Service
@@ -46,20 +62,34 @@ public class CheckLinksService {
   static final String INVALID_URL_KEY = "CITELINES_invalid_url";
   static final String TRUE_VALUE = "True";
 
-  private static final String DOI_NOT_FOUND_TEXT = "DOI Not Found";
-  private static final String DOI_NOT_FOUND_DETAIL_TEXT =
-      "This DOI cannot be found in the DOI System";
+  // Content negotiation: asks doi.org to hand back machine-readable citation metadata directly,
+  // rather than 302-redirecting on to the publisher's page.
+  static final String DOI_ACCEPT_HEADER = "application/citeproc+json";
+
+  // A realistic browser fingerprint for arbitrary-URL checks, so plain HTTP-client user agents
+  // (which some sites block outright) aren't what triggers a false-positive block.
+  static final String BROWSER_USER_AGENT =
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) CitationChecker/1.0";
+  static final String BROWSER_ACCEPT =
+      "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
+  static final String BROWSER_ACCEPT_LANGUAGE = "en-US,en;q=0.5";
 
   private final BibTexEntryRepository bibTexEntryRepository;
   private final RestTemplate restTemplate;
+  private final RestTemplate noRedirectRestTemplate;
   private final ApiRetryHelper retryHelper;
+  private final String doiUserAgent;
 
   public CheckLinksService(
       BibTexEntryRepository bibTexEntryRepository,
       RestTemplate restTemplate,
-      @Value("${citelines.api.delay-ms:100}") int citelinesApiDelayMs) {
+      RestTemplate noRedirectRestTemplate,
+      @Value("${citelines.api.delay-ms:100}") int citelinesApiDelayMs,
+      @Value("${app.sourceRepo:}") String sourceRepo,
+      @Value("${citelines.api.checklinks.mailto:}") String mailto) {
     this.bibTexEntryRepository = bibTexEntryRepository;
     this.restTemplate = restTemplate;
+    this.noRedirectRestTemplate = noRedirectRestTemplate;
     this.retryHelper =
         new ApiRetryHelper(
             "CheckLinks",
@@ -68,6 +98,24 @@ public class CheckLinksService {
             5,
             citelinesApiDelayMs,
             /* treatAnyForbiddenAsRateLimit= */ true);
+    this.doiUserAgent = buildDoiUserAgent(sourceRepo, mailto);
+  }
+
+  private static String buildDoiUserAgent(String sourceRepo, String mailto) {
+    StringBuilder userAgent = new StringBuilder("Citelines/1.0");
+    boolean hasSourceRepo = sourceRepo != null && !sourceRepo.isBlank();
+    boolean hasMailto = mailto != null && !mailto.isBlank();
+    if (hasSourceRepo || hasMailto) {
+      userAgent.append(" (");
+      if (hasSourceRepo) {
+        userAgent.append("+").append(sourceRepo);
+      }
+      if (hasMailto) {
+        userAgent.append(hasSourceRepo ? "; " : "").append("mailto:").append(mailto);
+      }
+      userAgent.append(")");
+    }
+    return userAgent.toString();
   }
 
   public void checkLinks(int projectId, JobContext ctx) {
@@ -116,17 +164,24 @@ public class CheckLinksService {
 
   private boolean isInvalidDoi(String doi, String citeKey, JobContext ctx) {
     String url = "https://doi.org/" + doi;
+    HttpHeaders headers = new HttpHeaders();
+    headers.set(HttpHeaders.ACCEPT, DOI_ACCEPT_HEADER);
+    headers.set(HttpHeaders.USER_AGENT, doiUserAgent);
+    HttpEntity<Void> request = new HttpEntity<>(headers);
     try {
-      String body =
-          retryHelper.execute("GET " + url, () -> restTemplate.getForObject(url, String.class));
-      boolean invalid =
-          body != null
-              && body.contains(DOI_NOT_FOUND_TEXT)
-              && body.contains(DOI_NOT_FOUND_DETAIL_TEXT);
-      if (invalid) {
-        ctx.log("Invalid DOI for %s: %s".formatted(citeKey, doi));
+      ResponseEntity<String> response =
+          retryHelper.execute(
+              "GET " + url,
+              () -> noRedirectRestTemplate.exchange(url, HttpMethod.GET, request, String.class));
+      if (response.getStatusCode().is3xxRedirection()) {
+        ctx.log(
+            "Could not verify DOI for %s (%s): resolver returned %s instead of negotiated metadata"
+                .formatted(citeKey, doi, response.getStatusCode()));
       }
-      return invalid;
+      return false;
+    } catch (HttpClientErrorException.NotFound e) {
+      ctx.log("Invalid DOI for %s: %s".formatted(citeKey, doi));
+      return true;
     } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {
       ctx.log("Could not check DOI for %s (%s): %s".formatted(citeKey, doi, e.getMessage()));
       return false;
@@ -134,16 +189,34 @@ public class CheckLinksService {
   }
 
   private boolean isInvalidUrl(String url, String citeKey, JobContext ctx) {
+    HttpHeaders headers = new HttpHeaders();
+    headers.set(HttpHeaders.USER_AGENT, BROWSER_USER_AGENT);
+    headers.set(HttpHeaders.ACCEPT, BROWSER_ACCEPT);
+    headers.set(HttpHeaders.ACCEPT_LANGUAGE, BROWSER_ACCEPT_LANGUAGE);
+    HttpEntity<Void> request = new HttpEntity<>(headers);
     try {
       retryHelper.execute(
-          "GET " + url,
-          () -> {
-            restTemplate.getForObject(url, String.class);
-            return null;
-          });
+          "HEAD " + url, () -> restTemplate.exchange(url, HttpMethod.HEAD, request, Void.class));
       return false;
-    } catch (HttpClientErrorException.NotFound e) {
-      ctx.log("Invalid URL (404) for %s: %s".formatted(citeKey, url));
+    } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {
+      ctx.log("Invalid URL (%d) for %s: %s".formatted(e.getStatusCode().value(), citeKey, url));
+      return true;
+    } catch (HttpClientErrorException.MethodNotAllowed e) {
+      return isInvalidUrlViaGet(url, request, citeKey, ctx);
+    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {
+      ctx.log("Could not check URL for %s (%s): %s".formatted(citeKey, url, e.getMessage()));
+      return false;
+    }
+  }
+
+  private boolean isInvalidUrlViaGet(
+      String url, HttpEntity<Void> request, String citeKey, JobContext ctx) {
+    try {
+      retryHelper.execute(
+          "GET " + url, () -> restTemplate.exchange(url, HttpMethod.GET, request, String.class));
+      return false;
+    } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {
+      ctx.log("Invalid URL (%d) for %s: %s".formatted(e.getStatusCode().value(), citeKey, url));
       return true;
     } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {
       ctx.log("Could not check URL for %s (%s): %s".formatted(citeKey, url, e.getMessage()));
