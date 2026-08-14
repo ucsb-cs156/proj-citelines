@@ -8,6 +8,22 @@ import AxiosMockAdapter from "axios-mock-adapter";
 import BibTexEntryShowPage from "main/pages/Projects/BibTexEntryShowPage";
 import bibTexEntriesFixtures from "fixtures/bibTexEntriesFixtures";
 
+// CodeMirror (used internally by BibTexEntryComments' Markdown editor) needs a working
+// Document.createRange, which jsdom does not provide — same polyfill react-simplemde-editor's
+// own test suite uses.
+Document.prototype.createRange = function () {
+  return {
+    setEnd: function () {},
+    setStart: function () {},
+    getBoundingClientRect: function () {
+      return { right: 0 };
+    },
+    getClientRects: function () {
+      return { length: 0, left: 0, right: 0 };
+    },
+  };
+};
+
 const mockToast = vi.fn();
 vi.mock("react-toastify", async (importOriginal) => {
   return {
@@ -468,5 +484,74 @@ describe("BibTexEntryShowPage tests", () => {
     await waitFor(() =>
       expect(mockToast).toHaveBeenCalledWith("Entry deleted successfully"),
     );
+  });
+
+  test("the BibTex Entry card is open by default, and the other three cards are closed by default", async () => {
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-BibtexCard-header"),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-CommentsCard-header"),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-ReferencesCard-header"),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-CitationsCard-header"),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("each card can be opened/closed independently of the others, and PUTs the new state", async () => {
+    axiosMock
+      .onPut("/api/bibtexentries")
+      .reply(200, bibTexEntriesFixtures.oneEntry);
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("BibTexEntryShowPage-bibtex"),
+      ).toHaveTextContent("@article{smith2020,");
+    });
+
+    // Closing the BibTex card...
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-BibtexCard-header"),
+    );
+    // ...doesn't affect the (still closed) Comments card...
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-CommentsCard-header"),
+    ).toHaveAttribute("aria-expanded", "false");
+
+    // ...and opening the Comments card doesn't reopen (or otherwise affect) the BibTex card.
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-CommentsCard-header"),
+    );
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-BibtexCard-header"),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-CommentsCard-header"),
+    ).toHaveAttribute("aria-expanded", "true");
+
+    await waitFor(() => expect(axiosMock.history.put.length).toBe(2));
+    expect(axiosMock.history.put[0].data).toContain(
+      "CITELINES_card_bibtex = {Closed}",
+    );
+    expect(axiosMock.history.put[1].data).toContain(
+      "CITELINES_card_comments = {Open}",
+    );
+  });
+
+  test("wires up a working BibtexEntryComments instance inside the Comments card", async () => {
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-BibTexEntryComments-base"),
+    ).toBeInTheDocument();
   });
 });

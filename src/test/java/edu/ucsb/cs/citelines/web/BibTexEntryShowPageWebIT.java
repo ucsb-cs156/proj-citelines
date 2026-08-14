@@ -15,8 +15,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 /**
  * Verifies the BibTexEntryShowPage end to end: navigating to it from the Citations tab, its raw
- * (non-editable) BibTeX display, the Get References/Get Citations buttons and their tooltips, and
- * that launching a job shows up on the project's Jobs tab.
+ * (non-editable) BibTeX display, the Get References/Get Citations buttons and their tooltips, that
+ * launching a job shows up on the project's Jobs tab, and the page's four independently
+ * collapsible cards (BibTex Entry, Comments, References, Citations — see issue #38).
  *
  * <p>The pasted entry deliberately has no DOI, so the launched job fails immediately with a clear,
  * local error (no live network call to OpenAlex) — keeping this test fast and hermetic, matching
@@ -71,6 +72,20 @@ public class BibTexEntryShowPageWebIT extends WebTestCase {
         .containsText("References (0)");
     assertThat(page.getByTestId("BibTexEntryShowPage-citations-heading"))
         .containsText("Citations (0)");
+
+    // The BibTex Entry card starts open, and the other three (independently collapsible, not a
+    // single-open-at-a-time accordion) cards start closed.
+    assertThat(page.getByTestId("BibTexEntryShowPage-BibtexCard-body")).isVisible();
+    assertThat(page.getByTestId("BibTexEntryShowPage-CommentsCard-body")).isHidden();
+    assertThat(page.getByTestId("BibTexEntryShowPage-ReferencesCard-body")).isHidden();
+    assertThat(page.getByTestId("BibTexEntryShowPage-CitationsCard-body")).isHidden();
+
+    // Opening the Comments card reveals a working BibtexEntryComments instance, and leaves the
+    // (still open) BibTex Entry card untouched.
+    page.getByTestId("BibTexEntryShowPage-CommentsCard-header").click();
+    assertThat(page.getByTestId("BibTexEntryShowPage-CommentsCard-body")).isVisible();
+    assertThat(page.getByTestId("BibTexEntryShowPage-BibTexEntryComments-base")).isVisible();
+    assertThat(page.getByTestId("BibTexEntryShowPage-BibtexCard-body")).isVisible();
 
     page.getByTestId("BibTexEntryShowPage-go-to-project-button").click();
     assertThat(page.getByTestId("ResearcherProjectShowPage-title")).isVisible();
