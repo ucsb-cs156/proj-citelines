@@ -5,15 +5,61 @@ import BasicLayout from "main/layouts/BasicLayout/BasicLayout";
 import { Link, useNavigate, useParams } from "react-router";
 
 import Modal from "react-bootstrap/Modal";
-import { Button, Form, OverlayTrigger, Row, Tooltip } from "react-bootstrap";
+import {
+  Button,
+  Card,
+  Collapse,
+  Form,
+  OverlayTrigger,
+  Row,
+  Tooltip,
+} from "react-bootstrap";
 import { toast } from "react-toastify";
 import CitationTable from "main/components/Citations/CitationTable";
 import BibTexEntryModal from "main/components/Citations/BibTexEntryModal";
+import BibTexEntryComments from "main/components/Citations/BibTexEntryComments";
 import {
   RELEVANCE_OPTIONS,
   extractCitelinesFields,
   injectCitelinesFields,
 } from "main/utils/citelinesFields";
+
+// The four independently-collapsible cards on this page (issue #38). Unlike a react-bootstrap
+// Accordion, any number of these may be open at once. `field` is the (lowercased, unprefixed)
+// preserved CITELINES_ field name used to persist each card's state onto the entry itself, e.g.
+// "card_bibtex" <-> CITELINES_card_bibtex = {Open|Closed}.
+const CARD_DEFS = [
+  { key: "bibtex", field: "card_bibtex", defaultOpen: true },
+  { key: "comments", field: "card_comments", defaultOpen: false },
+  { key: "references", field: "card_references", defaultOpen: false },
+  { key: "citations", field: "card_citations", defaultOpen: false },
+];
+
+/** A card whose body can be independently expanded/collapsed, unlike react-bootstrap's Accordion
+ * (where by default only one item can be open at a time). `header` is rendered next to the
+ * open/close toggle so callers can put dynamic content (e.g. a count) there. */
+function CollapsibleCard({ testId, header, isOpen, onToggle, children }) {
+  return (
+    <Card className="mb-3" data-testid={testId}>
+      <Card.Header
+        onClick={onToggle}
+        role="button"
+        aria-expanded={isOpen}
+        data-testid={`${testId}-header`}
+        className="d-flex justify-content-between align-items-center"
+        style={{ cursor: "pointer" }}
+      >
+        <div className="flex-grow-1">{header}</div>
+        <span data-testid={`${testId}-toggle-icon`}>{isOpen ? "▲" : "▼"}</span>
+      </Card.Header>
+      <Collapse in={isOpen}>
+        <div data-testid={`${testId}-body`}>
+          <Card.Body>{children}</Card.Body>
+        </div>
+      </Collapse>
+    </Card>
+  );
+}
 
 export default function BibTexEntryShowPage({
   testId = "BibTexEntryShowPage",
@@ -66,6 +112,27 @@ export default function BibTexEntryShowPage({
 
   const { strippedBibtex, relevance, preservedFields } =
     extractCitelinesFields(rawBibtex);
+
+  const [cardOpenState, setCardOpenState] = useState(() =>
+    Object.fromEntries(CARD_DEFS.map((c) => [c.key, c.defaultOpen])),
+  );
+
+  // Once the raw bibtex (and hence preservedFields) has loaded, derive each card's open/closed
+  // state from its persisted CITELINES_card_* field, defaulting per CARD_DEFS if the field isn't
+  // present (e.g. this entry has never had a card toggled before).
+  useEffect(() => {
+    if (!rawBibtex) return;
+    setCardOpenState(
+      Object.fromEntries(
+        CARD_DEFS.map((c) => [
+          c.key,
+          (preservedFields[`citelines_${c.field}`] ??
+            (c.defaultOpen ? "Open" : "Closed")) === "Open",
+        ]),
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawBibtex]);
 
   const referencesQueryKey = `/api/citationedges/references?projectId=${projectId}&citeKey=${entry?.citeKey}`;
   const { data: references } = useBackend(
@@ -148,6 +215,33 @@ export default function BibTexEntryShowPage({
     { onSuccess: () => toast("Relevance updated successfully") },
     [exportQueryKey],
   );
+
+  const updateCardStateMutation = useBackendMutation(
+    (newPreservedFields) => ({
+      url: "/api/bibtexentries",
+      method: "PUT",
+      params: { id: entry?.id, projectId },
+      data: injectCitelinesFields(rawBibtex, relevance, newPreservedFields),
+      headers: { "Content-Type": "text/plain" },
+    }),
+    {},
+    [exportQueryKey],
+  );
+
+  function toggleCard(cardKey, fieldName) {
+    setCardOpenState((prev) => {
+      const newIsOpen = !prev[cardKey];
+      // rawBibtex may not have loaded yet; injecting into an empty string would wipe the entry,
+      // so only persist once we actually have the entry's bibtex to merge the new state into.
+      if (rawBibtex) {
+        updateCardStateMutation.mutate({
+          ...preservedFields,
+          [`citelines_${fieldName}`]: newIsOpen ? "Open" : "Closed",
+        });
+      }
+      return { ...prev, [cardKey]: newIsOpen };
+    });
+  }
 
   const deleteMutation = useBackendMutation(
     () => ({
@@ -317,48 +411,84 @@ export default function BibTexEntryShowPage({
             </Modal.Footer>
           </Modal>
 
-          <pre
-            data-testid={`${testId}-bibtex`}
-            className="border rounded-3 p-3"
+          <CollapsibleCard
+            testId={`${testId}-BibtexCard`}
+            header="BibTex Entry"
+            isOpen={cardOpenState.bibtex}
+            onToggle={() => toggleCard("bibtex", "card_bibtex")}
           >
-            {strippedBibtex}
-          </pre>
+            <pre
+              data-testid={`${testId}-bibtex`}
+              className="border rounded-3 p-3"
+            >
+              {strippedBibtex}
+            </pre>
+          </CollapsibleCard>
 
-          <h4 className="mt-4" data-testid={`${testId}-references-heading`}>
-            References ({references.length})
-            {unresolvedReferencesCount > 0 && (
-              <span
-                className="text-warning ms-2"
-                data-testid={`${testId}-references-unresolved-badge`}
-              >
-                — {unresolvedReferencesCount} unresolved
-              </span>
-            )}
-          </h4>
-          <CitationTable
-            readOnly
-            citations={references}
-            projectId={projectId}
-            testId={`${testId}-ReferencesTable`}
-          />
+          <CollapsibleCard
+            testId={`${testId}-CommentsCard`}
+            header="Comments"
+            isOpen={cardOpenState.comments}
+            onToggle={() => toggleCard("comments", "card_comments")}
+          >
+            <BibTexEntryComments
+              entry={entry}
+              projectId={projectId}
+              testId={`${testId}-BibTexEntryComments`}
+            />
+          </CollapsibleCard>
 
-          <h4 className="mt-4" data-testid={`${testId}-citations-heading`}>
-            Citations ({citations.length})
-            {unresolvedCitationsCount > 0 && (
-              <span
-                className="text-warning ms-2"
-                data-testid={`${testId}-citations-unresolved-badge`}
-              >
-                — {unresolvedCitationsCount} unresolved
+          <CollapsibleCard
+            testId={`${testId}-ReferencesCard`}
+            header={
+              <span data-testid={`${testId}-references-heading`}>
+                References ({references.length})
+                {unresolvedReferencesCount > 0 && (
+                  <span
+                    className="text-warning ms-2"
+                    data-testid={`${testId}-references-unresolved-badge`}
+                  >
+                    — {unresolvedReferencesCount} unresolved
+                  </span>
+                )}
               </span>
-            )}
-          </h4>
-          <CitationTable
-            readOnly
-            citations={citations}
-            projectId={projectId}
-            testId={`${testId}-CitationsTable`}
-          />
+            }
+            isOpen={cardOpenState.references}
+            onToggle={() => toggleCard("references", "card_references")}
+          >
+            <CitationTable
+              readOnly
+              citations={references}
+              projectId={projectId}
+              testId={`${testId}-ReferencesTable`}
+            />
+          </CollapsibleCard>
+
+          <CollapsibleCard
+            testId={`${testId}-CitationsCard`}
+            header={
+              <span data-testid={`${testId}-citations-heading`}>
+                Citations ({citations.length})
+                {unresolvedCitationsCount > 0 && (
+                  <span
+                    className="text-warning ms-2"
+                    data-testid={`${testId}-citations-unresolved-badge`}
+                  >
+                    — {unresolvedCitationsCount} unresolved
+                  </span>
+                )}
+              </span>
+            }
+            isOpen={cardOpenState.citations}
+            onToggle={() => toggleCard("citations", "card_citations")}
+          >
+            <CitationTable
+              readOnly
+              citations={citations}
+              projectId={projectId}
+              testId={`${testId}-CitationsTable`}
+            />
+          </CollapsibleCard>
         </div>
       )}
     </BasicLayout>
