@@ -271,6 +271,12 @@ public class CheckLinksServiceTests {
 
     assertNull(kvp.get("CITELINES_invalid_url"));
     verify(bibTexEntryRepository, never()).save(any());
+    verify(restTemplate)
+        .exchange(
+            eq("https://example.org/ok"),
+            eq(HttpMethod.HEAD),
+            any(HttpEntity.class),
+            eq(Void.class));
   }
 
   @Test
