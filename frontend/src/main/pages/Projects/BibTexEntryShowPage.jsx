@@ -5,13 +5,7 @@ import BasicLayout from "main/layouts/BasicLayout/BasicLayout";
 import { Link, useNavigate, useParams } from "react-router";
 
 import Modal from "react-bootstrap/Modal";
-import {
-  Button,
-  Form,
-  OverlayTrigger,
-  Row,
-  Tooltip,
-} from "react-bootstrap";
+import { Button, Form, OverlayTrigger, Row, Tooltip } from "react-bootstrap";
 import { toast } from "react-toastify";
 import CitationTable from "main/components/Citations/CitationTable";
 import BibTexEntryModal from "main/components/Citations/BibTexEntryModal";
