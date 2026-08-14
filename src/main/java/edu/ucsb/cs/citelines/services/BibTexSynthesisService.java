@@ -7,13 +7,14 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 /**
- * Builds a raw BibTeX string from an {@link OpenAlexWork}, so it can be fed through the existing,
+ * Builds a raw BibTeX string from a {@link ResolvedWork}, so it can be fed through the existing,
  * already-tested {@link BibTexConverterService#parseToEntries} rather than hand-building a {@link
  * edu.ucsb.cs.citelines.collections.BibTexEntry} and duplicating its validation/normalization.
  *
- * <p>Field values are only lightly sanitized (stray {@code {}/{}} characters are stripped) — no
- * LaTeX escaping is attempted. See {@code
- * docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md} for where that would slot in.
+ * <p>Field values are passed through {@link LaTeXNormalizationService} (some upstream bibliographic
+ * data — especially older ACM/IEEE deposits — carries literal LaTeX escapes like {@code
+ * Schr{\"o}der} even in an otherwise-JSON API response) and any leftover stray {@code {}/{}}
+ * characters are stripped. See {@code docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md}.
  */
 @Service
 public class BibTexSynthesisService {
@@ -27,12 +28,18 @@ public class BibTexSynthesisService {
           "dissertation", "phdthesis",
           "report", "techreport");
 
+  private final LaTeXNormalizationService laTeXNormalizationService;
+
+  public BibTexSynthesisService(LaTeXNormalizationService laTeXNormalizationService) {
+    this.laTeXNormalizationService = laTeXNormalizationService;
+  }
+
   /**
    * Builds a raw BibTeX string for the given work, using {@code citeKey} as its citation key.
    *
    * @throws IllegalArgumentException if the work has no title
    */
-  public String synthesizeRawBibTex(OpenAlexWork work, String citeKey) {
+  public String synthesizeRawBibTex(ResolvedWork work, String citeKey) {
     if (work.title() == null || work.title().isBlank()) {
       throw new IllegalArgumentException("Cannot synthesize a BibTeX entry without a title.");
     }
@@ -68,7 +75,7 @@ public class BibTexSynthesisService {
    * disambiguated against {@code existingCiteKeys} by appending a letter (or, in the unlikely event
    * all 26 are taken, a number) suffix.
    */
-  public String generateUniqueCiteKey(OpenAlexWork work, Set<String> existingCiteKeys) {
+  public String generateUniqueCiteKey(ResolvedWork work, Set<String> existingCiteKeys) {
     String base = citeKeyBase(work);
     if (!existingCiteKeys.contains(base)) {
       return base;
@@ -86,10 +93,10 @@ public class BibTexSynthesisService {
     return base + counter;
   }
 
-  private String citeKeyBase(OpenAlexWork work) {
+  private String citeKeyBase(ResolvedWork work) {
     String lastName = "entry";
     if (work.authorNames() != null && !work.authorNames().isEmpty()) {
-      String[] parts = work.authorNames().get(0).trim().split("\\s+");
+      String[] parts = sanitize(work.authorNames().get(0)).trim().split("\\s+");
       String candidate = parts[parts.length - 1].toLowerCase().replaceAll("[^a-z0-9]", "");
       if (!candidate.isEmpty()) {
         lastName = candidate;
@@ -106,16 +113,14 @@ public class BibTexSynthesisService {
     };
   }
 
-  private static String formatAuthors(List<String> names) {
-    return names.stream()
-        .map(BibTexSynthesisService::formatAuthorName)
-        .collect(Collectors.joining(" and "));
+  private String formatAuthors(List<String> names) {
+    return names.stream().map(this::formatAuthorName).collect(Collectors.joining(" and "));
   }
 
   // Heuristic "Last, First Middle" reformatting; does not handle multi-word surnames/particles
   // (e.g. "van der Berg") specially.
-  private static String formatAuthorName(String fullName) {
-    String trimmed = fullName.trim();
+  private String formatAuthorName(String fullName) {
+    String trimmed = sanitize(fullName).trim();
     int lastSpace = trimmed.lastIndexOf(' ');
     if (lastSpace == -1) {
       return trimmed;
@@ -123,7 +128,8 @@ public class BibTexSynthesisService {
     return trimmed.substring(lastSpace + 1) + ", " + trimmed.substring(0, lastSpace);
   }
 
-  private static String sanitize(String value) {
-    return value.replace("{", "").replace("}", "");
+  private String sanitize(String value) {
+    String normalized = laTeXNormalizationService.normalize(value);
+    return normalized.replace("{", "").replace("}", "");
   }
 }

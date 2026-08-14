@@ -230,13 +230,42 @@ public class CitationEdgesControllerTests extends ControllerTestCase {
             .projectId(1)
             .sourceCiteKey("smith2020")
             .direction("reference")
-            .reason("not_found_in_openalex")
+            .reason("not_found_by_any_resolver")
             .build();
     when(unresolvedCitationRepository.findByProjectId(1)).thenReturn(List.of(unresolved));
 
     MvcResult response =
         mockMvc
             .perform(get("/api/citationedges/unresolved?projectId=1"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    assertEquals(
+        mapper.writeValueAsString(List.of(unresolved)),
+        response.getResponse().getContentAsString());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_get_unresolved_citations_for_a_single_source_cite_key() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    UnresolvedCitation unresolved =
+        UnresolvedCitation.builder()
+            .id("u1")
+            .projectId(1)
+            .sourceCiteKey("smith2020")
+            .direction("reference")
+            .reason("missing_title")
+            .build();
+    when(unresolvedCitationRepository.findByProjectIdAndSourceCiteKey(1, "smith2020"))
+        .thenReturn(List.of(unresolved));
+
+    MvcResult response =
+        mockMvc
+            .perform(get("/api/citationedges/unresolved?projectId=1&sourceCiteKey=smith2020"))
             .andExpect(status().isOk())
             .andReturn();
 

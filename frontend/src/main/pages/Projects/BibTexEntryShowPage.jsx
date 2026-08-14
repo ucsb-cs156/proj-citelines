@@ -84,6 +84,26 @@ export default function BibTexEntryShowPage({
     { refetchInterval: 5000, enabled: !!entry },
   );
 
+  const { data: unresolved } = useBackend(
+    [
+      `/api/citationedges/unresolved?projectId=${projectId}&sourceCiteKey=${entry?.citeKey}`,
+    ],
+    {
+      method: "GET",
+      url: "/api/citationedges/unresolved",
+      params: { projectId, sourceCiteKey: entry?.citeKey },
+    },
+    [],
+    true,
+    { refetchInterval: 5000, enabled: !!entry },
+  );
+  const unresolvedReferencesCount = unresolved.filter(
+    (u) => u.direction === "reference",
+  ).length;
+  const unresolvedCitationsCount = unresolved.filter(
+    (u) => u.direction === "citation",
+  ).length;
+
   const getReferencesMutation = useBackendMutation(
     () => ({
       url: "/api/jobs/launch/getReferences",
@@ -214,6 +234,14 @@ export default function BibTexEntryShowPage({
 
           <h4 className="mt-4" data-testid={`${testId}-references-heading`}>
             References ({references.length})
+            {unresolvedReferencesCount > 0 && (
+              <span
+                className="text-warning ms-2"
+                data-testid={`${testId}-references-unresolved-badge`}
+              >
+                — {unresolvedReferencesCount} unresolved
+              </span>
+            )}
           </h4>
           <CitationTable
             readOnly
@@ -224,6 +252,14 @@ export default function BibTexEntryShowPage({
 
           <h4 className="mt-4" data-testid={`${testId}-citations-heading`}>
             Citations ({citations.length})
+            {unresolvedCitationsCount > 0 && (
+              <span
+                className="text-warning ms-2"
+                data-testid={`${testId}-citations-unresolved-badge`}
+              >
+                — {unresolvedCitationsCount} unresolved
+              </span>
+            )}
           </h4>
           <CitationTable
             readOnly

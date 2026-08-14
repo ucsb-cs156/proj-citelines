@@ -48,6 +48,7 @@ describe("BibTexEntryShowPage tests", () => {
       .reply(200, "@article{smith2020,\n  title = {A Very Long Title}\n}\n");
     axiosMock.onGet("/api/citationedges/references").reply(200, []);
     axiosMock.onGet("/api/citationedges/citations").reply(200, []);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
   });
 
   test("shows loading, then the entry's citekey, raw bibtex, and both buttons", async () => {
@@ -110,6 +111,7 @@ describe("BibTexEntryShowPage tests", () => {
       );
     axiosMock.onGet("/api/citationedges/references").reply(200, []);
     axiosMock.onGet("/api/citationedges/citations").reply(200, []);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
 
     renderAtSmith2020();
 
@@ -215,6 +217,7 @@ describe("BibTexEntryShowPage tests", () => {
     axiosMock
       .onGet("/api/citationedges/citations")
       .reply(200, [bibTexEntriesFixtures.threeEntries[2]]);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
 
     renderAtSmith2020();
 
@@ -242,6 +245,52 @@ describe("BibTexEntryShowPage tests", () => {
         "BibTexEntryShowPage-ReferencesTable-cell-row-0-col-edit-button",
       ),
     ).not.toBeInTheDocument();
+  });
+
+  test("shows no unresolved badge when there are no unresolved citations", async () => {
+    renderAtSmith2020();
+
+    await screen.findByTestId("BibTexEntryShowPage-references-heading");
+    expect(
+      screen.queryByTestId("BibTexEntryShowPage-references-unresolved-badge"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("BibTexEntryShowPage-citations-unresolved-badge"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("shows an unresolved badge with the count for each direction", async () => {
+    axiosMock.reset();
+    axiosMock
+      .onGet("/api/bibtexentries/entry")
+      .reply(200, bibTexEntriesFixtures.oneEntry);
+    axiosMock
+      .onGet("/api/bibtexentries/export")
+      .reply(200, "@article{smith2020,\n  title = {A Very Long Title}\n}\n");
+    axiosMock.onGet("/api/citationedges/references").reply(200, []);
+    axiosMock.onGet("/api/citationedges/citations").reply(200, []);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, [
+      { id: "u1", direction: "reference", reason: "missing_title" },
+      { id: "u2", direction: "reference", reason: "missing_doi" },
+      { id: "u3", direction: "citation", reason: "not_found_by_any_resolver" },
+    ]);
+
+    renderAtSmith2020();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("BibTexEntryShowPage-references-unresolved-badge"),
+      ).toHaveTextContent("2 unresolved");
+    });
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-citations-unresolved-badge"),
+    ).toHaveTextContent("1 unresolved");
+
+    expect(
+      axiosMock.history.get.find(
+        (r) => r.url === "/api/citationedges/unresolved",
+      ).params,
+    ).toEqual({ projectId: "1", sourceCiteKey: "smith2020" });
   });
 
   test("shows an error modal and returns to the project page when the entry cannot be fetched", async () => {

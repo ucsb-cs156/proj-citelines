@@ -17,21 +17,32 @@ public class BibTexSynthesisServiceTests {
 
   @BeforeEach
   void setup() {
-    synthesisService = new BibTexSynthesisService();
+    synthesisService = new BibTexSynthesisService(new LaTeXNormalizationService());
     converterService = new BibTexConverterService();
     converterService.doiService = new DOIService();
   }
 
-  private static OpenAlexWork article() {
-    return new OpenAlexWork(
+  private static ResolvedWork work(
+      String id,
+      String doi,
+      String title,
+      Integer year,
+      String type,
+      List<String> authorNames,
+      String venue) {
+    return new ResolvedWork(
+        id, doi, title, year, type, authorNames, venue, List.of(), List.of(), List.of());
+  }
+
+  private static ResolvedWork article() {
+    return work(
         "W3035965352",
         "10.1038/s41586-020-2649-2",
         "Array programming with NumPy",
         2020,
         "article",
         List.of("Charles R. Harris", "K. Jarrod Millman"),
-        "Nature",
-        List.of());
+        "Nature");
   }
 
   @Test
@@ -53,18 +64,10 @@ public class BibTexSynthesisServiceTests {
 
   @Test
   void maps_proceedings_article_to_inproceedings_with_a_booktitle_field() {
-    OpenAlexWork work =
-        new OpenAlexWork(
-            "W1",
-            null,
-            "A Conference Paper",
-            2021,
-            "proceedings-article",
-            List.of(),
-            "ICSE",
-            List.of());
+    ResolvedWork w =
+        work("W1", null, "A Conference Paper", 2021, "proceedings-article", List.of(), "ICSE");
 
-    String bibtex = synthesisService.synthesizeRawBibTex(work, "anon2021");
+    String bibtex = synthesisService.synthesizeRawBibTex(w, "anon2021");
     assertTrue(bibtex.startsWith("@inproceedings{anon2021,"));
 
     BibTexEntry entry = converterService.parseToEntries(bibtex, 1).get(0);
@@ -73,22 +76,30 @@ public class BibTexSynthesisServiceTests {
   }
 
   @Test
-  void maps_an_unrecognized_type_to_misc() {
-    OpenAlexWork work =
-        new OpenAlexWork(
-            "W1", null, "Something Unusual", null, "dataset", List.of(), null, List.of());
+  void maps_book_chapter_to_incollection_with_a_booktitle_field() {
+    ResolvedWork w = work("W1", null, "A Chapter", 2019, "book-chapter", List.of(), "The Book");
 
-    String bibtex = synthesisService.synthesizeRawBibTex(work, "unusual");
+    String bibtex = synthesisService.synthesizeRawBibTex(w, "anon2019");
+    assertTrue(bibtex.startsWith("@incollection{anon2019,"));
+
+    BibTexEntry entry = converterService.parseToEntries(bibtex, 1).get(0);
+    assertEquals("incollection", entry.getEntryType());
+    assertEquals("The Book", entry.getKeyValuePairs().get("booktitle"));
+  }
+
+  @Test
+  void maps_an_unrecognized_type_to_misc() {
+    ResolvedWork w = work("W1", null, "Something Unusual", null, "dataset", List.of(), null);
+
+    String bibtex = synthesisService.synthesizeRawBibTex(w, "unusual");
     assertTrue(bibtex.startsWith("@misc{unusual,"));
   }
 
   @Test
   void omits_optional_fields_that_are_absent() {
-    OpenAlexWork work =
-        new OpenAlexWork(
-            "W1", null, "Bare Title Only", null, "article", List.of(), null, List.of());
+    ResolvedWork w = work("W1", null, "Bare Title Only", null, "article", List.of(), null);
 
-    String bibtex = synthesisService.synthesizeRawBibTex(work, "bare");
+    String bibtex = synthesisService.synthesizeRawBibTex(w, "bare");
     BibTexEntry entry = converterService.parseToEntries(bibtex, 1).get(0);
 
     assertEquals("Bare Title Only", entry.getKeyValuePairs().get("title"));
@@ -100,48 +111,61 @@ public class BibTexSynthesisServiceTests {
 
   @Test
   void throws_if_title_is_missing() {
-    OpenAlexWork work =
-        new OpenAlexWork("W1", null, null, null, "article", List.of(), null, List.of());
+    ResolvedWork w = work("W1", null, null, null, "article", List.of(), null);
     assertThrows(
-        IllegalArgumentException.class, () -> synthesisService.synthesizeRawBibTex(work, "x"));
+        IllegalArgumentException.class, () -> synthesisService.synthesizeRawBibTex(w, "x"));
   }
 
   @Test
   void throws_if_title_is_blank() {
-    OpenAlexWork work =
-        new OpenAlexWork("W1", null, "   ", null, "article", List.of(), null, List.of());
+    ResolvedWork w = work("W1", null, "   ", null, "article", List.of(), null);
     assertThrows(
-        IllegalArgumentException.class, () -> synthesisService.synthesizeRawBibTex(work, "x"));
+        IllegalArgumentException.class, () -> synthesisService.synthesizeRawBibTex(w, "x"));
   }
 
   @Test
   void treats_a_null_author_list_the_same_as_no_authors() {
-    OpenAlexWork work =
-        new OpenAlexWork("W1", null, "Title", null, "article", null, null, List.of());
-    String bibtex = synthesisService.synthesizeRawBibTex(work, "x");
+    ResolvedWork w = work("W1", null, "Title", null, "article", null, null);
+    String bibtex = synthesisService.synthesizeRawBibTex(w, "x");
     assertTrue(!bibtex.contains("author"));
   }
 
   @Test
   void omits_venue_and_doi_when_blank_rather_than_null() {
-    OpenAlexWork work =
-        new OpenAlexWork("W1", "  ", "Title", null, "article", List.of(), "  ", List.of());
+    ResolvedWork w = work("W1", "  ", "Title", null, "article", List.of(), "  ");
     BibTexEntry entry =
-        converterService.parseToEntries(synthesisService.synthesizeRawBibTex(work, "x"), 1).get(0);
+        converterService.parseToEntries(synthesisService.synthesizeRawBibTex(w, "x"), 1).get(0);
     assertTrue(!entry.getKeyValuePairs().containsKey("journal"));
     assertTrue(!entry.getKeyValuePairs().containsKey("doi"));
   }
 
   @Test
   void strips_stray_braces_from_title_and_venue() {
-    OpenAlexWork work =
-        new OpenAlexWork(
-            "W1", null, "A {Weird} Title", 2020, "article", List.of(), "A {Venue}", List.of());
+    ResolvedWork w = work("W1", null, "A {Weird} Title", 2020, "article", List.of(), "A {Venue}");
 
-    String bibtex = synthesisService.synthesizeRawBibTex(work, "weird2020");
+    String bibtex = synthesisService.synthesizeRawBibTex(w, "weird2020");
     BibTexEntry entry = converterService.parseToEntries(bibtex, 1).get(0);
     assertEquals("A Weird Title", entry.getKeyValuePairs().get("title"));
     assertEquals("A Venue", entry.getKeyValuePairs().get("journal"));
+  }
+
+  @Test
+  void normalizes_latex_escapes_in_title_venue_and_author() {
+    ResolvedWork w =
+        work(
+            "W1",
+            null,
+            "A Schr{\\\"{o}}der Theorem",
+            2020,
+            "article",
+            List.of("M{\\\"u}ller"),
+            "Nystr{\\\"o}m Journal");
+
+    String bibtex = synthesisService.synthesizeRawBibTex(w, "x");
+    BibTexEntry entry = converterService.parseToEntries(bibtex, 1).get(0);
+    assertEquals("A Schröder Theorem", entry.getKeyValuePairs().get("title"));
+    assertEquals("Nyström Journal", entry.getKeyValuePairs().get("journal"));
+    assertEquals("Müller", entry.getKeyValuePairs().get("author"));
   }
 
   @Test
@@ -183,32 +207,28 @@ public class BibTexSynthesisServiceTests {
 
   @Test
   void generateUniqueCiteKey_falls_back_to_entry_and_no_year_when_both_are_missing() {
-    OpenAlexWork work =
-        new OpenAlexWork("W1", null, "Title", null, "article", List.of(), null, List.of());
-    assertEquals("entry", synthesisService.generateUniqueCiteKey(work, Set.of()));
+    ResolvedWork w = work("W1", null, "Title", null, "article", List.of(), null);
+    assertEquals("entry", synthesisService.generateUniqueCiteKey(w, Set.of()));
   }
 
   @Test
   void generateUniqueCiteKey_falls_back_to_entry_when_the_author_list_is_null() {
-    OpenAlexWork work =
-        new OpenAlexWork("W1", null, "Title", 2020, "article", null, null, List.of());
-    assertEquals("entry2020", synthesisService.generateUniqueCiteKey(work, Set.of()));
+    ResolvedWork w = work("W1", null, "Title", 2020, "article", null, null);
+    assertEquals("entry2020", synthesisService.generateUniqueCiteKey(w, Set.of()));
   }
 
   @Test
   void generateUniqueCiteKey_falls_back_to_entry_when_the_first_authors_name_has_no_letters() {
-    OpenAlexWork work =
-        new OpenAlexWork("W1", null, "Title", 2020, "article", List.of("."), null, List.of());
-    assertEquals("entry2020", synthesisService.generateUniqueCiteKey(work, Set.of()));
+    ResolvedWork w = work("W1", null, "Title", 2020, "article", List.of("."), null);
+    assertEquals("entry2020", synthesisService.generateUniqueCiteKey(w, Set.of()));
   }
 
   @Test
   void formats_a_single_word_author_name_without_a_comma() {
-    OpenAlexWork work =
-        new OpenAlexWork("W1", null, "Title", 2020, "article", List.of("Cher"), null, List.of());
+    ResolvedWork w = work("W1", null, "Title", 2020, "article", List.of("Cher"), null);
     BibTexEntry entry =
         converterService
-            .parseToEntries(synthesisService.synthesizeRawBibTex(work, "cher2020"), 1)
+            .parseToEntries(synthesisService.synthesizeRawBibTex(w, "cher2020"), 1)
             .get(0);
     assertEquals("Cher", entry.getKeyValuePairs().get("author"));
   }
