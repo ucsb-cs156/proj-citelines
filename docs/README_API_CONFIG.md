@@ -15,6 +15,25 @@ authentication to use at their default rate limits. Nothing needs to be configur
 "Get References"/"Get Citations" jobs work. Optional settings below tune rate limits and pacing
 for each.
 
+## Rate-limit and error backoff (all three APIs)
+
+Every call to any of the three APIs goes through `ApiRetryHelper`, which — beyond the
+minimum-delay pacing described below — also implements randomized exponential backoff, satisfying
+API terms-of-service clauses (e.g. Semantic Scholar's) that require it:
+
+- A 429 response, a 403 whose body mentions "rate limit", or a 5xx server error triggers a retry.
+- Each API's own `*_DELAY_MS` setting (below) is the starting backoff delay, not just the steady-
+  state pacing interval — the two are deliberately the same configured value, so raising a
+  service's delay setting also makes it start backing off more patiently.
+- The delay doubles on each retry, with ±25% random jitter applied to each sleep (e.g. a 500ms
+  step actually sleeps somewhere in [375ms, 625ms]), so that concurrent callers backing off from
+  the same rate limit don't all retry in lockstep.
+- Retries are capped at 5 attempts; after that, the call fails with a one-line error naming which
+  configuration variable to raise.
+- A 429/403-rate-limit response additionally doubles that API's steady-state pacing interval
+  permanently (for the life of the running process), so subsequent calls slow down even after the
+  immediate retry succeeds.
+
 ### `OPENALEX_MAILTO` (optional)
 
 OpenAlex asks API users to include a contact email as a `mailto` query parameter, in exchange for

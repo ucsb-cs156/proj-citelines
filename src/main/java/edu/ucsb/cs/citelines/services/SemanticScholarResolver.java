@@ -53,7 +53,7 @@ public class SemanticScholarResolver implements CitationMetadataResolver {
     this.doiService = doiService;
     this.apiKey = apiKey;
     this.retryHelper =
-        new ApiRetryHelper("SemanticScholar", "SEMANTIC_SCHOLAR_API_DELAY_MS", 2, 3, delayMs);
+        new ApiRetryHelper("SemanticScholar", "SEMANTIC_SCHOLAR_API_DELAY_MS", delayMs, 5, delayMs);
   }
 
   @Override

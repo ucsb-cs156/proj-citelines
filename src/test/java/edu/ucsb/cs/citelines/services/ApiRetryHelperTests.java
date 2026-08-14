@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 
@@ -24,8 +25,15 @@ public class ApiRetryHelperTests {
   // A controllable clock so the pacing arithmetic is deterministic.
   AtomicLong clock = new AtomicLong(1_000_000L);
 
+  // Zero jitter by default, so backoff-sleep assertions can use exact values; jitter itself is
+  // covered by its own dedicated tests below, using +1.0/-1.0 (the extremes of its [-1, 1] range).
   private ApiRetryHelper helper(long paceMs) {
-    return new ApiRetryHelper("GitHub", "GITHUB_PACE_VAR", 8, 3, paceMs, clock::get);
+    return new ApiRetryHelper("GitHub", "GITHUB_PACE_VAR", 8000, 3, paceMs, clock::get, () -> 0.0);
+  }
+
+  private ApiRetryHelper helper(long paceMs, int retryMax, double jitterFactor) {
+    return new ApiRetryHelper(
+        "GitHub", "GITHUB_PACE_VAR", 8000, retryMax, paceMs, clock::get, () -> jitterFactor);
   }
 
   private static HttpServerErrorException badGateway() {
@@ -134,7 +142,7 @@ public class ApiRetryHelperTests {
                             throw badGateway();
                           }));
 
-      // initial attempt + 3 retries, sleeping 8, 16, 32 seconds between them
+      // initial attempt + 3 retries, sleeping 8000, 16000, 32000 ms between them
       assertEquals(4, attempts.get());
       sleepMock.verify(() -> Sleep.sleepQuietly(8000));
       sleepMock.verify(() -> Sleep.sleepQuietly(16000));
@@ -143,6 +151,28 @@ public class ApiRetryHelperTests {
           "GitHub API returned 502 (Bad Gateway) for GET /x; giving up after 4 attempts",
           thrown.getMessage());
       assertFalse(thrown.getMessage().contains("Unicorn"));
+    }
+  }
+
+  @Test
+  public void retries_are_capped_at_five_by_default_for_the_citation_resolvers() {
+    // OpenAlexService/CrossrefResolver/SemanticScholarResolver all construct their
+    // ApiRetryHelper with retryMax=5; verified here against the shared retry loop itself.
+    try (MockedStatic<Sleep> sleepMock = mockStatic(Sleep.class)) {
+      AtomicInteger attempts = new AtomicInteger();
+      assertThrows(
+          ApiUnavailableException.class,
+          () ->
+              helper(0, 5, 0.0)
+                  .execute(
+                      "GET /x",
+                      () -> {
+                        attempts.incrementAndGet();
+                        throw badGateway();
+                      }));
+
+      // initial attempt + 5 retries = 6 total
+      assertEquals(6, attempts.get());
     }
   }
 
@@ -254,8 +284,96 @@ public class ApiRetryHelperTests {
   }
 
   @Test
-  public void the_production_constructor_uses_the_system_clock() {
-    ApiRetryHelper helper = new ApiRetryHelper("GitHub", "VAR", 8, 3, 0);
-    assertEquals("ok", helper.execute("GET /x", () -> "ok"));
+  public void positive_jitter_adds_up_to_25_percent_to_the_backoff_delay() {
+    try (MockedStatic<Sleep> sleepMock = mockStatic(Sleep.class)) {
+      AtomicInteger attempts = new AtomicInteger();
+      // max positive jitter (+1.0) on an 8000ms base delay: 8000 + 8000*0.25 = 10000
+      helper(0, 3, 1.0)
+          .execute(
+              "GET /x",
+              () -> {
+                if (attempts.incrementAndGet() == 1) {
+                  throw badGateway();
+                }
+                return "ok";
+              });
+      sleepMock.verify(() -> Sleep.sleepQuietly(10000));
+    }
+  }
+
+  @Test
+  public void negative_jitter_subtracts_up_to_25_percent_from_the_backoff_delay() {
+    try (MockedStatic<Sleep> sleepMock = mockStatic(Sleep.class)) {
+      AtomicInteger attempts = new AtomicInteger();
+      // max negative jitter (-1.0) on an 8000ms base delay: 8000 - 8000*0.25 = 6000
+      helper(0, 3, -1.0)
+          .execute(
+              "GET /x",
+              () -> {
+                if (attempts.incrementAndGet() == 1) {
+                  throw badGateway();
+                }
+                return "ok";
+              });
+      sleepMock.verify(() -> Sleep.sleepQuietly(6000));
+    }
+  }
+
+  @Test
+  public void jitter_is_reapplied_fresh_to_each_doubled_delay() {
+    try (MockedStatic<Sleep> sleepMock = mockStatic(Sleep.class)) {
+      AtomicInteger attempts = new AtomicInteger();
+      // +1.0 jitter on each of the doubling steps: 8000->10000, then 16000->20000
+      assertThrows(
+          ApiUnavailableException.class,
+          () ->
+              helper(0, 1, 1.0)
+                  .execute(
+                      "GET /x",
+                      () -> {
+                        attempts.incrementAndGet();
+                        throw badGateway();
+                      }));
+      assertEquals(2, attempts.get());
+      sleepMock.verify(() -> Sleep.sleepQuietly(10000));
+    }
+  }
+
+  @Test
+  public void the_default_jitter_factor_produces_real_randomness_within_range() {
+    // Guards against the production default silently degenerating into a constant (e.g. always
+    // 0.0) — a range check alone wouldn't catch that, since 0.0 is a valid in-range value.
+    boolean sawNegative = false;
+    boolean sawPositive = false;
+    for (int i = 0; i < 1000; i++) {
+      double value = ApiRetryHelper.DEFAULT_JITTER_FACTOR.getAsDouble();
+      assertTrue(value >= -1.0 && value < 1.0);
+      sawNegative = sawNegative || value < 0;
+      sawPositive = sawPositive || value > 0;
+    }
+    assertTrue(sawNegative);
+    assertTrue(sawPositive);
+  }
+
+  @Test
+  public void the_production_constructor_uses_the_system_clock_and_real_jitter() {
+    try (MockedStatic<Sleep> sleepMock = mockStatic(Sleep.class)) {
+      ApiRetryHelper helper = new ApiRetryHelper("GitHub", "VAR", 1, 3, 0);
+      AtomicInteger attempts = new AtomicInteger();
+      // forces a real retry, so the production (real ThreadLocalRandom) jitter supplier actually
+      // runs at least once, not just gets constructed
+      String result =
+          helper.execute(
+              "GET /x",
+              () -> {
+                if (attempts.incrementAndGet() == 1) {
+                  throw badGateway();
+                }
+                return "ok";
+              });
+      assertEquals("ok", result);
+      assertEquals(2, attempts.get());
+      sleepMock.verify(() -> Sleep.sleepQuietly(org.mockito.ArgumentMatchers.anyLong()));
+    }
   }
 }

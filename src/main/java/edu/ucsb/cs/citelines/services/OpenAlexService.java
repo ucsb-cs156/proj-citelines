@@ -19,9 +19,10 @@ import org.springframework.web.client.RestTemplate;
  * the resolver chain.
  *
  * <p>Every call is paced and retried through {@link ApiRetryHelper}, using {@link
- * #CITELINES_API_DELAY_MS} as the minimum gap between calls (per the issue's requirement, this is
- * an instance field, not {@code static}, so it can be configured via {@code
- * citelines.api.delay-ms}/{@code CITELINES_API_DELAY_MS}).
+ * #CITELINES_API_DELAY_MS} both as the minimum gap between calls and as the starting delay for
+ * exponential backoff (±25% jitter, doubling on each retry) on 5xx errors and rate-limit responses
+ * (per the issue's requirement, this is an instance field, not {@code static}, so it can be
+ * configured via {@code citelines.api.delay-ms}/{@code CITELINES_API_DELAY_MS}).
  *
  * <p>{@link #getReferences} hydrates {@code sourceWork.referencedWorkIds()} via a batch fetch and
  * returns only the ids OpenAlex actually resolved — {@link CitationGraphService} detects which (if
@@ -55,7 +56,8 @@ public class OpenAlexService implements CitationMetadataResolver {
     this.CITELINES_API_DELAY_MS = citelinesApiDelayMs;
     this.mailto = mailto;
     this.retryHelper =
-        new ApiRetryHelper("OpenAlex", "CITELINES_API_DELAY_MS", 2, 3, citelinesApiDelayMs);
+        new ApiRetryHelper(
+            "OpenAlex", "CITELINES_API_DELAY_MS", citelinesApiDelayMs, 5, citelinesApiDelayMs);
   }
 
   @Override
