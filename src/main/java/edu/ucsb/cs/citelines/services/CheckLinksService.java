@@ -128,7 +128,12 @@ public class CheckLinksService {
 
   private boolean isInvalidUrl(String url, String citeKey, JobContext ctx) {
     try {
-      retryHelper.execute("GET " + url, () -> restTemplate.getForObject(url, String.class));
+      retryHelper.execute(
+          "GET " + url,
+          () -> {
+            restTemplate.getForObject(url, String.class);
+            return null;
+          });
       return false;
     } catch (HttpClientErrorException.NotFound e) {
       ctx.log("Invalid URL (404) for %s: %s".formatted(citeKey, url));
