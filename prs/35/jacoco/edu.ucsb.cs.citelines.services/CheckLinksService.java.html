@@ -128,14 +128,19 @@ public class CheckLinksService {
 
   private boolean isInvalidUrl(String url, String citeKey, JobContext ctx) {
     try {
-<span class="fc" id="L131">      retryHelper.execute(&quot;GET &quot; + url, () -&gt; restTemplate.getForObject(url, String.class));</span>
-<span class="fc" id="L132">      return false;</span>
-<span class="fc" id="L133">    } catch (HttpClientErrorException.NotFound e) {</span>
-<span class="fc" id="L134">      ctx.log(&quot;Invalid URL (404) for %s: %s&quot;.formatted(citeKey, url));</span>
-<span class="fc" id="L135">      return true;</span>
-<span class="fc" id="L136">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
-<span class="fc" id="L137">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
-<span class="fc" id="L138">      return false;</span>
+<span class="fc" id="L131">      retryHelper.execute(</span>
+          &quot;GET &quot; + url,
+          () -&gt; {
+<span class="fc" id="L134">            restTemplate.getForObject(url, String.class);</span>
+<span class="fc" id="L135">            return null;</span>
+          });
+<span class="fc" id="L137">      return false;</span>
+<span class="fc" id="L138">    } catch (HttpClientErrorException.NotFound e) {</span>
+<span class="fc" id="L139">      ctx.log(&quot;Invalid URL (404) for %s: %s&quot;.formatted(citeKey, url));</span>
+<span class="fc" id="L140">      return true;</span>
+<span class="fc" id="L141">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L142">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
+<span class="fc" id="L143">      return false;</span>
     }
   }
 }
