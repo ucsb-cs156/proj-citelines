@@ -45,9 +45,9 @@ class CitelinesApplicationTests {
         (HttpURLConnection) new URL("http://localhost/test").openConnection();
     connection.setInstanceFollowRedirects(true);
 
+    Class<?> factoryClass = factory.getClass();
     Method prepareConnection =
-        factory.getClass().getDeclaredMethod("prepareConnection", HttpURLConnection.class,
-            String.class);
+        factoryClass.getDeclaredMethod("prepareConnection", HttpURLConnection.class, String.class);
     prepareConnection.setAccessible(true);
     prepareConnection.invoke(factory, connection, "POST");
 
