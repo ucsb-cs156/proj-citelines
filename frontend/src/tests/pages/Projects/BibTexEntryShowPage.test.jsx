@@ -356,4 +356,117 @@ describe("BibTexEntryShowPage tests", () => {
       relationship: "citation",
     });
   });
+
+  test("shows a Relevance dropdown defaulting to Unreviewed when no relevance field is present", async () => {
+    renderAtSmith2020();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("BibTexEntryShowPage-relevance-select"),
+      ).toHaveValue("Unreviewed");
+    });
+  });
+
+  test("shows the entry's current relevance in the dropdown, and updating it PUTs the new value", async () => {
+    axiosMock.reset();
+    axiosMock
+      .onGet("/api/bibtexentries/entry")
+      .reply(200, bibTexEntriesFixtures.oneEntry);
+    axiosMock
+      .onGet("/api/bibtexentries/export")
+      .reply(
+        200,
+        '@article{smith2020,\n\ttitle = "A Very Long Title",\n\tcitelines_relevance = "High"\n}',
+      );
+    axiosMock.onGet("/api/citationedges/references").reply(200, []);
+    axiosMock.onGet("/api/citationedges/citations").reply(200, []);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
+    axiosMock
+      .onPut("/api/bibtexentries")
+      .reply(200, bibTexEntriesFixtures.oneEntry);
+
+    renderAtSmith2020();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("BibTexEntryShowPage-relevance-select"),
+      ).toHaveValue("High");
+    });
+
+    fireEvent.change(
+      screen.getByTestId("BibTexEntryShowPage-relevance-select"),
+      {
+        target: { value: "Low" },
+      },
+    );
+
+    await waitFor(() => expect(axiosMock.history.put.length).toBe(1));
+    expect(axiosMock.history.put[0].params).toEqual({
+      id: "64f1b2c3d4e5f6a7b8c9d0e1",
+      projectId: "1",
+    });
+    expect(axiosMock.history.put[0].data).toContain(
+      "CITELINES_relevance = {Low}",
+    );
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith("Relevance updated successfully"),
+    );
+  });
+
+  test("shows a Delete Entry button that opens a confirmation modal", async () => {
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-delete-button");
+
+    fireEvent.click(screen.getByTestId("BibTexEntryShowPage-delete-button"));
+
+    expect(
+      screen.getByText("Permanently delete this entry?"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-delete-modal-confirm-button"),
+    ).toHaveTextContent("Yes, Delete");
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-delete-modal-cancel-button"),
+    ).toHaveTextContent("No, Retain");
+  });
+
+  test("clicking No, Retain closes the confirmation modal without deleting", async () => {
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-delete-button");
+
+    fireEvent.click(screen.getByTestId("BibTexEntryShowPage-delete-button"));
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-delete-modal-cancel-button"),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText("Permanently delete this entry?"),
+      ).not.toBeInTheDocument();
+    });
+    expect(axiosMock.history.delete.length).toBe(0);
+  });
+
+  test("clicking Yes, Delete deletes the entry and shows a toast", async () => {
+    axiosMock
+      .onDelete("/api/bibtexentries/delete")
+      .reply(200, { message: "BibTexEntry with id 1 deleted" });
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-delete-button");
+
+    fireEvent.click(screen.getByTestId("BibTexEntryShowPage-delete-button"));
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-delete-modal-confirm-button"),
+    );
+
+    await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
+    expect(axiosMock.history.delete[0].params).toEqual({
+      id: "64f1b2c3d4e5f6a7b8c9d0e1",
+      projectId: "1",
+    });
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith("Entry deleted successfully"),
+    );
+  });
 });
