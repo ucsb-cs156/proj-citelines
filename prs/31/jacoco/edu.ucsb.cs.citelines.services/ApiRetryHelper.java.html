@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiRetryHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">ApiRetryHelper.java</span></div><h1>ApiRetryHelper.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import edu.ucsb.cs.citelines.utilities.Sleep;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
+import java.util.function.Supplier;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+
+/**
+ * Wraps calls to an external REST API (GitHub, PrairieLearn) with three defenses:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;&lt;b&gt;Pacing:&lt;/b&gt; consecutive calls are kept at least {@code paceMs} apart, to stay under rate
+ *       limits in the first place. The pacer only sleeps the &lt;i&gt;remaining&lt;/i&gt; gap since the
+ *       previous call, so an occasional interactive call is not delayed at all — only tight loops
+ *       (like a repo sync) are slowed.
+ *   &lt;li&gt;&lt;b&gt;Backoff-retries on 5xx:&lt;/b&gt; transient server errors (e.g. GitHub's 502 &quot;Unicorn&quot; page)
+ *       are retried up to {@code retryMax} times, sleeping {@code retryInitialSleepSeconds} and
+ *       doubling each time (8, 16, 32...). Only then does the call fail — with a one-line {@link
+ *       ApiUnavailableException} instead of the provider's HTML error page.
+ *   &lt;li&gt;&lt;b&gt;Rate-limit reaction:&lt;/b&gt; a 429, or a 403 whose body mentions &quot;rate limit&quot;, counts as a
+ *       retryable event and additionally doubles the pace &lt;i&gt;permanently&lt;/i&gt; (for the life of the
+ *       service instance), with a log suggestion to raise the pace's configuration variable.
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;All other client errors (404 for a missing path, 401/403 for a bad token) are rethrown
+ * untouched — callers depend on their semantics.
+ */
+<span class="fc" id="L31">@Slf4j</span>
+public class ApiRetryHelper {
+
+  private final String apiName;
+  private final String paceVariableName;
+  private final long retryInitialSleepSeconds;
+  private final int retryMax;
+  private final AtomicLong paceMs;
+<span class="fc" id="L39">  private final AtomicLong lastCallMs = new AtomicLong(0);</span>
+  private final LongSupplier nowMs;
+
+  /** Thrown when the API is still failing after all retries; carries a clean one-line message. */
+  public static class ApiUnavailableException extends RuntimeException {
+    public ApiUnavailableException(String message) {
+<span class="fc" id="L45">      super(message);</span>
+<span class="fc" id="L46">    }</span>
+  }
+
+  public ApiRetryHelper(
+      String apiName,
+      String paceVariableName,
+      long retryInitialSleepSeconds,
+      int retryMax,
+      long paceInitialMs) {
+<span class="fc" id="L55">    this(</span>
+        apiName,
+        paceVariableName,
+        retryInitialSleepSeconds,
+        retryMax,
+        paceInitialMs,
+        System::currentTimeMillis);
+<span class="fc" id="L62">  }</span>
+
+  // Visible for tests: nowMs lets the pacing arithmetic run against a controlled clock.
+  ApiRetryHelper(
+      String apiName,
+      String paceVariableName,
+      long retryInitialSleepSeconds,
+      int retryMax,
+      long paceInitialMs,
+<span class="fc" id="L71">      LongSupplier nowMs) {</span>
+<span class="fc" id="L72">    this.apiName = apiName;</span>
+<span class="fc" id="L73">    this.paceVariableName = paceVariableName;</span>
+<span class="fc" id="L74">    this.retryInitialSleepSeconds = retryInitialSleepSeconds;</span>
+<span class="fc" id="L75">    this.retryMax = retryMax;</span>
+<span class="fc" id="L76">    this.paceMs = new AtomicLong(paceInitialMs);</span>
+<span class="fc" id="L77">    this.nowMs = nowMs;</span>
+<span class="fc" id="L78">  }</span>
+
+  /**
+   * Runs {@code call}, pacing it relative to the previous call and retrying per the class contract.
+   * {@code description} identifies the request in log messages, e.g. {@code &quot;GET
+   * .../contents/questions&quot;}.
+   */
+  public &lt;T&gt; T execute(String description, Supplier&lt;T&gt; call) {
+<span class="fc" id="L86">    long sleepSeconds = retryInitialSleepSeconds;</span>
+<span class="fc" id="L87">    int retriesUsed = 0;</span>
+    while (true) {
+<span class="fc" id="L89">      pace();</span>
+      try {
+<span class="fc" id="L91">        return call.get();</span>
+<span class="fc" id="L92">      } catch (HttpServerErrorException e) {</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        if (retriesUsed &gt;= retryMax) {</span>
+<span class="fc" id="L94">          throw new ApiUnavailableException(</span>
+              &quot;%s API returned %d (%s) for %s; giving up after %d attempts&quot;
+<span class="fc" id="L96">                  .formatted(</span>
+                      apiName,
+<span class="fc" id="L98">                      e.getStatusCode().value(),</span>
+<span class="fc" id="L99">                      e.getStatusText(),</span>
+                      description,
+<span class="fc" id="L101">                      retriesUsed + 1));</span>
+        }
+<span class="fc" id="L103">        log.info(</span>
+            &quot;{} API returned {} for {}; sleeping {} seconds before retrying&quot;,
+            apiName,
+<span class="fc" id="L106">            e.getStatusCode().value(),</span>
+            description,
+<span class="fc" id="L108">            sleepSeconds);</span>
+<span class="fc" id="L109">        Sleep.sleepQuietly(sleepSeconds * 1000);</span>
+<span class="fc" id="L110">        sleepSeconds *= 2;</span>
+<span class="fc" id="L111">        retriesUsed++;</span>
+<span class="fc" id="L112">      } catch (HttpClientErrorException e) {</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        if (!isRateLimited(e)) {</span>
+<span class="fc" id="L114">          throw e;</span>
+        }
+<span class="fc" id="L116">        long newPace = paceMs.updateAndGet(pace -&gt; pace * 2);</span>
+<span class="fc" id="L117">        log.warn(</span>
+            &quot;{} API rate limit hit for {}; inter-call pace doubled to {} ms — consider increasing {}&quot;,
+            apiName,
+            description,
+<span class="fc" id="L121">            newPace,</span>
+            paceVariableName);
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        if (retriesUsed &gt;= retryMax) {</span>
+<span class="fc" id="L124">          throw new ApiUnavailableException(</span>
+              &quot;%s API rate limit still in effect for %s; giving up after %d attempts (consider increasing %s)&quot;
+<span class="fc" id="L126">                  .formatted(apiName, description, retriesUsed + 1, paceVariableName));</span>
+        }
+<span class="fc" id="L128">        Sleep.sleepQuietly(sleepSeconds * 1000);</span>
+<span class="fc" id="L129">        sleepSeconds *= 2;</span>
+<span class="fc" id="L130">        retriesUsed++;</span>
+<span class="fc" id="L131">      }</span>
+    }
+  }
+
+  /** A 429, or a 403 whose body mentions &quot;rate limit&quot; (GitHub's secondary-limit signature). */
+  private static boolean isRateLimited(HttpClientErrorException e) {
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    if (e.getStatusCode().value() == 429) {</span>
+<span class="fc" id="L138">      return true;</span>
+    }
+<span class="fc bfc" id="L140" title="All 2 branches covered.">    return e.getStatusCode().value() == 403</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">        &amp;&amp; e.getResponseBodyAsString().toLowerCase().contains(&quot;rate limit&quot;);</span>
+  }
+
+  /** Sleeps just long enough that consecutive calls are at least paceMs apart. */
+  private void pace() {
+<span class="fc" id="L146">    long now = nowMs.getAsLong();</span>
+<span class="fc" id="L147">    long previous = lastCallMs.getAndSet(now);</span>
+<span class="fc" id="L148">    long remaining = previous + paceMs.get() - now;</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">    if (remaining &gt; 0) {</span>
+<span class="fc" id="L150">      Sleep.sleepQuietly(remaining);</span>
+<span class="fc" id="L151">      lastCallMs.set(nowMs.getAsLong());</span>
+    }
+<span class="fc" id="L153">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

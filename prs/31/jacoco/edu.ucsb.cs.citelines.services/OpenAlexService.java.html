@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenAlexService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">OpenAlexService.java</span></div><h1>OpenAlexService.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
+
+/**
+ * Client for the OpenAlex API (https://api.openalex.org, no API key required), used to discover a
+ * paper's outgoing references and incoming citations. See {@code
+ * docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md} for why OpenAlex is tried first in
+ * the resolver chain.
+ *
+ * &lt;p&gt;Every call is paced and retried through {@link ApiRetryHelper}, using {@link
+ * #CITELINES_API_DELAY_MS} as the minimum gap between calls (per the issue's requirement, this is
+ * an instance field, not {@code static}, so it can be configured via {@code
+ * citelines.api.delay-ms}/{@code CITELINES_API_DELAY_MS}).
+ *
+ * &lt;p&gt;{@link #getReferences} hydrates {@code sourceWork.referencedWorkIds()} via a batch fetch and
+ * returns only the ids OpenAlex actually resolved — {@link CitationGraphService} detects which (if
+ * any) ids didn't come back by diffing against {@code sourceWork.referencedWorkIds()} itself, since
+ * recording that gap as an {@code UnresolvedCitation} needs project/job context this class
+ * intentionally has no dependency on.
+ */
+<span class="fc" id="L32">@Slf4j</span>
+@Service
+public class OpenAlexService implements CitationMetadataResolver {
+
+  private static final String BASE_URL = &quot;https://api.openalex.org&quot;;
+  private static final String OPENALEX_ID_PREFIX = &quot;https://openalex.org/&quot;;
+  private static final int BATCH_SIZE = 50;
+
+  public final int CITELINES_API_DELAY_MS;
+
+  private final RestTemplate restTemplate;
+  private final DOIService doiService;
+  private final String mailto;
+  private final ApiRetryHelper retryHelper;
+<span class="fc" id="L46">  private final ObjectMapper objectMapper = new ObjectMapper();</span>
+
+  public OpenAlexService(
+      RestTemplate restTemplate,
+      DOIService doiService,
+      @Value(&quot;${citelines.api.delay-ms:100}&quot;) int citelinesApiDelayMs,
+<span class="fc" id="L52">      @Value(&quot;${citelines.api.openalex.mailto:}&quot;) String mailto) {</span>
+<span class="fc" id="L53">    this.restTemplate = restTemplate;</span>
+<span class="fc" id="L54">    this.doiService = doiService;</span>
+<span class="fc" id="L55">    this.CITELINES_API_DELAY_MS = citelinesApiDelayMs;</span>
+<span class="fc" id="L56">    this.mailto = mailto;</span>
+<span class="fc" id="L57">    this.retryHelper =</span>
+        new ApiRetryHelper(&quot;OpenAlex&quot;, &quot;CITELINES_API_DELAY_MS&quot;, 2, 3, citelinesApiDelayMs);
+<span class="fc" id="L59">  }</span>
+
+  @Override
+  public String name() {
+<span class="fc" id="L63">    return &quot;OpenAlex&quot;;</span>
+  }
+
+  /** Looks up a single work by DOI. Empty if OpenAlex has no record for that DOI. */
+  @Override
+  public Optional&lt;ResolvedWork&gt; resolveByDoi(String doi) {
+<span class="fc" id="L69">    String url = BASE_URL + &quot;/works/doi:&quot; + doi + mailtoSuffix(&quot;?&quot;);</span>
+    try {
+<span class="fc" id="L71">      String body =</span>
+<span class="fc" id="L72">          retryHelper.execute(</span>
+<span class="fc" id="L73">              &quot;GET /works/doi:&quot; + doi, () -&gt; restTemplate.getForObject(url, String.class));</span>
+<span class="fc" id="L74">      return Optional.of(parseWork(readTree(body)));</span>
+<span class="fc" id="L75">    } catch (HttpClientErrorException.NotFound e) {</span>
+<span class="fc" id="L76">      return Optional.empty();</span>
+    }
+  }
+
+  /**
+   * Hydrates {@code sourceWork.referencedWorkIds()} (capped at {@code maxResults}) via a batch
+   * fetch, returning only the works OpenAlex actually resolved.
+   */
+  @Override
+  public List&lt;ResolvedWork&gt; getReferences(ResolvedWork sourceWork, int maxResults) {
+<span class="fc" id="L86">    List&lt;String&gt; refIds = sourceWork.referencedWorkIds();</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">    if (refIds.isEmpty()) {</span>
+<span class="fc" id="L88">      return List.of();</span>
+    }
+<span class="fc" id="L90">    return getWorksByIds(refIds.subList(0, Math.min(refIds.size(), maxResults)));</span>
+  }
+
+  /** Works that cite {@code sourceWork}, most-relevant first, capped at {@code maxResults}. */
+  @Override
+  public List&lt;ResolvedWork&gt; getCitations(ResolvedWork sourceWork, int maxResults) {
+<span class="fc" id="L96">    int perPage = Math.max(1, Math.min(maxResults, 200));</span>
+<span class="fc" id="L97">    String url =</span>
+        BASE_URL
+            + &quot;/works?filter=cites:&quot;
+<span class="fc" id="L100">            + stripPrefix(sourceWork.id())</span>
+            + &quot;&amp;per_page=&quot;
+            + perPage
+<span class="fc" id="L103">            + mailtoSuffix(&quot;&amp;&quot;);</span>
+<span class="fc" id="L104">    String body =</span>
+<span class="fc" id="L105">        retryHelper.execute(</span>
+<span class="fc" id="L106">            &quot;GET /works?filter=cites:&quot; + sourceWork.id(),</span>
+<span class="fc" id="L107">            () -&gt; restTemplate.getForObject(url, String.class));</span>
+<span class="fc" id="L108">    return parseWorksList(readTree(body));</span>
+  }
+
+  /** Batch-fetches works by OpenAlex id (chunked into groups of {@value #BATCH_SIZE}). */
+  private List&lt;ResolvedWork&gt; getWorksByIds(List&lt;String&gt; openAlexIds) {
+<span class="fc" id="L113">    List&lt;ResolvedWork&gt; results = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">    for (int start = 0; start &lt; openAlexIds.size(); start += BATCH_SIZE) {</span>
+<span class="fc" id="L115">      List&lt;String&gt; batch =</span>
+<span class="fc" id="L116">          openAlexIds.subList(start, Math.min(start + BATCH_SIZE, openAlexIds.size()));</span>
+<span class="fc" id="L117">      String idFilter = String.join(&quot;|&quot;, batch.stream().map(OpenAlexService::stripPrefix).toList());</span>
+<span class="fc" id="L118">      String url =</span>
+          BASE_URL
+              + &quot;/works?filter=ids.openalex:&quot;
+              + idFilter
+              + &quot;&amp;per_page=&quot;
+<span class="fc" id="L123">              + batch.size()</span>
+<span class="fc" id="L124">              + mailtoSuffix(&quot;&amp;&quot;);</span>
+<span class="fc" id="L125">      String body =</span>
+<span class="fc" id="L126">          retryHelper.execute(</span>
+<span class="fc" id="L127">              &quot;GET /works?filter=ids.openalex:(batch of %d)&quot;.formatted(batch.size()),</span>
+<span class="fc" id="L128">              () -&gt; restTemplate.getForObject(url, String.class));</span>
+<span class="fc" id="L129">      results.addAll(parseWorksList(readTree(body)));</span>
+    }
+<span class="fc" id="L131">    return results;</span>
+  }
+
+  /**
+   * URLs are built by plain string concatenation, not {@link
+   * org.springframework.web.util.UriComponentsBuilder}: OpenAlex's {@code filter} query parameter
+   * uses {@code |} as an OR-delimiter, but its parser does not correctly handle that character
+   * percent-encoded (as {@code UriComponentsBuilder} would produce) — a batch id filter silently
+   * returns only its first match instead of all of them. A literal, unencoded {@code |} (as {@link
+   * RestTemplate#getForObject(String, Class, Object...)} sends when handed a plain string with no
+   * {@code {template}} placeholders) works correctly. Confirmed against the live API while building
+   * this service.
+   */
+  private String mailtoSuffix(String separator) {
+<span class="fc bfc" id="L145" title="All 4 branches covered.">    return mailto != null &amp;&amp; !mailto.isBlank() ? separator + &quot;mailto=&quot; + mailto : &quot;&quot;;</span>
+  }
+
+  private List&lt;ResolvedWork&gt; parseWorksList(JsonNode root) {
+<span class="fc" id="L149">    List&lt;ResolvedWork&gt; works = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">    for (JsonNode workNode : root.path(&quot;results&quot;)) {</span>
+<span class="fc" id="L151">      works.add(parseWork(workNode));</span>
+<span class="fc" id="L152">    }</span>
+<span class="fc" id="L153">    return works;</span>
+  }
+
+  private ResolvedWork parseWork(JsonNode node) {
+<span class="fc" id="L157">    List&lt;String&gt; authorNames = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L158" title="All 2 branches covered.">    for (JsonNode authorship : node.path(&quot;authorships&quot;)) {</span>
+<span class="fc" id="L159">      String name = textOrNull(authorship.path(&quot;author&quot;), &quot;display_name&quot;);</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">      if (name != null) {</span>
+<span class="fc" id="L161">        authorNames.add(name);</span>
+      }
+<span class="fc" id="L163">    }</span>
+
+<span class="fc" id="L165">    List&lt;String&gt; referencedWorkIds = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">    for (JsonNode refNode : node.path(&quot;referenced_works&quot;)) {</span>
+<span class="fc" id="L167">      referencedWorkIds.add(stripPrefix(refNode.asText()));</span>
+<span class="fc" id="L168">    }</span>
+
+<span class="fc" id="L170">    return new ResolvedWork(</span>
+<span class="fc" id="L171">        stripPrefix(textOrNull(node, &quot;id&quot;)),</span>
+<span class="fc" id="L172">        normalizeDoiOrNull(textOrNull(node, &quot;doi&quot;)),</span>
+<span class="fc" id="L173">        textOrNull(node, &quot;title&quot;),</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">        node.path(&quot;publication_year&quot;).isInt() ? node.path(&quot;publication_year&quot;).asInt() : null,</span>
+<span class="fc" id="L175">        textOrNull(node, &quot;type&quot;),</span>
+        authorNames,
+<span class="fc" id="L177">        textOrNull(node.path(&quot;primary_location&quot;).path(&quot;source&quot;), &quot;display_name&quot;),</span>
+        referencedWorkIds,
+<span class="fc" id="L179">        List.of(),</span>
+<span class="fc" id="L180">        List.of());</span>
+  }
+
+  private String normalizeDoiOrNull(String rawDoi) {
+<span class="fc bfc" id="L184" title="All 2 branches covered.">    if (rawDoi == null) {</span>
+<span class="fc" id="L185">      return null;</span>
+    }
+    try {
+<span class="fc" id="L188">      return doiService.normalizeRawDOI(rawDoi);</span>
+<span class="fc" id="L189">    } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L190">      log.debug(&quot;Could not normalize DOI from OpenAlex: {}&quot;, rawDoi);</span>
+<span class="fc" id="L191">      return null;</span>
+    }
+  }
+
+  private static String textOrNull(JsonNode node, String field) {
+<span class="fc" id="L196">    JsonNode child = node.path(field);</span>
+<span class="fc bfc" id="L197" title="All 4 branches covered.">    return child.isMissingNode() || child.isNull() ? null : child.asText();</span>
+  }
+
+  private static String stripPrefix(String openAlexIdOrUrl) {
+<span class="fc bfc" id="L201" title="All 2 branches covered.">    if (openAlexIdOrUrl == null) {</span>
+<span class="fc" id="L202">      return null;</span>
+    }
+<span class="fc bfc" id="L204" title="All 2 branches covered.">    return openAlexIdOrUrl.startsWith(OPENALEX_ID_PREFIX)</span>
+<span class="fc" id="L205">        ? openAlexIdOrUrl.substring(OPENALEX_ID_PREFIX.length())</span>
+<span class="fc" id="L206">        : openAlexIdOrUrl;</span>
+  }
+
+  private JsonNode readTree(String json) {
+    try {
+<span class="fc" id="L211">      return objectMapper.readTree(json);</span>
+<span class="fc" id="L212">    } catch (JsonProcessingException e) {</span>
+<span class="fc" id="L213">      throw new IllegalStateException(&quot;Could not parse OpenAlex API response as JSON&quot;, e);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
