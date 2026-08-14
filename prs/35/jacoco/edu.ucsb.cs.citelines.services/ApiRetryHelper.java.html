@@ -28,13 +28,15 @@ import org.springframework.web.client.HttpServerErrorException;
  *       retryable event using the same doubling-plus-jitter backoff, and additionally doubles the
  *       pace &lt;i&gt;permanently&lt;/i&gt; (for the life of the service instance), with a log suggestion to
  *       raise the pace's configuration variable. This satisfies API terms of service (e.g. Semantic
- *       Scholar's) that require exponential backoff on rate-limit responses.
+ *       Scholar's) that require exponential backoff on rate-limit responses. Callers whose provider
+ *       is known to return bare 403s as an anti-bot measure instead of a proper 429 (e.g. {@code
+ *       doi.org}) can opt every 403 into this same treatment via {@code treatAnyForbiddenAsRateLimit}.
  * &lt;/ul&gt;
  *
  * &lt;p&gt;All other client errors (404 for a missing path, 401/403 for a bad token) are rethrown
  * untouched — callers depend on their semantics.
  */
-<span class="fc" id="L37">@Slf4j</span>
+<span class="fc" id="L39">@Slf4j</span>
 public class ApiRetryHelper {
 
   /** Each backoff sleep is jittered by up to ±25% of its (pre-jitter) doubled value. */
@@ -43,23 +45,24 @@ public class ApiRetryHelper {
   // Visible for tests: a real random value in [-1.0, 1.0), used as the production default. Named
   // and exposed as its own field (rather than an inline lambda) so its actual randomness can be
   // tested directly, rather than only indirectly through a retry loop's non-deterministic timing.
-<span class="fc" id="L46">  static final DoubleSupplier DEFAULT_JITTER_FACTOR =</span>
-<span class="fc" id="L47">      () -&gt; ThreadLocalRandom.current().nextDouble(-1.0, 1.0);</span>
+<span class="fc" id="L48">  static final DoubleSupplier DEFAULT_JITTER_FACTOR =</span>
+<span class="fc" id="L49">      () -&gt; ThreadLocalRandom.current().nextDouble(-1.0, 1.0);</span>
 
   private final String apiName;
   private final String paceVariableName;
   private final long retryInitialDelayMs;
   private final int retryMax;
   private final AtomicLong paceMs;
-<span class="fc" id="L54">  private final AtomicLong lastCallMs = new AtomicLong(0);</span>
+<span class="fc" id="L56">  private final AtomicLong lastCallMs = new AtomicLong(0);</span>
   private final LongSupplier nowMs;
   private final DoubleSupplier jitterFactor;
+  private final boolean treatAnyForbiddenAsRateLimit;
 
   /** Thrown when the API is still failing after all retries; carries a clean one-line message. */
   public static class ApiUnavailableException extends RuntimeException {
     public ApiUnavailableException(String message) {
-<span class="fc" id="L61">      super(message);</span>
-<span class="fc" id="L62">    }</span>
+<span class="fc" id="L64">      super(message);</span>
+<span class="fc" id="L65">    }</span>
   }
 
   public ApiRetryHelper(
@@ -68,15 +71,32 @@ public class ApiRetryHelper {
       long retryInitialDelayMs,
       int retryMax,
       long paceInitialMs) {
-<span class="fc" id="L71">    this(</span>
+<span class="fc" id="L74">    this(apiName, paceVariableName, retryInitialDelayMs, retryMax, paceInitialMs, false);</span>
+<span class="fc" id="L75">  }</span>
+
+  /**
+   * Like the five-arg constructor, but with {@code treatAnyForbiddenAsRateLimit} set: pass {@code
+   * true} when the provider is known to return bare 403s as an anti-bot measure instead of a
+   * proper 429 (e.g. {@code doi.org}), so that every 403 — not just ones whose body mentions &quot;rate
+   * limit&quot; — is treated as a rate-limit signal.
+   */
+  public ApiRetryHelper(
+      String apiName,
+      String paceVariableName,
+      long retryInitialDelayMs,
+      int retryMax,
+      long paceInitialMs,
+      boolean treatAnyForbiddenAsRateLimit) {
+<span class="fc" id="L90">    this(</span>
         apiName,
         paceVariableName,
         retryInitialDelayMs,
         retryMax,
         paceInitialMs,
         System::currentTimeMillis,
-        DEFAULT_JITTER_FACTOR);
-<span class="fc" id="L79">  }</span>
+        DEFAULT_JITTER_FACTOR,
+        treatAnyForbiddenAsRateLimit);
+<span class="fc" id="L99">  }</span>
 
   // Visible for tests: nowMs lets the pacing arithmetic run against a controlled clock, and
   // jitterFactor (a value in [-1.0, 1.0]) lets the backoff jitter be pinned to an exact,
@@ -88,68 +108,89 @@ public class ApiRetryHelper {
       int retryMax,
       long paceInitialMs,
       LongSupplier nowMs,
-<span class="fc" id="L91">      DoubleSupplier jitterFactor) {</span>
-<span class="fc" id="L92">    this.apiName = apiName;</span>
-<span class="fc" id="L93">    this.paceVariableName = paceVariableName;</span>
-<span class="fc" id="L94">    this.retryInitialDelayMs = retryInitialDelayMs;</span>
-<span class="fc" id="L95">    this.retryMax = retryMax;</span>
-<span class="fc" id="L96">    this.paceMs = new AtomicLong(paceInitialMs);</span>
-<span class="fc" id="L97">    this.nowMs = nowMs;</span>
-<span class="fc" id="L98">    this.jitterFactor = jitterFactor;</span>
-<span class="fc" id="L99">  }</span>
+      DoubleSupplier jitterFactor) {
+<span class="fc" id="L112">    this(</span>
+        apiName,
+        paceVariableName,
+        retryInitialDelayMs,
+        retryMax,
+        paceInitialMs,
+        nowMs,
+        jitterFactor,
+        false);
+<span class="fc" id="L121">  }</span>
+
+  ApiRetryHelper(
+      String apiName,
+      String paceVariableName,
+      long retryInitialDelayMs,
+      int retryMax,
+      long paceInitialMs,
+      LongSupplier nowMs,
+      DoubleSupplier jitterFactor,
+<span class="fc" id="L131">      boolean treatAnyForbiddenAsRateLimit) {</span>
+<span class="fc" id="L132">    this.apiName = apiName;</span>
+<span class="fc" id="L133">    this.paceVariableName = paceVariableName;</span>
+<span class="fc" id="L134">    this.retryInitialDelayMs = retryInitialDelayMs;</span>
+<span class="fc" id="L135">    this.retryMax = retryMax;</span>
+<span class="fc" id="L136">    this.paceMs = new AtomicLong(paceInitialMs);</span>
+<span class="fc" id="L137">    this.nowMs = nowMs;</span>
+<span class="fc" id="L138">    this.jitterFactor = jitterFactor;</span>
+<span class="fc" id="L139">    this.treatAnyForbiddenAsRateLimit = treatAnyForbiddenAsRateLimit;</span>
+<span class="fc" id="L140">  }</span>
 
   /**
    * Runs {@code call}, pacing it relative to the previous call and retrying per the class contract.
    * {@code description} identifies the request in log messages, e.g. {@code &quot;GET /works/doi:...&quot;}.
    */
   public &lt;T&gt; T execute(String description, Supplier&lt;T&gt; call) {
-<span class="fc" id="L106">    long delayMs = retryInitialDelayMs;</span>
-<span class="fc" id="L107">    int retriesUsed = 0;</span>
+<span class="fc" id="L147">    long delayMs = retryInitialDelayMs;</span>
+<span class="fc" id="L148">    int retriesUsed = 0;</span>
     while (true) {
-<span class="fc" id="L109">      pace();</span>
+<span class="fc" id="L150">      pace();</span>
       try {
-<span class="fc" id="L111">        return call.get();</span>
-<span class="fc" id="L112">      } catch (HttpServerErrorException e) {</span>
-<span class="fc bfc" id="L113" title="All 2 branches covered.">        if (retriesUsed &gt;= retryMax) {</span>
-<span class="fc" id="L114">          throw new ApiUnavailableException(</span>
+<span class="fc" id="L152">        return call.get();</span>
+<span class="fc" id="L153">      } catch (HttpServerErrorException e) {</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        if (retriesUsed &gt;= retryMax) {</span>
+<span class="fc" id="L155">          throw new ApiUnavailableException(</span>
               &quot;%s API returned %d (%s) for %s; giving up after %d attempts&quot;
-<span class="fc" id="L116">                  .formatted(</span>
+<span class="fc" id="L157">                  .formatted(</span>
                       apiName,
-<span class="fc" id="L118">                      e.getStatusCode().value(),</span>
-<span class="fc" id="L119">                      e.getStatusText(),</span>
+<span class="fc" id="L159">                      e.getStatusCode().value(),</span>
+<span class="fc" id="L160">                      e.getStatusText(),</span>
                       description,
-<span class="fc" id="L121">                      retriesUsed + 1));</span>
+<span class="fc" id="L162">                      retriesUsed + 1));</span>
         }
-<span class="fc" id="L123">        long actualDelayMs = jitteredDelay(delayMs);</span>
-<span class="fc" id="L124">        log.info(</span>
+<span class="fc" id="L164">        long actualDelayMs = jitteredDelay(delayMs);</span>
+<span class="fc" id="L165">        log.info(</span>
             &quot;{} API returned {} for {}; sleeping {} ms before retrying&quot;,
             apiName,
-<span class="fc" id="L127">            e.getStatusCode().value(),</span>
+<span class="fc" id="L168">            e.getStatusCode().value(),</span>
             description,
-<span class="fc" id="L129">            actualDelayMs);</span>
-<span class="fc" id="L130">        Sleep.sleepQuietly(actualDelayMs);</span>
-<span class="fc" id="L131">        delayMs *= 2;</span>
-<span class="fc" id="L132">        retriesUsed++;</span>
-<span class="fc" id="L133">      } catch (HttpClientErrorException e) {</span>
-<span class="fc bfc" id="L134" title="All 2 branches covered.">        if (!isRateLimited(e)) {</span>
-<span class="fc" id="L135">          throw e;</span>
+<span class="fc" id="L170">            actualDelayMs);</span>
+<span class="fc" id="L171">        Sleep.sleepQuietly(actualDelayMs);</span>
+<span class="fc" id="L172">        delayMs *= 2;</span>
+<span class="fc" id="L173">        retriesUsed++;</span>
+<span class="fc" id="L174">      } catch (HttpClientErrorException e) {</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">        if (!isRateLimited(e)) {</span>
+<span class="fc" id="L176">          throw e;</span>
         }
-<span class="fc" id="L137">        long newPace = paceMs.updateAndGet(pace -&gt; pace * 2);</span>
-<span class="fc" id="L138">        log.warn(</span>
+<span class="fc" id="L178">        long newPace = paceMs.updateAndGet(pace -&gt; pace * 2);</span>
+<span class="fc" id="L179">        log.warn(</span>
             &quot;{} API rate limit hit for {}; inter-call pace doubled to {} ms — consider increasing {}&quot;,
             apiName,
             description,
-<span class="fc" id="L142">            newPace,</span>
+<span class="fc" id="L183">            newPace,</span>
             paceVariableName);
-<span class="fc bfc" id="L144" title="All 2 branches covered.">        if (retriesUsed &gt;= retryMax) {</span>
-<span class="fc" id="L145">          throw new ApiUnavailableException(</span>
+<span class="fc bfc" id="L185" title="All 2 branches covered.">        if (retriesUsed &gt;= retryMax) {</span>
+<span class="fc" id="L186">          throw new ApiUnavailableException(</span>
               &quot;%s API rate limit still in effect for %s; giving up after %d attempts (consider increasing %s)&quot;
-<span class="fc" id="L147">                  .formatted(apiName, description, retriesUsed + 1, paceVariableName));</span>
+<span class="fc" id="L188">                  .formatted(apiName, description, retriesUsed + 1, paceVariableName));</span>
         }
-<span class="fc" id="L149">        Sleep.sleepQuietly(jitteredDelay(delayMs));</span>
-<span class="fc" id="L150">        delayMs *= 2;</span>
-<span class="fc" id="L151">        retriesUsed++;</span>
-<span class="fc" id="L152">      }</span>
+<span class="fc" id="L190">        Sleep.sleepQuietly(jitteredDelay(delayMs));</span>
+<span class="fc" id="L191">        delayMs *= 2;</span>
+<span class="fc" id="L192">        retriesUsed++;</span>
+<span class="fc" id="L193">      }</span>
     }
   }
 
@@ -159,27 +200,34 @@ public class ApiRetryHelper {
    * Semantic Scholar's) for randomized exponential backoff.
    */
   private long jitteredDelay(long baseDelayMs) {
-<span class="fc" id="L162">    return Math.round(baseDelayMs + baseDelayMs * JITTER_RATIO * jitterFactor.getAsDouble());</span>
+<span class="fc" id="L203">    return Math.round(baseDelayMs + baseDelayMs * JITTER_RATIO * jitterFactor.getAsDouble());</span>
   }
 
-  /** A 429, or a 403 whose body mentions &quot;rate limit&quot; (GitHub's secondary-limit signature). */
-  private static boolean isRateLimited(HttpClientErrorException e) {
-<span class="fc bfc" id="L167" title="All 2 branches covered.">    if (e.getStatusCode().value() == 429) {</span>
-<span class="fc" id="L168">      return true;</span>
+  /**
+   * A 429; a 403 whose body mentions &quot;rate limit&quot; (GitHub's secondary-limit signature); or, when
+   * {@code treatAnyForbiddenAsRateLimit} is set, any 403 at all (some providers, e.g. {@code
+   * doi.org}, return a bare 403 as an anti-bot measure instead of a proper 429).
+   */
+  private boolean isRateLimited(HttpClientErrorException e) {
+<span class="fc bfc" id="L212" title="All 2 branches covered.">    if (e.getStatusCode().value() == 429) {</span>
+<span class="fc" id="L213">      return true;</span>
     }
-<span class="fc bfc" id="L170" title="All 2 branches covered.">    return e.getStatusCode().value() == 403</span>
-<span class="fc bfc" id="L171" title="All 2 branches covered.">        &amp;&amp; e.getResponseBodyAsString().toLowerCase().contains(&quot;rate limit&quot;);</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">    if (e.getStatusCode().value() != 403) {</span>
+<span class="fc" id="L216">      return false;</span>
+    }
+<span class="fc bfc" id="L218" title="All 2 branches covered.">    return treatAnyForbiddenAsRateLimit</span>
+<span class="fc bfc" id="L219" title="All 2 branches covered.">        || e.getResponseBodyAsString().toLowerCase().contains(&quot;rate limit&quot;);</span>
   }
 
   /** Sleeps just long enough that consecutive calls are at least paceMs apart. */
   private void pace() {
-<span class="fc" id="L176">    long now = nowMs.getAsLong();</span>
-<span class="fc" id="L177">    long previous = lastCallMs.getAndSet(now);</span>
-<span class="fc" id="L178">    long remaining = previous + paceMs.get() - now;</span>
-<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (remaining &gt; 0) {</span>
-<span class="fc" id="L180">      Sleep.sleepQuietly(remaining);</span>
-<span class="fc" id="L181">      lastCallMs.set(nowMs.getAsLong());</span>
+<span class="fc" id="L224">    long now = nowMs.getAsLong();</span>
+<span class="fc" id="L225">    long previous = lastCallMs.getAndSet(now);</span>
+<span class="fc" id="L226">    long remaining = previous + paceMs.get() - now;</span>
+<span class="fc bfc" id="L227" title="All 2 branches covered.">    if (remaining &gt; 0) {</span>
+<span class="fc" id="L228">      Sleep.sleepQuietly(remaining);</span>
+<span class="fc" id="L229">      lastCallMs.set(nowMs.getAsLong());</span>
     }
-<span class="fc" id="L183">  }</span>
+<span class="fc" id="L231">  }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -32,9 +32,11 @@ import org.springframework.web.client.RestTemplate;
  * &lt;p&gt;Like {@link OpenAlexService} and the other {@code CitationMetadataResolver}s, every link fetch
  * is paced and retried through {@link ApiRetryHelper}, using {@code citelines.api.delay-ms}/{@code
  * CITELINES_API_DELAY_MS} both as the minimum gap between calls and as the starting delay for
- * exponential backoff on 5xx errors and rate-limit (429) responses.
+ * exponential backoff on 5xx errors and rate-limit (429) responses. Because {@code doi.org} has
+ * been observed returning bare 403s as an anti-bot measure rather than a proper 429, the helper is
+ * configured to treat any 403 the same as a 429 for this job.
  */
-<span class="fc" id="L37">@Slf4j</span>
+<span class="fc" id="L39">@Slf4j</span>
 @Service
 public class CheckLinksService {
 
@@ -55,92 +57,97 @@ public class CheckLinksService {
   public CheckLinksService(
       BibTexEntryRepository bibTexEntryRepository,
       RestTemplate restTemplate,
-<span class="fc" id="L58">      @Value(&quot;${citelines.api.delay-ms:100}&quot;) int citelinesApiDelayMs) {</span>
-<span class="fc" id="L59">    this.bibTexEntryRepository = bibTexEntryRepository;</span>
-<span class="fc" id="L60">    this.restTemplate = restTemplate;</span>
-<span class="fc" id="L61">    this.retryHelper =</span>
+<span class="fc" id="L60">      @Value(&quot;${citelines.api.delay-ms:100}&quot;) int citelinesApiDelayMs) {</span>
+<span class="fc" id="L61">    this.bibTexEntryRepository = bibTexEntryRepository;</span>
+<span class="fc" id="L62">    this.restTemplate = restTemplate;</span>
+<span class="fc" id="L63">    this.retryHelper =</span>
         new ApiRetryHelper(
-            &quot;CheckLinks&quot;, &quot;CITELINES_API_DELAY_MS&quot;, citelinesApiDelayMs, 5, citelinesApiDelayMs);
-<span class="fc" id="L64">  }</span>
+            &quot;CheckLinks&quot;,
+            &quot;CITELINES_API_DELAY_MS&quot;,
+            citelinesApiDelayMs,
+            5,
+            citelinesApiDelayMs,
+            /* treatAnyForbiddenAsRateLimit= */ true);
+<span class="fc" id="L71">  }</span>
 
   public void checkLinks(int projectId, JobContext ctx) {
-<span class="fc" id="L67">    List&lt;BibTexEntry&gt; entries = bibTexEntryRepository.findByProjectId(projectId);</span>
-<span class="fc" id="L68">    ctx.log(&quot;Checking links for %d entries in project %d.&quot;.formatted(entries.size(), projectId));</span>
+<span class="fc" id="L74">    List&lt;BibTexEntry&gt; entries = bibTexEntryRepository.findByProjectId(projectId);</span>
+<span class="fc" id="L75">    ctx.log(&quot;Checking links for %d entries in project %d.&quot;.formatted(entries.size(), projectId));</span>
 
-<span class="fc" id="L70">    int checked = 0;</span>
-<span class="fc" id="L71">    int flagged = 0;</span>
-<span class="fc bfc" id="L72" title="All 2 branches covered.">    for (BibTexEntry entry : entries) {</span>
-<span class="fc" id="L73">      Map&lt;String, String&gt; keyValuePairs = entry.getKeyValuePairs();</span>
-<span class="fc bfc" id="L74" title="All 2 branches covered.">      if (keyValuePairs == null) {</span>
-<span class="fc" id="L75">        continue;</span>
+<span class="fc" id="L77">    int checked = 0;</span>
+<span class="fc" id="L78">    int flagged = 0;</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">    for (BibTexEntry entry : entries) {</span>
+<span class="fc" id="L80">      Map&lt;String, String&gt; keyValuePairs = entry.getKeyValuePairs();</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">      if (keyValuePairs == null) {</span>
+<span class="fc" id="L82">        continue;</span>
       }
 
-<span class="fc" id="L78">      String doi = keyValuePairs.get(DOI_KEY);</span>
-<span class="fc" id="L79">      String url = keyValuePairs.get(URL_KEY);</span>
+<span class="fc" id="L85">      String doi = keyValuePairs.get(DOI_KEY);</span>
+<span class="fc" id="L86">      String url = keyValuePairs.get(URL_KEY);</span>
       boolean invalid;
       String flagKey;
-<span class="fc bfc" id="L82" title="All 4 branches covered.">      if (doi != null &amp;&amp; !doi.isBlank()) {</span>
-<span class="fc" id="L83">        invalid = isInvalidDoi(doi, entry.getCiteKey(), ctx);</span>
-<span class="fc" id="L84">        flagKey = INVALID_DOI_KEY;</span>
-<span class="fc bfc" id="L85" title="All 4 branches covered.">      } else if (url != null &amp;&amp; !url.isBlank()) {</span>
-<span class="fc" id="L86">        invalid = isInvalidUrl(url, entry.getCiteKey(), ctx);</span>
-<span class="fc" id="L87">        flagKey = INVALID_URL_KEY;</span>
+<span class="fc bfc" id="L89" title="All 4 branches covered.">      if (doi != null &amp;&amp; !doi.isBlank()) {</span>
+<span class="fc" id="L90">        invalid = isInvalidDoi(doi, entry.getCiteKey(), ctx);</span>
+<span class="fc" id="L91">        flagKey = INVALID_DOI_KEY;</span>
+<span class="fc bfc" id="L92" title="All 4 branches covered.">      } else if (url != null &amp;&amp; !url.isBlank()) {</span>
+<span class="fc" id="L93">        invalid = isInvalidUrl(url, entry.getCiteKey(), ctx);</span>
+<span class="fc" id="L94">        flagKey = INVALID_URL_KEY;</span>
       } else {
         continue;
       }
-<span class="fc" id="L91">      checked++;</span>
+<span class="fc" id="L98">      checked++;</span>
 
       boolean changed;
-<span class="fc bfc" id="L94" title="All 2 branches covered.">      if (invalid) {</span>
-<span class="fc bfc" id="L95" title="All 2 branches covered.">        changed = !TRUE_VALUE.equals(keyValuePairs.put(flagKey, TRUE_VALUE));</span>
-<span class="fc" id="L96">        flagged++;</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">      if (invalid) {</span>
+<span class="fc bfc" id="L102" title="All 2 branches covered.">        changed = !TRUE_VALUE.equals(keyValuePairs.put(flagKey, TRUE_VALUE));</span>
+<span class="fc" id="L103">        flagged++;</span>
       } else {
-<span class="fc bfc" id="L98" title="All 2 branches covered.">        changed = keyValuePairs.remove(flagKey) != null;</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        changed = keyValuePairs.remove(flagKey) != null;</span>
       }
-<span class="fc bfc" id="L100" title="All 2 branches covered.">      if (changed) {</span>
-<span class="fc" id="L101">        bibTexEntryRepository.save(entry);</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">      if (changed) {</span>
+<span class="fc" id="L108">        bibTexEntryRepository.save(entry);</span>
       }
-<span class="fc" id="L103">    }</span>
+<span class="fc" id="L110">    }</span>
 
-<span class="fc" id="L105">    ctx.log(</span>
+<span class="fc" id="L112">    ctx.log(</span>
         &quot;Done: checked %d link%s, %d flagged as suspicious.&quot;
-<span class="fc bfc" id="L107" title="All 2 branches covered.">            .formatted(checked, checked == 1 ? &quot;&quot; : &quot;s&quot;, flagged));</span>
-<span class="fc" id="L108">  }</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">            .formatted(checked, checked == 1 ? &quot;&quot; : &quot;s&quot;, flagged));</span>
+<span class="fc" id="L115">  }</span>
 
   private boolean isInvalidDoi(String doi, String citeKey, JobContext ctx) {
-<span class="fc" id="L111">    String url = &quot;https://doi.org/&quot; + doi;</span>
+<span class="fc" id="L118">    String url = &quot;https://doi.org/&quot; + doi;</span>
     try {
-<span class="fc" id="L113">      String body =</span>
-<span class="fc" id="L114">          retryHelper.execute(&quot;GET &quot; + url, () -&gt; restTemplate.getForObject(url, String.class));</span>
-<span class="fc bfc" id="L115" title="All 2 branches covered.">      boolean invalid =</span>
+<span class="fc" id="L120">      String body =</span>
+<span class="fc" id="L121">          retryHelper.execute(&quot;GET &quot; + url, () -&gt; restTemplate.getForObject(url, String.class));</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">      boolean invalid =</span>
           body != null
-<span class="fc bfc" id="L117" title="All 2 branches covered.">              &amp;&amp; body.contains(DOI_NOT_FOUND_TEXT)</span>
-<span class="fc bfc" id="L118" title="All 2 branches covered.">              &amp;&amp; body.contains(DOI_NOT_FOUND_DETAIL_TEXT);</span>
-<span class="fc bfc" id="L119" title="All 2 branches covered.">      if (invalid) {</span>
-<span class="fc" id="L120">        ctx.log(&quot;Invalid DOI for %s: %s&quot;.formatted(citeKey, doi));</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">              &amp;&amp; body.contains(DOI_NOT_FOUND_TEXT)</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">              &amp;&amp; body.contains(DOI_NOT_FOUND_DETAIL_TEXT);</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">      if (invalid) {</span>
+<span class="fc" id="L127">        ctx.log(&quot;Invalid DOI for %s: %s&quot;.formatted(citeKey, doi));</span>
       }
-<span class="fc" id="L122">      return invalid;</span>
-<span class="fc" id="L123">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
-<span class="fc" id="L124">      ctx.log(&quot;Could not check DOI for %s (%s): %s&quot;.formatted(citeKey, doi, e.getMessage()));</span>
-<span class="fc" id="L125">      return false;</span>
+<span class="fc" id="L129">      return invalid;</span>
+<span class="fc" id="L130">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L131">      ctx.log(&quot;Could not check DOI for %s (%s): %s&quot;.formatted(citeKey, doi, e.getMessage()));</span>
+<span class="fc" id="L132">      return false;</span>
     }
   }
 
   private boolean isInvalidUrl(String url, String citeKey, JobContext ctx) {
     try {
-<span class="fc" id="L131">      retryHelper.execute(</span>
+<span class="fc" id="L138">      retryHelper.execute(</span>
           &quot;GET &quot; + url,
           () -&gt; {
-<span class="fc" id="L134">            restTemplate.getForObject(url, String.class);</span>
-<span class="fc" id="L135">            return null;</span>
+<span class="fc" id="L141">            restTemplate.getForObject(url, String.class);</span>
+<span class="fc" id="L142">            return null;</span>
           });
-<span class="fc" id="L137">      return false;</span>
-<span class="fc" id="L138">    } catch (HttpClientErrorException.NotFound e) {</span>
-<span class="fc" id="L139">      ctx.log(&quot;Invalid URL (404) for %s: %s&quot;.formatted(citeKey, url));</span>
-<span class="fc" id="L140">      return true;</span>
-<span class="fc" id="L141">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
-<span class="fc" id="L142">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
-<span class="fc" id="L143">      return false;</span>
+<span class="fc" id="L144">      return false;</span>
+<span class="fc" id="L145">    } catch (HttpClientErrorException.NotFound e) {</span>
+<span class="fc" id="L146">      ctx.log(&quot;Invalid URL (404) for %s: %s&quot;.formatted(citeKey, url));</span>
+<span class="fc" id="L147">      return true;</span>
+<span class="fc" id="L148">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L149">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
+<span class="fc" id="L150">      return false;</span>
     }
   }
 }
