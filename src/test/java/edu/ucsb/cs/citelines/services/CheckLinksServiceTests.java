@@ -29,9 +29,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 public class CheckLinksServiceTests {
+
+  private static final String HANDLE = "10.1145/3411764.3445601";
+  private static final String ACM_URL = "https://dl.acm.org/doi/" + HANDLE;
 
   private CheckLinksService checkLinksService;
   private BibTexEntryRepository bibTexEntryRepository;
@@ -76,6 +80,24 @@ public class CheckLinksServiceTests {
   private void mockDoiThrows(String doi, RuntimeException exception) {
     when(noRedirectRestTemplate.exchange(
             eq("https://doi.org/" + doi),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(String.class)))
+        .thenThrow(exception);
+  }
+
+  private void mockHandle(String handle, ResponseEntity<String> response) {
+    when(noRedirectRestTemplate.exchange(
+            eq("https://doi.org/api/handles/" + handle),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(String.class)))
+        .thenReturn(response);
+  }
+
+  private void mockHandleThrows(String handle, RuntimeException exception) {
+    when(noRedirectRestTemplate.exchange(
+            eq("https://doi.org/api/handles/" + handle),
             eq(HttpMethod.GET),
             any(HttpEntity.class),
             eq(String.class)))
@@ -560,5 +582,184 @@ public class CheckLinksServiceTests {
         job.getLog()
             .contains(
                 "Could not check URL for nohead2020 (https://example.org/head-not-allowed):"));
+  }
+
+  @Test
+  void extractHandle_finds_a_handle_in_a_typical_acm_url() {
+    assertEquals(HANDLE, CheckLinksService.extractHandle(ACM_URL));
+  }
+
+  @Test
+  void extractHandle_finds_a_handle_in_an_abs_style_url() {
+    assertEquals(HANDLE, CheckLinksService.extractHandle("https://dl.acm.org/doi/abs/" + HANDLE));
+  }
+
+  @Test
+  void extractHandle_strips_a_trailing_slash() {
+    assertEquals(HANDLE, CheckLinksService.extractHandle(ACM_URL + "/"));
+  }
+
+  @Test
+  void extractHandle_stops_at_a_query_string() {
+    assertEquals(HANDLE, CheckLinksService.extractHandle(ACM_URL + "?param=1"));
+  }
+
+  @Test
+  void extractHandle_excludes_trailing_prose_punctuation() {
+    assertEquals(HANDLE, CheckLinksService.extractHandle("See " + ACM_URL + " (accessed 2024)."));
+  }
+
+  @Test
+  void extractHandle_returns_null_when_no_handle_is_embedded() {
+    assertNull(CheckLinksService.extractHandle("https://example.org/no-doi-here"));
+  }
+
+  @Test
+  void extractHandle_returns_null_when_stripping_trailing_slashes_leaves_no_suffix() {
+    assertNull(CheckLinksService.extractHandle("https://example.org/10.1234//"));
+  }
+
+  @Test
+  void does_not_flag_a_url_when_the_embedded_handle_exists() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandle(HANDLE, new ResponseEntity<>("{\"responseCode\":1}", HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(restTemplate, never())
+        .exchange(any(String.class), any(HttpMethod.class), any(HttpEntity.class), eq(Void.class));
+  }
+
+  @Test
+  void flags_a_url_when_the_embedded_handle_does_not_exist() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandle(HANDLE, new ResponseEntity<>("{\"responseCode\":100}", HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertEquals("True", kvp.get("CITELINES_invalid_url"));
+    verify(restTemplate, never())
+        .exchange(any(String.class), any(HttpMethod.class), any(HttpEntity.class), eq(Void.class));
+    assertTrue(
+        job.getLog()
+            .contains("Invalid URL (no such handle " + HANDLE + ") for acm2020: " + ACM_URL));
+  }
+
+  @Test
+  void strips_a_trailing_slash_before_querying_the_handle_api() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL + "/"));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandle(HANDLE, new ResponseEntity<>("{\"responseCode\":1}", HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(noRedirectRestTemplate)
+        .exchange(
+            eq("https://doi.org/api/handles/" + HANDLE),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(String.class));
+  }
+
+  @Test
+  void falls_back_to_the_direct_url_check_when_the_handle_lookup_fails() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(HANDLE, new RestClientException("connection refused"));
+    mockUrlHead(ACM_URL, new ResponseEntity<>(HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(restTemplate)
+        .exchange(eq(ACM_URL), eq(HttpMethod.HEAD), any(HttpEntity.class), eq(Void.class));
+    assertTrue(
+        job.getLog()
+            .contains("Could not verify handle " + HANDLE + " for acm2020: connection refused"));
+  }
+
+  @Test
+  void falls_back_to_the_direct_url_check_when_the_handle_api_response_is_malformed() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandle(HANDLE, new ResponseEntity<>("not json", HttpStatus.OK));
+    mockUrlHead(ACM_URL, new ResponseEntity<>(HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(restTemplate)
+        .exchange(eq(ACM_URL), eq(HttpMethod.HEAD), any(HttpEntity.class), eq(Void.class));
+    assertTrue(
+        job.getLog()
+            .contains(
+                "Could not verify handle "
+                    + HANDLE
+                    + " for acm2020: malformed Handle API response"));
+  }
+
+  @Test
+  void
+      falls_back_to_the_direct_url_check_when_the_handle_api_returns_an_unexpected_response_code() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandle(HANDLE, new ResponseEntity<>("{\"responseCode\":2}", HttpStatus.OK));
+    mockUrlHead(ACM_URL, new ResponseEntity<>(HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(restTemplate)
+        .exchange(eq(ACM_URL), eq(HttpMethod.HEAD), any(HttpEntity.class), eq(Void.class));
+    assertTrue(
+        job.getLog()
+            .contains(
+                "Could not verify handle "
+                    + HANDLE
+                    + " for acm2020: unexpected Handle API responseCode 2"));
+  }
+
+  @Test
+  void sends_the_doi_user_agent_for_the_handle_lookup() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandle(HANDLE, new ResponseEntity<>("{\"responseCode\":1}", HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+    verify(noRedirectRestTemplate)
+        .exchange(
+            eq("https://doi.org/api/handles/" + HANDLE),
+            eq(HttpMethod.GET),
+            captor.capture(),
+            eq(String.class));
+    assertTrue(
+        captor.getValue().getHeaders().getFirst(HttpHeaders.USER_AGENT).contains("proj-citelines"));
+  }
+
+  @Test
+  void does_not_query_the_handle_api_when_the_url_has_no_embedded_handle() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", "https://example.org/ok"));
+    BibTexEntry entry = entry("ok2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockUrlHead("https://example.org/ok", new ResponseEntity<>(HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    verify(noRedirectRestTemplate, never())
+        .exchange(
+            any(String.class), any(HttpMethod.class), any(HttpEntity.class), eq(String.class));
   }
 }

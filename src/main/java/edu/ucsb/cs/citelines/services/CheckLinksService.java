@@ -1,10 +1,15 @@
 package edu.ucsb.cs.citelines.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs156.jobs.services.JobContext;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -32,9 +37,17 @@ import org.springframework.web.client.RestTemplate;
  *       machine-readable citation format ({@code Accept: application/citeproc+json}) and disables
  *       redirect-following, so a nonexistent DOI is reported directly by the resolver as a 404
  *       instead of chasing a redirect into a publisher's bot defenses.
- *   <li><b>URL</b> ({@code CITELINES_invalid_url=True} on a 404 or 410): checked with a {@code
- *       HEAD} request first (falling back to {@code GET} only if the server rejects {@code HEAD}
- *       with a 405) and browser-like request headers, to look as little like a bot as possible.
+ *   <li><b>URL</b> ({@code CITELINES_invalid_url=True} on a 404 or 410): if the URL contains a
+ *       DOI/Handle-shaped identifier (e.g. an ACM DL or IEEE Xplore link embeds the paper's DOI in
+ *       its path), that identifier is looked up directly against the Handle System's public REST
+ *       API ({@code https://doi.org/api/handles/<handle>}) instead of requesting the URL itself —
+ *       this sidesteps the publisher's own WAF entirely (ACM DL, IEEE Xplore, etc. are commonly
+ *       behind Cloudflare and block automated requests with a 403 regardless of how browser-like
+ *       the request headers are) and gets an authoritative exists/doesn't-exist answer straight
+ *       from the identifier registry. Only when no such identifier is found, or the Handle API's
+ *       answer is inconclusive, does this fall back to requesting the URL directly: a {@code HEAD}
+ *       request first (falling back to {@code GET} only if the server rejects {@code HEAD} with a
+ *       405) and browser-like request headers, to look as little like a bot as possible.
  * </ul>
  *
  * In both cases, a 403 or 429 — likely bot protection rather than a genuinely broken link — is
@@ -74,11 +87,21 @@ public class CheckLinksService {
       "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
   static final String BROWSER_ACCEPT_LANGUAGE = "en-US,en;q=0.5";
 
+  // Matches a DOI/Handle-shaped identifier ("10." + a 4-9 digit registrant prefix + "/" + a
+  // suffix) embedded anywhere in a URL, e.g. https://dl.acm.org/doi/10.1145/3411764.3445601 or
+  // https://ieeexplore.ieee.org/document/10.1109/ACCESS.2020.1234567. The suffix excludes
+  // characters that would end the identifier (whitespace, URL delimiters/query-string markers,
+  // quotes, and bracket/paren punctuation that's more likely surrounding prose than part of the
+  // identifier itself) so trailing punctuation like a closing parenthesis in "(see 10.1.2/x)"
+  // isn't swept in.
+  static final Pattern HANDLE_PATTERN = Pattern.compile("10\\.\\d{4,9}/[^\\s?#\"'<>()\\[\\]{}]+");
+
   private final BibTexEntryRepository bibTexEntryRepository;
   private final RestTemplate restTemplate;
   private final RestTemplate noRedirectRestTemplate;
   private final ApiRetryHelper retryHelper;
   private final String doiUserAgent;
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
   public CheckLinksService(
       BibTexEntryRepository bibTexEntryRepository,
@@ -191,6 +214,71 @@ public class CheckLinksService {
   }
 
   private boolean isInvalidUrl(String url, String citeKey, JobContext ctx) {
+    String handle = extractHandle(url);
+    if (handle != null) {
+      Boolean handleExists = checkHandleExists(handle, citeKey, ctx);
+      if (handleExists != null) {
+        if (!handleExists) {
+          ctx.log("Invalid URL (no such handle %s) for %s: %s".formatted(handle, citeKey, url));
+        }
+        return !handleExists;
+      }
+    }
+    return isInvalidUrlDirectly(url, citeKey, ctx);
+  }
+
+  // Package-visible for tests: extracts the first DOI/Handle-shaped identifier embedded in a URL
+  // (e.g. an ACM DL or IEEE Xplore link), or null if none is found. A trailing slash is stripped —
+  // the Handle API incorrectly reports a real handle as nonexistent when queried with one — and if
+  // stripping it away leaves no "/" at all, the match is discarded as not actually handle-shaped.
+  static String extractHandle(String url) {
+    Matcher matcher = HANDLE_PATTERN.matcher(url);
+    if (!matcher.find()) {
+      return null;
+    }
+    String handle = matcher.group().replaceAll("/+$", "");
+    return handle.contains("/") ? handle : null;
+  }
+
+  // Looks the handle up against the Handle System's public REST API, which doi.org also serves
+  // requests to directly (rather than following the handle's redirect on to the publisher's
+  // page), so this never touches a WAF-protected publisher site. Returns Boolean.TRUE/FALSE for a
+  // definitive answer, or null when the check itself couldn't be completed (network error,
+  // malformed response, retries exhausted) — callers fall back to the direct URL check in that
+  // case, same as every other "could not check" path in this class.
+  private Boolean checkHandleExists(String handle, String citeKey, JobContext ctx) {
+    String url = "https://doi.org/api/handles/" + handle;
+    HttpHeaders headers = new HttpHeaders();
+    headers.set(HttpHeaders.USER_AGENT, doiUserAgent);
+    HttpEntity<Void> request = new HttpEntity<>(headers);
+    try {
+      ResponseEntity<String> response =
+          retryHelper.execute(
+              "GET " + url,
+              () -> noRedirectRestTemplate.exchange(url, HttpMethod.GET, request, String.class));
+      JsonNode body = objectMapper.readTree(response.getBody());
+      int responseCode = body.path("responseCode").asInt(-1);
+      if (responseCode == 1) {
+        return Boolean.TRUE;
+      } else if (responseCode == 100) {
+        return Boolean.FALSE;
+      }
+      ctx.log(
+          "Could not verify handle %s for %s: unexpected Handle API responseCode %d"
+              .formatted(handle, citeKey, responseCode));
+      return null;
+    } catch (JsonProcessingException e) {
+      ctx.log(
+          "Could not verify handle %s for %s: malformed Handle API response"
+              .formatted(handle, citeKey));
+      return null;
+    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {
+      ctx.log("Could not verify handle %s for %s: %s".formatted(handle, citeKey, e.getMessage()));
+      return null;
+    }
+  }
+
+  private boolean isInvalidUrlDirectly(String url, String citeKey, JobContext ctx) {
     HttpHeaders headers = new HttpHeaders();
     headers.set(HttpHeaders.USER_AGENT, BROWSER_USER_AGENT);
     headers.set(HttpHeaders.ACCEPT, BROWSER_ACCEPT);
