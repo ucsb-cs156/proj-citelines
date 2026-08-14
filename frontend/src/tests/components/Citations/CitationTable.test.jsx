@@ -153,6 +153,50 @@ describe("CitationTable tests", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("shows a warning emoji next to the doi link when CITELINES_invalid_doi is True", () => {
+    const invalidDoiEntry = {
+      ...bibTexEntriesFixtures.threeEntries[0],
+      keyValuePairs: {
+        ...bibTexEntriesFixtures.threeEntries[0].keyValuePairs,
+        CITELINES_invalid_doi: "True",
+      },
+    };
+    renderTable({ citations: [invalidDoiEntry] });
+
+    const doiLink = screen.getByTestId("CitationTable-cell-row-0-col-doi-link");
+    expect(doiLink).toHaveTextContent("doi \u26A0\uFE0F");
+  });
+
+  test("does not show a warning emoji next to the doi link when CITELINES_invalid_doi is not present", () => {
+    renderTable({ citations: [bibTexEntriesFixtures.threeEntries[0]] });
+
+    const doiLink = screen.getByTestId("CitationTable-cell-row-0-col-doi-link");
+    expect(doiLink).toHaveTextContent("doi");
+    expect(doiLink).not.toHaveTextContent("\u26A0\uFE0F");
+  });
+
+  test("shows a warning emoji next to the url link when CITELINES_invalid_url is True", () => {
+    const invalidUrlEntry = {
+      ...bibTexEntriesFixtures.threeEntries[1],
+      keyValuePairs: {
+        ...bibTexEntriesFixtures.threeEntries[1].keyValuePairs,
+        CITELINES_invalid_url: "True",
+      },
+    };
+    renderTable({ citations: [invalidUrlEntry] });
+
+    const urlLink = screen.getByTestId("CitationTable-cell-row-0-col-url-link");
+    expect(urlLink).toHaveTextContent("url \u26A0\uFE0F");
+  });
+
+  test("does not show a warning emoji next to the url link when CITELINES_invalid_url is not present", () => {
+    renderTable({ citations: [bibTexEntriesFixtures.threeEntries[1]] });
+
+    const urlLink = screen.getByTestId("CitationTable-cell-row-0-col-url-link");
+    expect(urlLink).toHaveTextContent("url");
+    expect(urlLink).not.toHaveTextContent("\u26A0\uFE0F");
+  });
+
   test("clicking Edit opens the modal pre-filled from the export endpoint", async () => {
     axiosMock
       .onGet("/api/bibtexentries/export")

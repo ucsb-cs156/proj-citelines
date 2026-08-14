@@ -15,10 +15,12 @@ import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs.citelines.config.ProjectSecurity;
 import edu.ucsb.cs.citelines.entity.Project;
+import edu.ucsb.cs.citelines.jobs.CheckLinksJob;
 import edu.ucsb.cs.citelines.jobs.GetCitationsJob;
 import edu.ucsb.cs.citelines.jobs.GetReferencesJob;
 import edu.ucsb.cs.citelines.repository.ProjectCollaboratorRepository;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
+import edu.ucsb.cs.citelines.services.CheckLinksService;
 import edu.ucsb.cs.citelines.services.CitationGraphService;
 import edu.ucsb.cs156.jobs.entities.Job;
 import edu.ucsb.cs156.jobs.repositories.JobsRepository;
@@ -42,6 +44,7 @@ public class JobsControllerTests extends ControllerTestCase {
   @MockitoBean JobsRepository jobsRepository;
   @MockitoBean JobService jobService;
   @MockitoBean CitationGraphService citationGraphService;
+  @MockitoBean CheckLinksService checkLinksService;
 
   @Test
   public void logged_out_users_cannot_list_jobs_by_project() throws Exception {
@@ -187,6 +190,65 @@ public class JobsControllerTests extends ControllerTestCase {
     mockMvc
         .perform(post("/api/jobs/launch/getCitations?projectId=1&citeKey=missing").with(csrf()))
         .andExpect(status().isNotFound());
+
+    verify(jobService, times(0)).runAsJob(any());
+  }
+
+  @Test
+  public void logged_out_users_cannot_launch_checkLinks() throws Exception {
+    mockMvc
+        .perform(post("/api/jobs/launch/checkLinks?projectId=1"))
+        .andExpect(status().is(403));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_launch_a_checkLinks_job() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    Job launchedJob = Job.builder().id(12L).jobName("CheckLinksJob").build();
+    when(jobService.runAsJob(any(CheckLinksJob.class))).thenReturn(launchedJob);
+
+    MvcResult response =
+        mockMvc
+            .perform(post("/api/jobs/launch/checkLinks?projectId=1").with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    assertEquals(
+        mapper.writeValueAsString(launchedJob), response.getResponse().getContentAsString());
+    verify(jobService, times(1)).runAsJob(any(CheckLinksJob.class));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void launch_checkLinks_throws_not_found_for_nonexistent_project() throws Exception {
+    when(projectRepository.findById(1L)).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(post("/api/jobs/launch/checkLinks?projectId=1").with(csrf()))
+        .andExpect(status().isNotFound());
+
+    verify(jobService, times(0)).runAsJob(any());
+  }
+
+  @WithMockUser(
+      username = "stranger",
+      roles = {"USER"})
+  @Test
+  public void a_stranger_cannot_launch_checkLinks_for_a_project_they_dont_own_or_collaborate_on()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(projectCollaboratorRepository.findAllByEmail(any())).thenReturn(List.of());
+
+    mockMvc
+        .perform(post("/api/jobs/launch/checkLinks?projectId=1").with(csrf()))
+        .andExpect(status().is(403));
 
     verify(jobService, times(0)).runAsJob(any());
   }

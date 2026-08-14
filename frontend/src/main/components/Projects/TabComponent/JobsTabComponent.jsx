@@ -1,6 +1,9 @@
-import { useBackend } from "main/utils/useBackend";
+import { useBackend, useBackendMutation } from "main/utils/useBackend";
 import { Button, Row } from "react-bootstrap";
+import Accordion from "react-bootstrap/Accordion";
+import { toast } from "react-toastify";
 import JobsTable from "main/components/Jobs/JobsTable";
+import SingleButtonJobForm from "main/components/Jobs/SingleButtonJobForm";
 
 export default function JobsTabComponent({
   projectId,
@@ -16,11 +19,43 @@ export default function JobsTabComponent({
     true,
   );
 
+  const checkLinksMutation = useBackendMutation(
+    () => ({
+      url: "/api/jobs/launch/checkLinks",
+      method: "POST",
+      params: { projectId },
+    }),
+    {
+      onSuccess: () => {
+        toast("Check Links job launched — check below for progress.");
+        refetch();
+      },
+    },
+  );
+
+  const submitCheckLinks = async () => {
+    checkLinksMutation.mutate({});
+  };
+
   return (
     <div
       data-testid={`${testIdPrefix}-JobsTabComponent`}
       className="tabComponent"
     >
+      <Row className="p-2">
+        <Accordion>
+          <Accordion.Item eventKey="checkLinks">
+            <Accordion.Header>Check Links</Accordion.Header>
+            <Accordion.Body>
+              <SingleButtonJobForm
+                callback={submitCheckLinks}
+                text={"Start"}
+                testid={`${testIdPrefix}-checkLinksJob`}
+              />
+            </Accordion.Body>
+          </Accordion.Item>
+        </Accordion>
+      </Row>
       <Row className="p-2">
         <Button
           onClick={() => refetch()}
