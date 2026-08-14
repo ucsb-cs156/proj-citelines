@@ -18,6 +18,8 @@ export default function BibTexEntryModal({
   projectId,
   entryToEdit = null,
   mutationQueryKeys = [],
+  relatedCiteKey = null,
+  relationship = null,
 }) {
   const {
     register,
@@ -34,7 +36,11 @@ export default function BibTexEntryModal({
   const preservedFieldsRef = useRef({});
 
   const isEditing = Boolean(entryToEdit);
-  const modalTitle = isEditing ? "Edit Citation" : "Add Citation";
+  const modalTitle = isEditing
+    ? "Edit Citation"
+    : relationship === "reference"
+      ? "Add Reference"
+      : "Add Citation";
 
   useEffect(() => {
     if (!showModal) {
@@ -78,7 +84,10 @@ export default function BibTexEntryModal({
     return {
       url: "/api/bibtexentries/post",
       method: "POST",
-      params: { projectId: projectId },
+      params:
+        relatedCiteKey && relationship
+          ? { projectId: projectId, relatedCiteKey, relationship }
+          : { projectId: projectId },
       data: formData.bibtex,
       headers: { "Content-Type": "text/plain" },
     };
@@ -93,7 +102,9 @@ export default function BibTexEntryModal({
     toast(
       isEditing
         ? "Citation updated successfully"
-        : "Citation added successfully",
+        : relationship === "reference"
+          ? "Reference added successfully"
+          : "Citation added successfully",
     );
     closeModal();
   };

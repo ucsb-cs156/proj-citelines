@@ -16,6 +16,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import edu.ucsb.cs.citelines.ControllerTestCase;
 import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
+import edu.ucsb.cs.citelines.collections.CitationEdge;
+import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
 import edu.ucsb.cs.citelines.config.ProjectSecurity;
 import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.entity.ProjectCollaborator;
@@ -38,13 +40,15 @@ import org.springframework.test.web.servlet.MvcResult;
   edu.ucsb.cs.citelines.testconfig.TestConfig.class,
   ProjectSecurity.class,
   BibTexConverterService.class,
-  DOIService.class
+  DOIService.class,
+  edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService.class
 })
 public class BibTexEntriesControllerTests extends ControllerTestCase {
 
   @MockitoBean ProjectRepository projectRepository;
   @MockitoBean ProjectCollaboratorRepository projectCollaboratorRepository;
   @MockitoBean BibTexEntryRepository bibTexEntryRepository;
+  @MockitoBean CitationEdgeRepository citationEdgeRepository;
 
   private static final String RAW_BIBTEX =
       """
@@ -154,6 +158,192 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
     verify(bibTexEntryRepository, times(1)).saveAll(captor.capture());
     assertEquals(1, captor.getValue().size());
     assertEquals("Jane Smith", captor.getValue().get(0).getKeyValuePairs().get("author"));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_post_bibtex_as_a_reference_and_it_creates_a_citation_edge()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021"
+                    + "&relationship=reference")
+                .content(RAW_BIBTEX)
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<CitationEdge> captor =
+        org.mockito.ArgumentCaptor.forClass(CitationEdge.class);
+    verify(citationEdgeRepository, times(1)).save(captor.capture());
+    assertEquals("paper2021", captor.getValue().getCitingCiteKey());
+    assertEquals("smith2020", captor.getValue().getCitedCiteKey());
+    assertEquals(1, captor.getValue().getProjectId());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_post_bibtex_as_a_citation_and_it_creates_a_citation_edge()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021"
+                    + "&relationship=citation")
+                .content(RAW_BIBTEX)
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<CitationEdge> captor =
+        org.mockito.ArgumentCaptor.forClass(CitationEdge.class);
+    verify(citationEdgeRepository, times(1)).save(captor.capture());
+    assertEquals("smith2020", captor.getValue().getCitingCiteKey());
+    assertEquals("paper2021", captor.getValue().getCitedCiteKey());
+    assertEquals(1, captor.getValue().getProjectId());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void posting_bibtex_without_relatedCiteKey_or_relationship_does_not_create_an_edge()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(post("/api/bibtexentries/post?projectId=1").content(RAW_BIBTEX).with(csrf()))
+        .andExpect(status().isOk());
+
+    verify(citationEdgeRepository, times(0)).save(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void posting_bibtex_with_relatedCiteKey_but_no_relationship_does_not_create_an_edge()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021")
+                .content(RAW_BIBTEX)
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    verify(citationEdgeRepository, times(0)).save(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void
+      posting_bibtex_that_matches_an_existing_citeKey_updates_it_instead_of_creating_a_duplicate()
+          throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    BibTexEntry existing =
+        BibTexEntry.builder()
+            .id("existing-id")
+            .projectId(1)
+            .citeKey("smith2020")
+            .keyValuePairs(Map.of("author", "Someone Else"))
+            .build();
+    when(bibTexEntryRepository.findAllByProjectIdAndCiteKey(1, "smith2020"))
+        .thenReturn(List.of(existing));
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021"
+                    + "&relationship=citation")
+                .content(RAW_BIBTEX)
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<List<BibTexEntry>> captor =
+        org.mockito.ArgumentCaptor.forClass(List.class);
+    verify(bibTexEntryRepository, times(1)).saveAll(captor.capture());
+    assertEquals(1, captor.getValue().size());
+    assertEquals("existing-id", captor.getValue().get(0).getId());
+    verify(bibTexEntryRepository, times(0)).deleteAll(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void
+      posting_bibtex_that_matches_multiple_existing_duplicates_coalesces_them_before_updating()
+          throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    BibTexEntry existing1 =
+        BibTexEntry.builder()
+            .id("existing-id-1")
+            .projectId(1)
+            .citeKey("smith2020")
+            .keyValuePairs(Map.of("CITELINES_relevance", "low"))
+            .build();
+    BibTexEntry existing2 =
+        BibTexEntry.builder()
+            .id("existing-id-2")
+            .projectId(1)
+            .citeKey("smith2020")
+            .keyValuePairs(Map.of("CITELINES_relevance", "high"))
+            .build();
+    when(bibTexEntryRepository.findAllByProjectIdAndCiteKey(1, "smith2020"))
+        .thenReturn(List.of(existing1, existing2));
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(post("/api/bibtexentries/post?projectId=1").content(RAW_BIBTEX).with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<List<BibTexEntry>> saveCaptor =
+        org.mockito.ArgumentCaptor.forClass(List.class);
+    verify(bibTexEntryRepository, times(1)).saveAll(saveCaptor.capture());
+    assertEquals("existing-id-1", saveCaptor.getValue().get(0).getId());
+
+    org.mockito.ArgumentCaptor<List<BibTexEntry>> deleteCaptor =
+        org.mockito.ArgumentCaptor.forClass(List.class);
+    verify(bibTexEntryRepository, times(1)).deleteAll(deleteCaptor.capture());
+    assertEquals(List.of(existing2), deleteCaptor.getValue());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void posting_bibtex_with_an_invalid_relationship_returns_a_bad_request() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021"
+                    + "&relationship=bogus")
+                .content(RAW_BIBTEX)
+                .with(csrf()))
+        .andExpect(status().isBadRequest());
+
+    verify(citationEdgeRepository, times(0)).save(any());
   }
 
   @WithMockUser(

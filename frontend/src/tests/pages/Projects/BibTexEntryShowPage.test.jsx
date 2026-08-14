@@ -253,4 +253,58 @@ describe("BibTexEntryShowPage tests", () => {
       expect(screen.getByText("Citation Not Found")).toBeInTheDocument();
     });
   });
+
+  test("clicking Add Reference opens the modal, and submitting posts with relationship=reference", async () => {
+    axiosMock
+      .onPost("/api/bibtexentries/post")
+      .reply(200, [bibTexEntriesFixtures.threeEntries[1]]);
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-add-reference-button");
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-add-reference-button"),
+    );
+
+    expect(screen.getByTestId("BibTexEntryModal-base")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("BibTexEntryModal-bibtex"), {
+      target: { value: "@article{jones2021, title = {A Title}}" },
+    });
+    fireEvent.click(screen.getByTestId("BibTexEntryModal-submit"));
+
+    await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+    expect(axiosMock.history.post[0].params).toEqual({
+      projectId: "1",
+      relatedCiteKey: "smith2020",
+      relationship: "reference",
+    });
+  });
+
+  test("clicking Add Citation opens the modal, and submitting posts with relationship=citation", async () => {
+    axiosMock
+      .onPost("/api/bibtexentries/post")
+      .reply(200, [bibTexEntriesFixtures.threeEntries[2]]);
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-add-citation-button");
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-add-citation-button"),
+    );
+
+    expect(screen.getByTestId("BibTexEntryModal-base")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("BibTexEntryModal-bibtex"), {
+      target: { value: "@article{lee2021, title = {A Title}}" },
+    });
+    fireEvent.click(screen.getByTestId("BibTexEntryModal-submit"));
+
+    await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+    expect(axiosMock.history.post[0].params).toEqual({
+      projectId: "1",
+      relatedCiteKey: "smith2020",
+      relationship: "citation",
+    });
+  });
 });
