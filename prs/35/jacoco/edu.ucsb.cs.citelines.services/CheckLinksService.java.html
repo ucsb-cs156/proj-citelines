@@ -101,126 +101,128 @@ public class CheckLinksService {
 <span class="fc" id="L101">    this.doiUserAgent = buildDoiUserAgent(sourceRepo, mailto);</span>
 <span class="fc" id="L102">  }</span>
 
+  // sourceRepo/mailto are always non-null here: the constructor's @Value defaults resolve to &quot;&quot;
+  // rather than null, so only isBlank() (not a null-check) needs to be tested.
   private static String buildDoiUserAgent(String sourceRepo, String mailto) {
-<span class="fc" id="L105">    StringBuilder userAgent = new StringBuilder(&quot;Citelines/1.0&quot;);</span>
-<span class="pc bpc" id="L106" title="1 of 4 branches missed.">    boolean hasSourceRepo = sourceRepo != null &amp;&amp; !sourceRepo.isBlank();</span>
-<span class="pc bpc" id="L107" title="1 of 4 branches missed.">    boolean hasMailto = mailto != null &amp;&amp; !mailto.isBlank();</span>
-<span class="fc bfc" id="L108" title="All 4 branches covered.">    if (hasSourceRepo || hasMailto) {</span>
-<span class="fc" id="L109">      userAgent.append(&quot; (&quot;);</span>
-<span class="fc bfc" id="L110" title="All 2 branches covered.">      if (hasSourceRepo) {</span>
-<span class="fc" id="L111">        userAgent.append(&quot;+&quot;).append(sourceRepo);</span>
+<span class="fc" id="L107">    StringBuilder userAgent = new StringBuilder(&quot;Citelines/1.0&quot;);</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">    boolean hasSourceRepo = !sourceRepo.isBlank();</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">    boolean hasMailto = !mailto.isBlank();</span>
+<span class="fc bfc" id="L110" title="All 4 branches covered.">    if (hasSourceRepo || hasMailto) {</span>
+<span class="fc" id="L111">      userAgent.append(&quot; (&quot;);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">      if (hasSourceRepo) {</span>
+<span class="fc" id="L113">        userAgent.append(&quot;+&quot;).append(sourceRepo);</span>
       }
-<span class="fc bfc" id="L113" title="All 2 branches covered.">      if (hasMailto) {</span>
-<span class="fc bfc" id="L114" title="All 2 branches covered.">        userAgent.append(hasSourceRepo ? &quot;; &quot; : &quot;&quot;).append(&quot;mailto:&quot;).append(mailto);</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">      if (hasMailto) {</span>
+<span class="fc bfc" id="L116" title="All 2 branches covered.">        userAgent.append(hasSourceRepo ? &quot;; &quot; : &quot;&quot;).append(&quot;mailto:&quot;).append(mailto);</span>
       }
-<span class="fc" id="L116">      userAgent.append(&quot;)&quot;);</span>
+<span class="fc" id="L118">      userAgent.append(&quot;)&quot;);</span>
     }
-<span class="fc" id="L118">    return userAgent.toString();</span>
+<span class="fc" id="L120">    return userAgent.toString();</span>
   }
 
   public void checkLinks(int projectId, JobContext ctx) {
-<span class="fc" id="L122">    List&lt;BibTexEntry&gt; entries = bibTexEntryRepository.findByProjectId(projectId);</span>
-<span class="fc" id="L123">    ctx.log(&quot;Checking links for %d entries in project %d.&quot;.formatted(entries.size(), projectId));</span>
+<span class="fc" id="L124">    List&lt;BibTexEntry&gt; entries = bibTexEntryRepository.findByProjectId(projectId);</span>
+<span class="fc" id="L125">    ctx.log(&quot;Checking links for %d entries in project %d.&quot;.formatted(entries.size(), projectId));</span>
 
-<span class="fc" id="L125">    int checked = 0;</span>
-<span class="fc" id="L126">    int flagged = 0;</span>
-<span class="fc bfc" id="L127" title="All 2 branches covered.">    for (BibTexEntry entry : entries) {</span>
-<span class="fc" id="L128">      Map&lt;String, String&gt; keyValuePairs = entry.getKeyValuePairs();</span>
-<span class="fc bfc" id="L129" title="All 2 branches covered.">      if (keyValuePairs == null) {</span>
-<span class="fc" id="L130">        continue;</span>
+<span class="fc" id="L127">    int checked = 0;</span>
+<span class="fc" id="L128">    int flagged = 0;</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">    for (BibTexEntry entry : entries) {</span>
+<span class="fc" id="L130">      Map&lt;String, String&gt; keyValuePairs = entry.getKeyValuePairs();</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">      if (keyValuePairs == null) {</span>
+<span class="fc" id="L132">        continue;</span>
       }
 
-<span class="fc" id="L133">      String doi = keyValuePairs.get(DOI_KEY);</span>
-<span class="fc" id="L134">      String url = keyValuePairs.get(URL_KEY);</span>
+<span class="fc" id="L135">      String doi = keyValuePairs.get(DOI_KEY);</span>
+<span class="fc" id="L136">      String url = keyValuePairs.get(URL_KEY);</span>
       boolean invalid;
       String flagKey;
-<span class="fc bfc" id="L137" title="All 4 branches covered.">      if (doi != null &amp;&amp; !doi.isBlank()) {</span>
-<span class="fc" id="L138">        invalid = isInvalidDoi(doi, entry.getCiteKey(), ctx);</span>
-<span class="fc" id="L139">        flagKey = INVALID_DOI_KEY;</span>
-<span class="fc bfc" id="L140" title="All 4 branches covered.">      } else if (url != null &amp;&amp; !url.isBlank()) {</span>
-<span class="fc" id="L141">        invalid = isInvalidUrl(url, entry.getCiteKey(), ctx);</span>
-<span class="fc" id="L142">        flagKey = INVALID_URL_KEY;</span>
+<span class="fc bfc" id="L139" title="All 4 branches covered.">      if (doi != null &amp;&amp; !doi.isBlank()) {</span>
+<span class="fc" id="L140">        invalid = isInvalidDoi(doi, entry.getCiteKey(), ctx);</span>
+<span class="fc" id="L141">        flagKey = INVALID_DOI_KEY;</span>
+<span class="fc bfc" id="L142" title="All 4 branches covered.">      } else if (url != null &amp;&amp; !url.isBlank()) {</span>
+<span class="fc" id="L143">        invalid = isInvalidUrl(url, entry.getCiteKey(), ctx);</span>
+<span class="fc" id="L144">        flagKey = INVALID_URL_KEY;</span>
       } else {
         continue;
       }
-<span class="fc" id="L146">      checked++;</span>
+<span class="fc" id="L148">      checked++;</span>
 
       boolean changed;
-<span class="fc bfc" id="L149" title="All 2 branches covered.">      if (invalid) {</span>
-<span class="fc bfc" id="L150" title="All 2 branches covered.">        changed = !TRUE_VALUE.equals(keyValuePairs.put(flagKey, TRUE_VALUE));</span>
-<span class="fc" id="L151">        flagged++;</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">      if (invalid) {</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">        changed = !TRUE_VALUE.equals(keyValuePairs.put(flagKey, TRUE_VALUE));</span>
+<span class="fc" id="L153">        flagged++;</span>
       } else {
-<span class="fc bfc" id="L153" title="All 2 branches covered.">        changed = keyValuePairs.remove(flagKey) != null;</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">        changed = keyValuePairs.remove(flagKey) != null;</span>
       }
-<span class="fc bfc" id="L155" title="All 2 branches covered.">      if (changed) {</span>
-<span class="fc" id="L156">        bibTexEntryRepository.save(entry);</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">      if (changed) {</span>
+<span class="fc" id="L158">        bibTexEntryRepository.save(entry);</span>
       }
-<span class="fc" id="L158">    }</span>
+<span class="fc" id="L160">    }</span>
 
-<span class="fc" id="L160">    ctx.log(</span>
+<span class="fc" id="L162">    ctx.log(</span>
         &quot;Done: checked %d link%s, %d flagged as suspicious.&quot;
-<span class="fc bfc" id="L162" title="All 2 branches covered.">            .formatted(checked, checked == 1 ? &quot;&quot; : &quot;s&quot;, flagged));</span>
-<span class="fc" id="L163">  }</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">            .formatted(checked, checked == 1 ? &quot;&quot; : &quot;s&quot;, flagged));</span>
+<span class="fc" id="L165">  }</span>
 
   private boolean isInvalidDoi(String doi, String citeKey, JobContext ctx) {
-<span class="fc" id="L166">    String url = &quot;https://doi.org/&quot; + doi;</span>
-<span class="fc" id="L167">    HttpHeaders headers = new HttpHeaders();</span>
-<span class="fc" id="L168">    headers.set(HttpHeaders.ACCEPT, DOI_ACCEPT_HEADER);</span>
-<span class="fc" id="L169">    headers.set(HttpHeaders.USER_AGENT, doiUserAgent);</span>
-<span class="fc" id="L170">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
+<span class="fc" id="L168">    String url = &quot;https://doi.org/&quot; + doi;</span>
+<span class="fc" id="L169">    HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L170">    headers.set(HttpHeaders.ACCEPT, DOI_ACCEPT_HEADER);</span>
+<span class="fc" id="L171">    headers.set(HttpHeaders.USER_AGENT, doiUserAgent);</span>
+<span class="fc" id="L172">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
     try {
-<span class="fc" id="L172">      ResponseEntity&lt;String&gt; response =</span>
-<span class="fc" id="L173">          retryHelper.execute(</span>
+<span class="fc" id="L174">      ResponseEntity&lt;String&gt; response =</span>
+<span class="fc" id="L175">          retryHelper.execute(</span>
               &quot;GET &quot; + url,
-<span class="fc" id="L175">              () -&gt; noRedirectRestTemplate.exchange(url, HttpMethod.GET, request, String.class));</span>
-<span class="fc bfc" id="L176" title="All 2 branches covered.">      if (response.getStatusCode().is3xxRedirection()) {</span>
-<span class="fc" id="L177">        ctx.log(</span>
+<span class="fc" id="L177">              () -&gt; noRedirectRestTemplate.exchange(url, HttpMethod.GET, request, String.class));</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">      if (response.getStatusCode().is3xxRedirection()) {</span>
+<span class="fc" id="L179">        ctx.log(</span>
             &quot;Could not verify DOI for %s (%s): resolver returned %s instead of negotiated metadata&quot;
-<span class="fc" id="L179">                .formatted(citeKey, doi, response.getStatusCode()));</span>
+<span class="fc" id="L181">                .formatted(citeKey, doi, response.getStatusCode()));</span>
       }
-<span class="fc" id="L181">      return false;</span>
-<span class="fc" id="L182">    } catch (HttpClientErrorException.NotFound e) {</span>
-<span class="fc" id="L183">      ctx.log(&quot;Invalid DOI for %s: %s&quot;.formatted(citeKey, doi));</span>
-<span class="fc" id="L184">      return true;</span>
-<span class="fc" id="L185">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
-<span class="fc" id="L186">      ctx.log(&quot;Could not check DOI for %s (%s): %s&quot;.formatted(citeKey, doi, e.getMessage()));</span>
-<span class="fc" id="L187">      return false;</span>
+<span class="fc" id="L183">      return false;</span>
+<span class="fc" id="L184">    } catch (HttpClientErrorException.NotFound e) {</span>
+<span class="fc" id="L185">      ctx.log(&quot;Invalid DOI for %s: %s&quot;.formatted(citeKey, doi));</span>
+<span class="fc" id="L186">      return true;</span>
+<span class="fc" id="L187">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L188">      ctx.log(&quot;Could not check DOI for %s (%s): %s&quot;.formatted(citeKey, doi, e.getMessage()));</span>
+<span class="fc" id="L189">      return false;</span>
     }
   }
 
   private boolean isInvalidUrl(String url, String citeKey, JobContext ctx) {
-<span class="fc" id="L192">    HttpHeaders headers = new HttpHeaders();</span>
-<span class="fc" id="L193">    headers.set(HttpHeaders.USER_AGENT, BROWSER_USER_AGENT);</span>
-<span class="fc" id="L194">    headers.set(HttpHeaders.ACCEPT, BROWSER_ACCEPT);</span>
-<span class="fc" id="L195">    headers.set(HttpHeaders.ACCEPT_LANGUAGE, BROWSER_ACCEPT_LANGUAGE);</span>
-<span class="fc" id="L196">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
+<span class="fc" id="L194">    HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L195">    headers.set(HttpHeaders.USER_AGENT, BROWSER_USER_AGENT);</span>
+<span class="fc" id="L196">    headers.set(HttpHeaders.ACCEPT, BROWSER_ACCEPT);</span>
+<span class="fc" id="L197">    headers.set(HttpHeaders.ACCEPT_LANGUAGE, BROWSER_ACCEPT_LANGUAGE);</span>
+<span class="fc" id="L198">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
     try {
-<span class="fc" id="L198">      retryHelper.execute(</span>
-<span class="fc" id="L199">          &quot;HEAD &quot; + url, () -&gt; restTemplate.exchange(url, HttpMethod.HEAD, request, Void.class));</span>
-<span class="fc" id="L200">      return false;</span>
-<span class="fc" id="L201">    } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {</span>
-<span class="fc" id="L202">      ctx.log(&quot;Invalid URL (%d) for %s: %s&quot;.formatted(e.getStatusCode().value(), citeKey, url));</span>
-<span class="fc" id="L203">      return true;</span>
-<span class="fc" id="L204">    } catch (HttpClientErrorException.MethodNotAllowed e) {</span>
-<span class="fc" id="L205">      return isInvalidUrlViaGet(url, request, citeKey, ctx);</span>
-<span class="fc" id="L206">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
-<span class="fc" id="L207">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
-<span class="fc" id="L208">      return false;</span>
+<span class="fc" id="L200">      retryHelper.execute(</span>
+<span class="fc" id="L201">          &quot;HEAD &quot; + url, () -&gt; restTemplate.exchange(url, HttpMethod.HEAD, request, Void.class));</span>
+<span class="fc" id="L202">      return false;</span>
+<span class="fc" id="L203">    } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {</span>
+<span class="fc" id="L204">      ctx.log(&quot;Invalid URL (%d) for %s: %s&quot;.formatted(e.getStatusCode().value(), citeKey, url));</span>
+<span class="fc" id="L205">      return true;</span>
+<span class="fc" id="L206">    } catch (HttpClientErrorException.MethodNotAllowed e) {</span>
+<span class="fc" id="L207">      return isInvalidUrlViaGet(url, request, citeKey, ctx);</span>
+<span class="fc" id="L208">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L209">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
+<span class="fc" id="L210">      return false;</span>
     }
   }
 
   private boolean isInvalidUrlViaGet(
       String url, HttpEntity&lt;Void&gt; request, String citeKey, JobContext ctx) {
     try {
-<span class="fc" id="L215">      retryHelper.execute(</span>
-<span class="fc" id="L216">          &quot;GET &quot; + url, () -&gt; restTemplate.exchange(url, HttpMethod.GET, request, String.class));</span>
-<span class="fc" id="L217">      return false;</span>
-<span class="fc" id="L218">    } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {</span>
-<span class="fc" id="L219">      ctx.log(&quot;Invalid URL (%d) for %s: %s&quot;.formatted(e.getStatusCode().value(), citeKey, url));</span>
-<span class="fc" id="L220">      return true;</span>
-<span class="fc" id="L221">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
-<span class="fc" id="L222">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
-<span class="fc" id="L223">      return false;</span>
+<span class="fc" id="L217">      retryHelper.execute(</span>
+<span class="fc" id="L218">          &quot;GET &quot; + url, () -&gt; restTemplate.exchange(url, HttpMethod.GET, request, String.class));</span>
+<span class="fc" id="L219">      return false;</span>
+<span class="fc" id="L220">    } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {</span>
+<span class="fc" id="L221">      ctx.log(&quot;Invalid URL (%d) for %s: %s&quot;.formatted(e.getStatusCode().value(), citeKey, url));</span>
+<span class="fc" id="L222">      return true;</span>
+<span class="fc" id="L223">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L224">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
+<span class="fc" id="L225">      return false;</span>
     }
   }
 }
