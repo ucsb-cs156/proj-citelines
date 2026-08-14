@@ -306,7 +306,10 @@ export default function BibTexEntryShowPage({
               </Button>
               <Button
                 variant="danger"
-                onClick={() => deleteMutation.mutate({})}
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  deleteMutation.mutate({});
+                }}
                 data-testid={`${testId}-delete-modal-confirm-button`}
               >
                 Yes, Delete
