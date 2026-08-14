@@ -15,17 +15,23 @@ import org.springframework.web.client.RestTemplate;
 /**
  * Client for the OpenAlex API (https://api.openalex.org, no API key required), used to discover a
  * paper's outgoing references and incoming citations. See {@code
- * docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md} for why OpenAlex alone was chosen for
- * this MVP.
+ * docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md} for why OpenAlex is tried first in
+ * the resolver chain.
  *
  * <p>Every call is paced and retried through {@link ApiRetryHelper}, using {@link
  * #CITELINES_API_DELAY_MS} as the minimum gap between calls (per the issue's requirement, this is
  * an instance field, not {@code static}, so it can be configured via {@code
  * citelines.api.delay-ms}/{@code CITELINES_API_DELAY_MS}).
+ *
+ * <p>{@link #getReferences} hydrates {@code sourceWork.referencedWorkIds()} via a batch fetch and
+ * returns only the ids OpenAlex actually resolved — {@link CitationGraphService} detects which (if
+ * any) ids didn't come back by diffing against {@code sourceWork.referencedWorkIds()} itself, since
+ * recording that gap as an {@code UnresolvedCitation} needs project/job context this class
+ * intentionally has no dependency on.
  */
 @Slf4j
 @Service
-public class OpenAlexService {
+public class OpenAlexService implements CitationMetadataResolver {
 
   private static final String BASE_URL = "https://api.openalex.org";
   private static final String OPENALEX_ID_PREFIX = "https://openalex.org/";
@@ -52,8 +58,14 @@ public class OpenAlexService {
         new ApiRetryHelper("OpenAlex", "CITELINES_API_DELAY_MS", 2, 3, citelinesApiDelayMs);
   }
 
+  @Override
+  public String name() {
+    return "OpenAlex";
+  }
+
   /** Looks up a single work by DOI. Empty if OpenAlex has no record for that DOI. */
-  public Optional<OpenAlexWork> getWorkByDoi(String doi) {
+  @Override
+  public Optional<ResolvedWork> resolveByDoi(String doi) {
     String url = BASE_URL + "/works/doi:" + doi + mailtoSuffix("?");
     try {
       String body =
@@ -66,27 +78,39 @@ public class OpenAlexService {
   }
 
   /**
-   * Works that cite the given OpenAlex work id, most-relevant first, capped at {@code maxResults}.
+   * Hydrates {@code sourceWork.referencedWorkIds()} (capped at {@code maxResults}) via a batch
+   * fetch, returning only the works OpenAlex actually resolved.
    */
-  public List<OpenAlexWork> getWorksCiting(String openAlexId, int maxResults) {
+  @Override
+  public List<ResolvedWork> getReferences(ResolvedWork sourceWork, int maxResults) {
+    List<String> refIds = sourceWork.referencedWorkIds();
+    if (refIds.isEmpty()) {
+      return List.of();
+    }
+    return getWorksByIds(refIds.subList(0, Math.min(refIds.size(), maxResults)));
+  }
+
+  /** Works that cite {@code sourceWork}, most-relevant first, capped at {@code maxResults}. */
+  @Override
+  public List<ResolvedWork> getCitations(ResolvedWork sourceWork, int maxResults) {
     int perPage = Math.max(1, Math.min(maxResults, 200));
     String url =
         BASE_URL
             + "/works?filter=cites:"
-            + stripPrefix(openAlexId)
+            + stripPrefix(sourceWork.id())
             + "&per_page="
             + perPage
             + mailtoSuffix("&");
     String body =
         retryHelper.execute(
-            "GET /works?filter=cites:" + openAlexId,
+            "GET /works?filter=cites:" + sourceWork.id(),
             () -> restTemplate.getForObject(url, String.class));
     return parseWorksList(readTree(body));
   }
 
   /** Batch-fetches works by OpenAlex id (chunked into groups of {@value #BATCH_SIZE}). */
-  public List<OpenAlexWork> getWorksByIds(List<String> openAlexIds) {
-    List<OpenAlexWork> results = new ArrayList<>();
+  private List<ResolvedWork> getWorksByIds(List<String> openAlexIds) {
+    List<ResolvedWork> results = new ArrayList<>();
     for (int start = 0; start < openAlexIds.size(); start += BATCH_SIZE) {
       List<String> batch =
           openAlexIds.subList(start, Math.min(start + BATCH_SIZE, openAlexIds.size()));
@@ -121,15 +145,15 @@ public class OpenAlexService {
     return mailto != null && !mailto.isBlank() ? separator + "mailto=" + mailto : "";
   }
 
-  private List<OpenAlexWork> parseWorksList(JsonNode root) {
-    List<OpenAlexWork> works = new ArrayList<>();
+  private List<ResolvedWork> parseWorksList(JsonNode root) {
+    List<ResolvedWork> works = new ArrayList<>();
     for (JsonNode workNode : root.path("results")) {
       works.add(parseWork(workNode));
     }
     return works;
   }
 
-  private OpenAlexWork parseWork(JsonNode node) {
+  private ResolvedWork parseWork(JsonNode node) {
     List<String> authorNames = new ArrayList<>();
     for (JsonNode authorship : node.path("authorships")) {
       String name = textOrNull(authorship.path("author"), "display_name");
@@ -143,7 +167,7 @@ public class OpenAlexService {
       referencedWorkIds.add(stripPrefix(refNode.asText()));
     }
 
-    return new OpenAlexWork(
+    return new ResolvedWork(
         stripPrefix(textOrNull(node, "id")),
         normalizeDoiOrNull(textOrNull(node, "doi")),
         textOrNull(node, "title"),
@@ -151,7 +175,9 @@ public class OpenAlexService {
         textOrNull(node, "type"),
         authorNames,
         textOrNull(node.path("primary_location").path("source"), "display_name"),
-        referencedWorkIds);
+        referencedWorkIds,
+        List.of(),
+        List.of());
   }
 
   private String normalizeDoiOrNull(String rawDoi) {

@@ -1,17 +1,19 @@
 # External API Configuration
 
-This app calls one external API — [OpenAlex](https://openalex.org) — to fetch the papers a
-BibTeX entry cites ("Get References") and the papers that cite it ("Get Citations"). See
+This app calls three external citation APIs — [OpenAlex](https://openalex.org),
+[Semantic Scholar](https://www.semanticscholar.org), and [Crossref](https://www.crossref.org) — to
+fetch the papers a BibTeX entry cites ("Get References") and the papers that cite it ("Get
+Citations"). They're tried in that order as a fallback chain: if OpenAlex has no record for a
+paper's DOI, Semantic Scholar is tried next, then Crossref. See
 `docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md` for the design behind this, and
 `docs/design/citation-apis.md` for the survey of citation APIs it's drawn from.
 
 ## Do you need an API key?
 
-**No.** OpenAlex's `/works` endpoint is free and requires no signup, API key, or authentication
-of any kind. Nothing needs to be configured to make the "Get References"/"Get Citations" jobs
-work.
-
-Two optional settings tune how the app talks to OpenAlex:
+**No, for any of the three.** All three APIs' relevant endpoints are free and require no signup or
+authentication to use at their default rate limits. Nothing needs to be configured to make the
+"Get References"/"Get Citations" jobs work. Optional settings below tune rate limits and pacing
+for each.
 
 ### `OPENALEX_MAILTO` (optional)
 
@@ -48,12 +50,76 @@ raise this value.
   dokku config:set --no-restart <app-name> CITELINES_API_DELAY_MS=250
   ```
 
+### `CROSSREF_MAILTO` (optional)
+
+Same purpose as `OPENALEX_MAILTO`, for Crossref's own "polite pool" — a courtesy contact email in
+exchange for a higher rate limit. Not required.
+
+- **Localhost**: add to `.env`:
+  ```
+  CROSSREF_MAILTO=you@example.com
+  ```
+- **Dokku**:
+  ```
+  dokku config:set --no-restart <app-name> CROSSREF_MAILTO=you@example.com
+  ```
+
+### `CROSSREF_API_DELAY_MS` (optional, default `100`)
+
+The minimum delay, in milliseconds, between consecutive Crossref calls, paced independently from
+OpenAlex's and Semantic Scholar's delays (each API is rate-limited separately, so each gets its
+own pacing setting).
+
+- **Localhost**: add to `.env`:
+  ```
+  CROSSREF_API_DELAY_MS=250
+  ```
+- **Dokku**:
+  ```
+  dokku config:set --no-restart <app-name> CROSSREF_API_DELAY_MS=250
+  ```
+
+### `SEMANTIC_SCHOLAR_API_KEY` (optional)
+
+Semantic Scholar's Graph API works without a key, but its unauthenticated rate limit is low
+enough to matter for anything beyond occasional use. A free key
+([request one here](https://www.semanticscholar.org/product/api#api-key)) raises the limit
+substantially and is sent as an `x-api-key` header.
+
+- **Localhost**: add to `.env`:
+  ```
+  SEMANTIC_SCHOLAR_API_KEY=your-key-here
+  ```
+- **Dokku**:
+  ```
+  dokku config:set --no-restart <app-name> SEMANTIC_SCHOLAR_API_KEY=your-key-here
+  ```
+
+If unset, requests are still sent, unauthenticated, at Semantic Scholar's default (lower) rate
+limit.
+
+### `SEMANTIC_SCHOLAR_API_DELAY_MS` (optional, default `100`)
+
+The minimum delay, in milliseconds, between consecutive Semantic Scholar calls.
+
+- **Localhost**: add to `.env`:
+  ```
+  SEMANTIC_SCHOLAR_API_DELAY_MS=250
+  ```
+- **Dokku**:
+  ```
+  dokku config:set --no-restart <app-name> SEMANTIC_SCHOLAR_API_DELAY_MS=250
+  ```
+
 ## Where this is used
 
-- `edu.ucsb.cs.citelines.services.OpenAlexService` — the HTTP client.
+- `edu.ucsb.cs.citelines.services.OpenAlexService`,
+  `edu.ucsb.cs.citelines.services.SemanticScholarResolver`,
+  `edu.ucsb.cs.citelines.services.CrossrefResolver` — the three HTTP clients, each implementing
+  `CitationMetadataResolver`.
 - `edu.ucsb.cs.citelines.services.CitationGraphService` — orchestrates a "Get References"/"Get
-  Citations" run: looks up the source entry's DOI, queries OpenAlex, synthesizes and saves new
-  `BibTexEntry` documents, and records `CitationEdge`s between them.
+  Citations" run: looks up the source entry's DOI, tries each resolver in order, synthesizes and
+  saves new `BibTexEntry` documents, and records `CitationEdge`s between them.
 - `edu.ucsb.cs.citelines.jobs.GetReferencesJob` / `GetCitationsJob` — the background jobs
   launched from the BibTexEntryShowPage's "Get References"/"Get Citations" buttons, tracked via
   the project's Jobs tab.

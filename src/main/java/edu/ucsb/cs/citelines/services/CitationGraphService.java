@@ -12,17 +12,20 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 /**
  * Orchestrates the "Get References" and "Get Citations" jobs: looks up a source {@link
- * BibTexEntry}'s DOI on OpenAlex, resolves the related works it names, synthesizes+saves a {@link
- * BibTexEntry} for each one not already present (deduped by DOI), and records a {@link
- * CitationEdge} between the source and each related entry. Anything OpenAlex can't fully resolve is
- * recorded as an {@link UnresolvedCitation} rather than silently dropped — see {@code
- * docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md}.
+ * BibTexEntry}'s DOI across a chain of {@link CitationMetadataResolver}s (OpenAlex first, then
+ * Semantic Scholar, then Crossref), resolves the related works the first successful resolver names,
+ * synthesizes+saves a {@link BibTexEntry} for each one not already present (deduped by DOI), and
+ * records a {@link CitationEdge} between the source and each related entry. Anything no resolver
+ * can fully resolve is recorded as an {@link UnresolvedCitation} rather than silently dropped — see
+ * {@code docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md} for why the chain is a
+ * waterfall (not a union of all three) and which gaps get a second chance via another resolver.
  */
 @Service
 public class CitationGraphService {
@@ -30,12 +33,36 @@ public class CitationGraphService {
   /** Cap on how many references/citations are fetched per job run. */
   static final int MAX_RESULTS = 200;
 
-  @Autowired BibTexEntryRepository bibTexEntryRepository;
-  @Autowired CitationEdgeRepository citationEdgeRepository;
-  @Autowired UnresolvedCitationRepository unresolvedCitationRepository;
-  @Autowired OpenAlexService openAlexService;
-  @Autowired BibTexSynthesisService bibTexSynthesisService;
-  @Autowired BibTexConverterService bibTexConverterService;
+  private static final String REASON_NOT_FOUND = "not_found_by_any_resolver";
+  private static final String REASON_MISSING_TITLE = "missing_title";
+  private static final String REASON_MISSING_DOI = "missing_doi";
+
+  private final BibTexEntryRepository bibTexEntryRepository;
+  private final CitationEdgeRepository citationEdgeRepository;
+  private final UnresolvedCitationRepository unresolvedCitationRepository;
+  private final BibTexSynthesisService bibTexSynthesisService;
+  private final BibTexConverterService bibTexConverterService;
+  private final CrossrefResolver crossrefResolver;
+  private final List<CitationMetadataResolver> resolversInPriorityOrder;
+
+  public CitationGraphService(
+      BibTexEntryRepository bibTexEntryRepository,
+      CitationEdgeRepository citationEdgeRepository,
+      UnresolvedCitationRepository unresolvedCitationRepository,
+      OpenAlexService openAlexService,
+      SemanticScholarResolver semanticScholarResolver,
+      CrossrefResolver crossrefResolver,
+      BibTexSynthesisService bibTexSynthesisService,
+      BibTexConverterService bibTexConverterService) {
+    this.bibTexEntryRepository = bibTexEntryRepository;
+    this.citationEdgeRepository = citationEdgeRepository;
+    this.unresolvedCitationRepository = unresolvedCitationRepository;
+    this.bibTexSynthesisService = bibTexSynthesisService;
+    this.bibTexConverterService = bibTexConverterService;
+    this.crossrefResolver = crossrefResolver;
+    this.resolversInPriorityOrder =
+        List.of(openAlexService, semanticScholarResolver, crossrefResolver);
+  }
 
   public void fetchReferences(int projectId, String sourceCiteKey, JobContext ctx) {
     fetchGraph(projectId, sourceCiteKey, ctx, Direction.REFERENCE);
@@ -81,20 +108,15 @@ public class CitationGraphService {
       throw new IllegalStateException("Entry has no DOI: " + sourceCiteKey);
     }
 
-    OpenAlexWork sourceWork =
-        openAlexService
-            .getWorkByDoi(doi)
-            .orElseThrow(
-                () -> {
-                  ctx.log("No OpenAlex record found for DOI " + doi);
-                  return new IllegalStateException("No OpenAlex record for DOI: " + doi);
-                });
-    ctx.log("Found source work on OpenAlex: " + sourceWork.title());
+    ResolverResult sourceResult = resolveSourceWork(doi, ctx);
+    CitationMetadataResolver discoveryResolver = sourceResult.resolver();
+    ResolvedWork sourceWork = sourceResult.work();
+    ctx.log("Found source work on %s: %s".formatted(discoveryResolver.name(), sourceWork.title()));
 
-    List<OpenAlexWork> relatedWorks =
+    List<ResolvedWork> relatedWorks =
         direction == Direction.REFERENCE
-            ? fetchReferencedWorks(sourceWork, projectId, sourceCiteKey, ctx)
-            : fetchCitingWorks(sourceWork, ctx);
+            ? fetchReferencedWorks(discoveryResolver, sourceWork, projectId, sourceCiteKey, ctx)
+            : fetchCitingWorks(discoveryResolver, sourceWork, ctx);
 
     Map<String, BibTexEntry> existingByDoi = new HashMap<>();
     Set<String> existingCiteKeys = new HashSet<>();
@@ -110,10 +132,27 @@ public class CitationGraphService {
     int added = 0;
     int linked = 0;
     int unresolved = 0;
-    for (OpenAlexWork work : relatedWorks) {
-      if (work.title() == null || work.title().isBlank()) {
-        saveUnresolved(projectId, sourceCiteKey, direction, work.id(), null, "missing_title");
-        ctx.log("Skipping %s: no title available.".formatted(work.id()));
+    for (ResolvedWork rawWork : relatedWorks) {
+      ResolvedWork work = rawWork;
+      if (isBlank(work.title())) {
+        ResolvedWork recovered = tryRecoverMissingTitle(work, discoveryResolver, ctx);
+        if (recovered != null) {
+          work = recovered;
+        }
+      }
+
+      if (isBlank(work.title())) {
+        String reason = work.doi() != null ? REASON_MISSING_TITLE : REASON_NOT_FOUND;
+        saveUnresolved(
+            projectId,
+            sourceCiteKey,
+            direction,
+            discoveryResolver.name(),
+            work.id(),
+            work.doi(),
+            null,
+            reason);
+        ctx.log("Skipping %s: no title available.".formatted(describeWork(work)));
         unresolved++;
         continue;
       }
@@ -134,7 +173,14 @@ public class CitationGraphService {
           existingByDoi.put(work.doi(), newEntry);
         } else {
           saveUnresolved(
-              projectId, sourceCiteKey, direction, work.id(), work.title(), "missing_doi");
+              projectId,
+              sourceCiteKey,
+              direction,
+              discoveryResolver.name(),
+              work.id(),
+              null,
+              work.title(),
+              REASON_MISSING_DOI);
         }
         added++;
         ctx.log("Added new entry %s: %s".formatted(citeKey, work.title()));
@@ -148,37 +194,113 @@ public class CitationGraphService {
             .formatted(added, added == 1 ? "entry" : "entries", linked, unresolved));
   }
 
-  private List<OpenAlexWork> fetchReferencedWorks(
-      OpenAlexWork sourceWork, int projectId, String sourceCiteKey, JobContext ctx) {
-    List<String> refIds = sourceWork.referencedWorkIds();
-    if (refIds.size() > MAX_RESULTS) {
-      ctx.log(
-          "Found %d references; fetching only the first %d.".formatted(refIds.size(), MAX_RESULTS));
-      refIds = refIds.subList(0, MAX_RESULTS);
-    } else {
-      ctx.log("Found %d references.".formatted(refIds.size()));
+  private record ResolverResult(CitationMetadataResolver resolver, ResolvedWork work) {}
+
+  /**
+   * Tries each resolver in priority order until one has a record for {@code doi}. Throws if none
+   * do, listing every resolver tried.
+   */
+  private ResolverResult resolveSourceWork(String doi, JobContext ctx) {
+    for (CitationMetadataResolver resolver : resolversInPriorityOrder) {
+      Optional<ResolvedWork> found = resolver.resolveByDoi(doi);
+      if (found.isPresent()) {
+        return new ResolverResult(resolver, found.get());
+      }
     }
-    if (refIds.isEmpty()) {
-      return List.of();
+    String triedNames =
+        resolversInPriorityOrder.stream()
+            .map(CitationMetadataResolver::name)
+            .collect(Collectors.joining(", "));
+    ctx.log("No record found for DOI %s in any of: %s".formatted(doi, triedNames));
+    throw new IllegalStateException("No record found for DOI: " + doi);
+  }
+
+  /**
+   * A {@code missing_title} gap can be recovered — the stub has a DOI (that's how it was found in
+   * the first place), so any *other* resolver's exact, non-fuzzy DOI lookup is safe to try. A gap
+   * with no DOI at all (e.g. a Crossref reference item that is pure unstructured free text) has
+   * nothing any resolver's DOI lookup could use, so is not attempted — see the design doc's
+   * explicit non-goal around fuzzy/bibliographic title search.
+   */
+  private ResolvedWork tryRecoverMissingTitle(
+      ResolvedWork stub, CitationMetadataResolver discoveryResolver, JobContext ctx) {
+    if (stub.doi() == null || stub.doi().isBlank()) {
+      return null;
+    }
+    for (CitationMetadataResolver resolver : resolversInPriorityOrder) {
+      if (resolver == discoveryResolver) {
+        continue;
+      }
+      Optional<ResolvedWork> found = resolver.resolveByDoi(stub.doi());
+      if (found.isPresent() && !isBlank(found.get().title())) {
+        ctx.log("Recovered title for %s via %s.".formatted(stub.doi(), resolver.name()));
+        return found.get();
+      }
+    }
+    return null;
+  }
+
+  private List<ResolvedWork> fetchReferencedWorks(
+      CitationMetadataResolver discoveryResolver,
+      ResolvedWork sourceWork,
+      int projectId,
+      String sourceCiteKey,
+      JobContext ctx) {
+    List<String> nativeIds = sourceWork.referencedWorkIds();
+    int totalFound =
+        !nativeIds.isEmpty() ? nativeIds.size() : sourceWork.embeddedReferences().size();
+    if (totalFound > MAX_RESULTS) {
+      ctx.log(
+          "Found %d references; fetching only the first %d.".formatted(totalFound, MAX_RESULTS));
+    } else {
+      ctx.log("Found %d references.".formatted(totalFound));
     }
 
-    List<OpenAlexWork> resolved = openAlexService.getWorksByIds(refIds);
-    Set<String> resolvedIds = new HashSet<>();
-    resolved.forEach(w -> resolvedIds.add(w.id()));
-    for (String id : refIds) {
-      if (!resolvedIds.contains(id)) {
-        saveUnresolved(
-            projectId, sourceCiteKey, Direction.REFERENCE, id, null, "not_found_in_openalex");
-        ctx.log("Could not resolve reference " + id + " in OpenAlex.");
+    List<ResolvedWork> resolved = discoveryResolver.getReferences(sourceWork, MAX_RESULTS);
+
+    // Only OpenAlex's referenced_works is an id-list that can come back with gaps from its own
+    // batch-fetch step — Crossref/Semantic Scholar embed full works inline, so there is no
+    // "id came back empty" case for them to detect here (a blank title from either is instead
+    // handled per-item, in the main loop above).
+    if (!nativeIds.isEmpty()) {
+      List<String> capped = nativeIds.subList(0, Math.min(nativeIds.size(), MAX_RESULTS));
+      Set<String> resolvedIds = new HashSet<>();
+      resolved.forEach(w -> resolvedIds.add(w.id()));
+      for (String id : capped) {
+        if (!resolvedIds.contains(id)) {
+          saveUnresolved(
+              projectId,
+              sourceCiteKey,
+              Direction.REFERENCE,
+              discoveryResolver.name(),
+              id,
+              null,
+              null,
+              REASON_NOT_FOUND);
+          ctx.log("Could not resolve reference %s in %s.".formatted(id, discoveryResolver.name()));
+        }
       }
     }
     return resolved;
   }
 
-  private List<OpenAlexWork> fetchCitingWorks(OpenAlexWork sourceWork, JobContext ctx) {
-    List<OpenAlexWork> citing = openAlexService.getWorksCiting(sourceWork.id(), MAX_RESULTS);
-    ctx.log("Found %d citations (capped at %d).".formatted(citing.size(), MAX_RESULTS));
+  private List<ResolvedWork> fetchCitingWorks(
+      CitationMetadataResolver discoveryResolver, ResolvedWork sourceWork, JobContext ctx) {
+    List<ResolvedWork> citing = discoveryResolver.getCitations(sourceWork, MAX_RESULTS);
+    if (discoveryResolver == crossrefResolver) {
+      ctx.log("Crossref does not provide citation data.");
+    } else {
+      ctx.log("Found %d citations (capped at %d).".formatted(citing.size(), MAX_RESULTS));
+    }
     return citing;
+  }
+
+  private static boolean isBlank(String value) {
+    return value == null || value.isBlank();
+  }
+
+  private static String describeWork(ResolvedWork work) {
+    return work.id() != null ? work.id() : "an unidentified reference";
   }
 
   private static CitationEdge makeEdge(
@@ -197,15 +319,22 @@ public class CitationGraphService {
       int projectId,
       String sourceCiteKey,
       Direction direction,
-      String openAlexWorkId,
+      String resolverName,
+      String resolverWorkId,
+      String doi,
       String title,
       String reason) {
+    String id =
+        UnresolvedCitation.makeId(
+            projectId, sourceCiteKey, direction.trackingLabel, reason, doi, resolverWorkId, title);
     unresolvedCitationRepository.save(
         UnresolvedCitation.builder()
+            .id(id)
             .projectId(projectId)
             .sourceCiteKey(sourceCiteKey)
             .direction(direction.trackingLabel)
-            .openAlexWorkId(openAlexWorkId)
+            .resolverName(resolverName)
+            .resolverWorkId(resolverWorkId)
             .title(title)
             .reason(reason)
             .discoveredAt(Instant.now())

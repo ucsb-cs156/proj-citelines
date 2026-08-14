@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -33,23 +32,33 @@ public class CitationGraphServiceTests {
   private CitationEdgeRepository citationEdgeRepository;
   private UnresolvedCitationRepository unresolvedCitationRepository;
   private OpenAlexService openAlexService;
+  private SemanticScholarResolver semanticScholarResolver;
+  private CrossrefResolver crossrefResolver;
 
   @BeforeEach
   void setup() {
-    citationGraphService = new CitationGraphService();
     bibTexEntryRepository = mock(BibTexEntryRepository.class);
     citationEdgeRepository = mock(CitationEdgeRepository.class);
     unresolvedCitationRepository = mock(UnresolvedCitationRepository.class);
     openAlexService = mock(OpenAlexService.class);
+    semanticScholarResolver = mock(SemanticScholarResolver.class);
+    crossrefResolver = mock(CrossrefResolver.class);
+    when(openAlexService.name()).thenReturn("OpenAlex");
+    when(semanticScholarResolver.name()).thenReturn("SemanticScholar");
+    when(crossrefResolver.name()).thenReturn("Crossref");
 
-    citationGraphService.bibTexEntryRepository = bibTexEntryRepository;
-    citationGraphService.citationEdgeRepository = citationEdgeRepository;
-    citationGraphService.unresolvedCitationRepository = unresolvedCitationRepository;
-    citationGraphService.openAlexService = openAlexService;
-    citationGraphService.bibTexSynthesisService = new BibTexSynthesisService();
     BibTexConverterService converterService = new BibTexConverterService();
     converterService.doiService = new DOIService();
-    citationGraphService.bibTexConverterService = converterService;
+    citationGraphService =
+        new CitationGraphService(
+            bibTexEntryRepository,
+            citationEdgeRepository,
+            unresolvedCitationRepository,
+            openAlexService,
+            semanticScholarResolver,
+            crossrefResolver,
+            new BibTexSynthesisService(new LaTeXNormalizationService()),
+            converterService);
   }
 
   private static BibTexEntry sourceEntry() {
@@ -63,8 +72,21 @@ public class CitationGraphServiceTests {
         .build();
   }
 
-  private static OpenAlexWork sourceWork(List<String> referencedWorkIds) {
-    return new OpenAlexWork(
+  private static ResolvedWork resolvedWork(
+      String id,
+      String doi,
+      String title,
+      Integer year,
+      String type,
+      List<String> authorNames,
+      String venue,
+      List<String> referencedWorkIds) {
+    return new ResolvedWork(
+        id, doi, title, year, type, authorNames, venue, referencedWorkIds, List.of(), List.of());
+  }
+
+  private static ResolvedWork sourceWork(List<String> referencedWorkIds) {
+    return resolvedWork(
         "W3035965352",
         "10.1038/s41586-020-2649-2",
         "Array programming with NumPy",
@@ -84,10 +106,10 @@ public class CitationGraphServiceTests {
     when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
         .thenReturn(Optional.of(sourceEntry()));
     when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
-    when(openAlexService.getWorkByDoi("10.1038/s41586-020-2649-2"))
-        .thenReturn(Optional.of(sourceWork(List.of("W1"))));
-    OpenAlexWork referencedWork =
-        new OpenAlexWork(
+    ResolvedWork source = sourceWork(List.of("W1"));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.of(source));
+    ResolvedWork referencedWork =
+        resolvedWork(
             "W1",
             "10.1000/ref1",
             "A Referenced Paper",
@@ -96,7 +118,8 @@ public class CitationGraphServiceTests {
             List.of("Ann Author"),
             "Some Journal",
             List.of());
-    when(openAlexService.getWorksByIds(List.of("W1"))).thenReturn(List.of(referencedWork));
+    when(openAlexService.getReferences(source, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of(referencedWork));
 
     Job job = newJob();
     JobContext ctx = new JobContext(null, job);
@@ -135,10 +158,10 @@ public class CitationGraphServiceTests {
         .thenReturn(Optional.of(sourceEntry()));
     when(bibTexEntryRepository.findByProjectId(42))
         .thenReturn(List.of(sourceEntry(), existingReferenced));
-    when(openAlexService.getWorkByDoi("10.1038/s41586-020-2649-2"))
-        .thenReturn(Optional.of(sourceWork(List.of("W1"))));
-    OpenAlexWork referencedWork =
-        new OpenAlexWork(
+    ResolvedWork source = sourceWork(List.of("W1"));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.of(source));
+    ResolvedWork referencedWork =
+        resolvedWork(
             "W1",
             "10.1000/ref1",
             "A Referenced Paper",
@@ -147,7 +170,8 @@ public class CitationGraphServiceTests {
             List.of("Ann Author"),
             null,
             List.of());
-    when(openAlexService.getWorksByIds(List.of("W1"))).thenReturn(List.of(referencedWork));
+    when(openAlexService.getReferences(source, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of(referencedWork));
 
     Job job = newJob();
     JobContext ctx = new JobContext(null, job);
@@ -164,15 +188,15 @@ public class CitationGraphServiceTests {
   }
 
   @Test
-  void fetchReferences_records_unresolved_when_openalex_cannot_find_a_referenced_work() {
+  void fetchReferences_records_unresolved_when_no_resolver_can_find_a_referenced_work() {
     when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
         .thenReturn(Optional.of(sourceEntry()));
     when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
-    when(openAlexService.getWorkByDoi("10.1038/s41586-020-2649-2"))
-        .thenReturn(Optional.of(sourceWork(List.of("W1", "W2"))));
+    ResolvedWork source = sourceWork(List.of("W1", "W2"));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.of(source));
     // only W1 comes back; W2 is "not found"
-    OpenAlexWork referencedWork =
-        new OpenAlexWork(
+    ResolvedWork referencedWork =
+        resolvedWork(
             "W1",
             "10.1000/ref1",
             "A Referenced Paper",
@@ -181,7 +205,8 @@ public class CitationGraphServiceTests {
             List.of("Ann Author"),
             null,
             List.of());
-    when(openAlexService.getWorksByIds(List.of("W1", "W2"))).thenReturn(List.of(referencedWork));
+    when(openAlexService.getReferences(source, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of(referencedWork));
 
     Job job = newJob();
     JobContext ctx = new JobContext(null, job);
@@ -190,23 +215,77 @@ public class CitationGraphServiceTests {
     ArgumentCaptor<UnresolvedCitation> unresolvedCaptor =
         ArgumentCaptor.forClass(UnresolvedCitation.class);
     verify(unresolvedCitationRepository).save(unresolvedCaptor.capture());
-    assertEquals("not_found_in_openalex", unresolvedCaptor.getValue().getReason());
-    assertEquals("W2", unresolvedCaptor.getValue().getOpenAlexWorkId());
+    assertEquals("not_found_by_any_resolver", unresolvedCaptor.getValue().getReason());
+    assertEquals("W2", unresolvedCaptor.getValue().getResolverWorkId());
+    assertEquals("OpenAlex", unresolvedCaptor.getValue().getResolverName());
     assertEquals("reference", unresolvedCaptor.getValue().getDirection());
     assertEquals("harris2020", unresolvedCaptor.getValue().getSourceCiteKey());
     assertTrue(job.getLog().contains("Could not resolve reference W2 in OpenAlex."));
   }
 
   @Test
-  void fetchReferences_records_unresolved_for_a_resolved_work_with_no_title() {
+  void fetchReferences_records_unresolved_for_a_resolved_work_with_no_title_and_no_doi() {
     when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
         .thenReturn(Optional.of(sourceEntry()));
     when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
-    when(openAlexService.getWorkByDoi("10.1038/s41586-020-2649-2"))
-        .thenReturn(Optional.of(sourceWork(List.of("W1"))));
-    OpenAlexWork noTitleWork =
-        new OpenAlexWork("W1", null, null, null, "article", List.of(), null, List.of());
-    when(openAlexService.getWorksByIds(List.of("W1"))).thenReturn(List.of(noTitleWork));
+    ResolvedWork source = sourceWork(List.of("W1"));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.of(source));
+    ResolvedWork noTitleWork =
+        resolvedWork("W1", null, null, null, "article", List.of(), null, List.of());
+    when(openAlexService.getReferences(source, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of(noTitleWork));
+
+    Job job = newJob();
+    JobContext ctx = new JobContext(null, job);
+    citationGraphService.fetchReferences(42, "harris2020", ctx);
+
+    verify(bibTexEntryRepository, times(0)).save(any());
+    ArgumentCaptor<UnresolvedCitation> unresolvedCaptor =
+        ArgumentCaptor.forClass(UnresolvedCitation.class);
+    verify(unresolvedCitationRepository).save(unresolvedCaptor.capture());
+    // no DOI at all to try another resolver with, so this is a bare not-found gap, not
+    // "missing_title" (which implies a DOI is known but no resolver could supply a title for it)
+    assertEquals("not_found_by_any_resolver", unresolvedCaptor.getValue().getReason());
+    assertTrue(job.getLog().contains("Skipping W1: no title available."));
+    assertTrue(
+        job.getLog()
+            .contains("Done: 0 new entries added, 0 linked to existing entries, 1 unresolved."));
+  }
+
+  @Test
+  void fetchReferences_treats_a_blank_doi_the_same_as_no_doi_when_recovering_a_missing_title() {
+    when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
+        .thenReturn(Optional.of(sourceEntry()));
+    when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
+    ResolvedWork source = sourceWork(List.of("W1"));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.of(source));
+    ResolvedWork blankDoiStub =
+        resolvedWork("W1", "   ", null, null, "article", List.of(), null, List.of());
+    when(openAlexService.getReferences(source, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of(blankDoiStub));
+
+    Job job = newJob();
+    JobContext ctx = new JobContext(null, job);
+    citationGraphService.fetchReferences(42, "harris2020", ctx);
+
+    org.mockito.Mockito.verifyNoInteractions(semanticScholarResolver, crossrefResolver);
+  }
+
+  @Test
+  void fetchReferences_does_not_adopt_a_fallback_resolvers_result_if_its_title_is_also_blank() {
+    when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
+        .thenReturn(Optional.of(sourceEntry()));
+    when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
+    ResolvedWork source = sourceWork(List.of("W1"));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.of(source));
+    ResolvedWork stub =
+        resolvedWork("W1", "10.1000/ref1", null, null, null, List.of(), null, List.of());
+    when(openAlexService.getReferences(source, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of(stub));
+    ResolvedWork alsoBlankTitle =
+        resolvedWork("S2-1", "10.1000/ref1", "   ", null, null, List.of(), null, List.of());
+    when(semanticScholarResolver.resolveByDoi("10.1000/ref1"))
+        .thenReturn(Optional.of(alsoBlankTitle));
 
     Job job = newJob();
     JobContext ctx = new JobContext(null, job);
@@ -217,10 +296,84 @@ public class CitationGraphServiceTests {
         ArgumentCaptor.forClass(UnresolvedCitation.class);
     verify(unresolvedCitationRepository).save(unresolvedCaptor.capture());
     assertEquals("missing_title", unresolvedCaptor.getValue().getReason());
-    assertTrue(job.getLog().contains("Skipping W1: no title available."));
-    assertTrue(
-        job.getLog()
-            .contains("Done: 0 new entries added, 0 linked to existing entries, 1 unresolved."));
+  }
+
+  @Test
+  void fetchReferences_describes_an_unresolvable_work_with_no_id_generically_in_the_log() {
+    when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
+        .thenReturn(Optional.of(sourceEntry()));
+    when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
+    ResolvedWork source = sourceWork(List.of("W1"));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.of(source));
+    ResolvedWork noIdWork =
+        resolvedWork(null, null, null, null, "article", List.of(), null, List.of());
+    when(openAlexService.getReferences(source, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of(noIdWork));
+
+    Job job = newJob();
+    JobContext ctx = new JobContext(null, job);
+    citationGraphService.fetchReferences(42, "harris2020", ctx);
+
+    assertTrue(job.getLog().contains("Skipping an unidentified reference: no title available."));
+  }
+
+  @Test
+  void fetchReferences_recovers_a_missing_title_via_a_fallback_resolver() {
+    when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
+        .thenReturn(Optional.of(sourceEntry()));
+    when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
+    ResolvedWork source = sourceWork(List.of("W1"));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.of(source));
+    ResolvedWork stub =
+        resolvedWork("W1", "10.1000/ref1", null, null, null, List.of(), null, List.of());
+    when(openAlexService.getReferences(source, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of(stub));
+    ResolvedWork recovered =
+        resolvedWork(
+            "S2-1",
+            "10.1000/ref1",
+            "A Referenced Paper",
+            2015,
+            "article",
+            List.of("Ann Author"),
+            null,
+            List.of());
+    when(semanticScholarResolver.resolveByDoi("10.1000/ref1")).thenReturn(Optional.of(recovered));
+
+    Job job = newJob();
+    JobContext ctx = new JobContext(null, job);
+    citationGraphService.fetchReferences(42, "harris2020", ctx);
+
+    ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository).save(savedEntry.capture());
+    assertEquals("A Referenced Paper", savedEntry.getValue().getKeyValuePairs().get("title"));
+    verify(unresolvedCitationRepository, times(0)).save(any());
+    assertTrue(job.getLog().contains("Recovered title for 10.1000/ref1 via SemanticScholar."));
+  }
+
+  @Test
+  void fetchReferences_records_missing_title_when_no_fallback_resolver_recovers_it() {
+    when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
+        .thenReturn(Optional.of(sourceEntry()));
+    when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
+    ResolvedWork source = sourceWork(List.of("W1"));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.of(source));
+    ResolvedWork stub =
+        resolvedWork("W1", "10.1000/ref1", null, null, null, List.of(), null, List.of());
+    when(openAlexService.getReferences(source, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of(stub));
+    // semanticScholarResolver and crossrefResolver both default to Optional.empty() (unstubbed)
+
+    Job job = newJob();
+    JobContext ctx = new JobContext(null, job);
+    citationGraphService.fetchReferences(42, "harris2020", ctx);
+
+    verify(bibTexEntryRepository, times(0)).save(any());
+    ArgumentCaptor<UnresolvedCitation> unresolvedCaptor =
+        ArgumentCaptor.forClass(UnresolvedCitation.class);
+    verify(unresolvedCitationRepository).save(unresolvedCaptor.capture());
+    assertEquals("missing_title", unresolvedCaptor.getValue().getReason());
+    assertEquals("W1", unresolvedCaptor.getValue().getResolverWorkId());
   }
 
   @Test
@@ -228,10 +381,10 @@ public class CitationGraphServiceTests {
     when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
         .thenReturn(Optional.of(sourceEntry()));
     when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
-    when(openAlexService.getWorkByDoi("10.1038/s41586-020-2649-2"))
-        .thenReturn(Optional.of(sourceWork(List.of("W1"))));
-    OpenAlexWork noDoiWork =
-        new OpenAlexWork(
+    ResolvedWork source = sourceWork(List.of("W1"));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.of(source));
+    ResolvedWork noDoiWork =
+        resolvedWork(
             "W1",
             null,
             "A Paper With No DOI",
@@ -240,7 +393,8 @@ public class CitationGraphServiceTests {
             List.of("Ann Author"),
             null,
             List.of());
-    when(openAlexService.getWorksByIds(List.of("W1"))).thenReturn(List.of(noDoiWork));
+    when(openAlexService.getReferences(source, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of(noDoiWork));
 
     Job job = newJob();
     JobContext ctx = new JobContext(null, job);
@@ -262,16 +416,17 @@ public class CitationGraphServiceTests {
     when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
         .thenReturn(Optional.of(sourceEntry()));
     when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
-    when(openAlexService.getWorkByDoi("10.1038/s41586-020-2649-2"))
-        .thenReturn(Optional.of(sourceWork(manyIds)));
-    when(openAlexService.getWorksByIds(any())).thenReturn(List.of());
+    ResolvedWork source = sourceWork(manyIds);
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.of(source));
+    when(openAlexService.getReferences(source, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of());
 
     Job job = newJob();
     JobContext ctx = new JobContext(null, job);
     citationGraphService.fetchReferences(42, "harris2020", ctx);
 
     assertTrue(job.getLog().contains("Found 250 references; fetching only the first 200."));
-    verify(openAlexService).getWorksByIds(eq(manyIds.subList(0, 200)));
+    verify(openAlexService).getReferences(source, 200);
   }
 
   @Test
@@ -283,9 +438,10 @@ public class CitationGraphServiceTests {
     when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
         .thenReturn(Optional.of(sourceEntry()));
     when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
-    when(openAlexService.getWorkByDoi("10.1038/s41586-020-2649-2"))
-        .thenReturn(Optional.of(sourceWork(exactlyMax)));
-    when(openAlexService.getWorksByIds(any())).thenReturn(List.of());
+    ResolvedWork source = sourceWork(exactlyMax);
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.of(source));
+    when(openAlexService.getReferences(source, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of());
 
     Job job = newJob();
     JobContext ctx = new JobContext(null, job);
@@ -293,18 +449,17 @@ public class CitationGraphServiceTests {
 
     assertTrue(job.getLog().contains("Found 200 references."));
     assertTrue(!job.getLog().contains("fetching only the first"));
-    verify(openAlexService).getWorksByIds(eq(exactlyMax));
   }
 
   @Test
-  void fetchCitations_fetches_via_works_citing_and_links_edges_in_the_other_direction() {
+  void fetchCitations_fetches_via_the_discovery_resolver_and_links_edges_in_the_other_direction() {
     when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
         .thenReturn(Optional.of(sourceEntry()));
     when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
-    when(openAlexService.getWorkByDoi("10.1038/s41586-020-2649-2"))
-        .thenReturn(Optional.of(sourceWork(List.of())));
-    OpenAlexWork citingWork =
-        new OpenAlexWork(
+    ResolvedWork source = sourceWork(List.of());
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.of(source));
+    ResolvedWork citingWork =
+        resolvedWork(
             "W9",
             "10.1000/citing1",
             "A Citing Paper",
@@ -313,7 +468,7 @@ public class CitationGraphServiceTests {
             List.of("Bob Author"),
             null,
             List.of());
-    when(openAlexService.getWorksCiting("W3035965352", CitationGraphService.MAX_RESULTS))
+    when(openAlexService.getCitations(source, CitationGraphService.MAX_RESULTS))
         .thenReturn(List.of(citingWork));
 
     Job job = newJob();
@@ -325,6 +480,121 @@ public class CitationGraphServiceTests {
     assertEquals("author2022", savedEdge.getValue().getCitingCiteKey());
     assertEquals("harris2020", savedEdge.getValue().getCitedCiteKey());
     assertTrue(job.getLog().contains("Found 1 citations (capped at 200)."));
+  }
+
+  @Test
+  void fetchReferences_falls_back_to_semantic_scholar_when_openalex_has_no_record() {
+    when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
+        .thenReturn(Optional.of(sourceEntry()));
+    when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.empty());
+    ResolvedWork s2Source = sourceWork(List.of());
+    when(semanticScholarResolver.resolveByDoi("10.1038/s41586-020-2649-2"))
+        .thenReturn(Optional.of(s2Source));
+    ResolvedWork referencedWork =
+        resolvedWork(
+            "S2-1",
+            "10.1000/ref1",
+            "A Referenced Paper",
+            2015,
+            "article",
+            List.of("Ann Author"),
+            null,
+            List.of());
+    when(semanticScholarResolver.getReferences(s2Source, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of(referencedWork));
+
+    Job job = newJob();
+    JobContext ctx = new JobContext(null, job);
+    citationGraphService.fetchReferences(42, "harris2020", ctx);
+
+    assertTrue(
+        job.getLog()
+            .contains("Found source work on SemanticScholar: Array programming with NumPy"));
+    ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository).save(savedEntry.capture());
+    assertEquals("author2015", savedEntry.getValue().getCiteKey());
+  }
+
+  @Test
+  void fetchReferences_uses_crossref_as_a_last_resort_discovery_resolver() {
+    when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
+        .thenReturn(Optional.of(sourceEntry()));
+    when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.empty());
+    when(semanticScholarResolver.resolveByDoi("10.1038/s41586-020-2649-2"))
+        .thenReturn(Optional.empty());
+    ResolvedWork crossrefSource = sourceWork(List.of());
+    when(crossrefResolver.resolveByDoi("10.1038/s41586-020-2649-2"))
+        .thenReturn(Optional.of(crossrefSource));
+    ResolvedWork referencedWork =
+        resolvedWork(
+            "e_1",
+            "10.1000/ref1",
+            "A Referenced Paper",
+            2015,
+            "article",
+            List.of("Ann Author"),
+            null,
+            List.of());
+    when(crossrefResolver.getReferences(crossrefSource, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of(referencedWork));
+
+    Job job = newJob();
+    JobContext ctx = new JobContext(null, job);
+    citationGraphService.fetchReferences(42, "harris2020", ctx);
+
+    assertTrue(
+        job.getLog().contains("Found source work on Crossref: Array programming with NumPy"));
+    ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository).save(savedEntry.capture());
+    assertEquals("author2015", savedEntry.getValue().getCiteKey());
+  }
+
+  @Test
+  void fetchCitations_logs_instead_of_erroring_when_the_discovery_resolver_is_crossref() {
+    when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
+        .thenReturn(Optional.of(sourceEntry()));
+    when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.empty());
+    when(semanticScholarResolver.resolveByDoi("10.1038/s41586-020-2649-2"))
+        .thenReturn(Optional.empty());
+    ResolvedWork crossrefSource = sourceWork(List.of());
+    when(crossrefResolver.resolveByDoi("10.1038/s41586-020-2649-2"))
+        .thenReturn(Optional.of(crossrefSource));
+    // crossrefResolver.getCitations is unstubbed -> defaults to an empty list, matching the real
+    // CrossrefResolver's behavior (no citing-works endpoint exists in Crossref's public API)
+
+    Job job = newJob();
+    JobContext ctx = new JobContext(null, job);
+    citationGraphService.fetchCitations(42, "harris2020", ctx);
+
+    assertTrue(job.getLog().contains("Crossref does not provide citation data."));
+    assertTrue(!job.getLog().contains("Found 0 citations"));
+    assertTrue(
+        job.getLog()
+            .contains("Done: 0 new entries added, 0 linked to existing entries, 0 unresolved."));
+  }
+
+  @Test
+  void throws_and_logs_when_no_resolver_has_a_record_for_the_doi() {
+    when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
+        .thenReturn(Optional.of(sourceEntry()));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.empty());
+    when(semanticScholarResolver.resolveByDoi("10.1038/s41586-020-2649-2"))
+        .thenReturn(Optional.empty());
+    when(crossrefResolver.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.empty());
+
+    Job job = newJob();
+    JobContext ctx = new JobContext(null, job);
+    assertThrows(
+        IllegalStateException.class,
+        () -> citationGraphService.fetchReferences(42, "harris2020", ctx));
+    assertTrue(
+        job.getLog()
+            .contains(
+                "No record found for DOI 10.1038/s41586-020-2649-2 in any of: OpenAlex,"
+                    + " SemanticScholar, Crossref"));
   }
 
   @Test
@@ -361,20 +631,6 @@ public class CitationGraphServiceTests {
   }
 
   @Test
-  void throws_and_logs_when_openalex_has_no_record_for_the_dois_doi() {
-    when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
-        .thenReturn(Optional.of(sourceEntry()));
-    when(openAlexService.getWorkByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.empty());
-
-    Job job = newJob();
-    JobContext ctx = new JobContext(null, job);
-    assertThrows(
-        IllegalStateException.class,
-        () -> citationGraphService.fetchReferences(42, "harris2020", ctx));
-    assertTrue(job.getLog().contains("No OpenAlex record found for DOI"));
-  }
-
-  @Test
   void throws_when_the_source_entrys_keyValuePairs_is_entirely_null() {
     BibTexEntry noFieldsEntry =
         BibTexEntry.builder().projectId(42).citeKey("nofields2020").entryType("article").build();
@@ -398,7 +654,7 @@ public class CitationGraphServiceTests {
         .thenReturn(Optional.of(sourceEntry()));
     when(bibTexEntryRepository.findByProjectId(42))
         .thenReturn(List.of(sourceEntry(), noFieldsExisting));
-    when(openAlexService.getWorkByDoi("10.1038/s41586-020-2649-2"))
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2"))
         .thenReturn(Optional.of(sourceWork(List.of())));
 
     Job job = newJob();
@@ -441,7 +697,7 @@ public class CitationGraphServiceTests {
         .thenReturn(Optional.of(sourceEntry()));
     when(bibTexEntryRepository.findByProjectId(42))
         .thenReturn(List.of(sourceEntry(), noDoiExisting));
-    when(openAlexService.getWorkByDoi("10.1038/s41586-020-2649-2"))
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2"))
         .thenReturn(Optional.of(sourceWork(List.of())));
 
     Job job = newJob();
@@ -456,11 +712,12 @@ public class CitationGraphServiceTests {
     when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
         .thenReturn(Optional.of(sourceEntry()));
     when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
-    when(openAlexService.getWorkByDoi("10.1038/s41586-020-2649-2"))
-        .thenReturn(Optional.of(sourceWork(List.of("W1"))));
-    OpenAlexWork blankTitleWork =
-        new OpenAlexWork("W1", null, "   ", null, "article", List.of(), null, List.of());
-    when(openAlexService.getWorksByIds(List.of("W1"))).thenReturn(List.of(blankTitleWork));
+    ResolvedWork source = sourceWork(List.of("W1"));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.of(source));
+    ResolvedWork blankTitleWork =
+        resolvedWork("W1", null, "   ", null, "article", List.of(), null, List.of());
+    when(openAlexService.getReferences(source, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of(blankTitleWork));
 
     Job job = newJob();
     JobContext ctx = new JobContext(null, job);
@@ -471,18 +728,17 @@ public class CitationGraphServiceTests {
   }
 
   @Test
-  void fetchReferences_with_no_references_at_all_does_not_call_openalex_again() {
+  void fetchReferences_with_no_references_at_all_does_not_error() {
     when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
         .thenReturn(Optional.of(sourceEntry()));
     when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
-    when(openAlexService.getWorkByDoi("10.1038/s41586-020-2649-2"))
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2"))
         .thenReturn(Optional.of(sourceWork(List.of())));
 
     Job job = newJob();
     JobContext ctx = new JobContext(null, job);
     citationGraphService.fetchReferences(42, "harris2020", ctx);
 
-    verify(openAlexService, times(0)).getWorksByIds(any());
     assertTrue(
         job.getLog()
             .contains("Done: 0 new entries added, 0 linked to existing entries, 0 unresolved."));

@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Read-only endpoints for the citation graph built by the "Get References"/"Get Citations" jobs
  * (see {@link edu.ucsb.cs.citelines.services.CitationGraphService}): the papers a given entry
- * cites, the papers that cite it, and the entries the OpenAlex-only MVP could not fully resolve
- * (see {@code docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md}).
+ * cites, the papers that cite it, and the entries no configured resolver could fully resolve (see
+ * {@code docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md}).
  */
 @Tag(name = "CitationEdges")
 @RequestMapping("/api/citationedges")
@@ -68,12 +68,17 @@ public class CitationEdgesController extends ApiController {
 
   @Operation(
       summary =
-          "List references/citations the OpenAlex-only MVP could not fully resolve for a project")
+          "List references/citations no configured resolver could fully resolve, for a project"
+              + " or (if sourceCiteKey is given) for a single entry")
   @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
   @GetMapping("/unresolved")
   public List<UnresolvedCitation> unresolved(
-      @Parameter(name = "projectId") @RequestParam Long projectId) {
-    return unresolvedCitationRepository.findByProjectId(projectId.intValue());
+      @Parameter(name = "projectId") @RequestParam Long projectId,
+      @Parameter(name = "sourceCiteKey") @RequestParam(required = false) String sourceCiteKey) {
+    return sourceCiteKey == null
+        ? unresolvedCitationRepository.findByProjectId(projectId.intValue())
+        : unresolvedCitationRepository.findByProjectIdAndSourceCiteKey(
+            projectId.intValue(), sourceCiteKey);
   }
 
   private List<BibTexEntry> relatedEntries(Long projectId, Stream<String> citeKeys) {
