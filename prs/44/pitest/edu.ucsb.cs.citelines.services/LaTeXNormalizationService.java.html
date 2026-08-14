@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>LaTeXNormalizationService.java</h1>
+
+<table class="src">
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package edu.ucsb.cs.citelines.services;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import lombok.extern.slf4j.Slf4j;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.jbibtex.LaTeXParser;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.jbibtex.LaTeXPrinter;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.jbibtex.ParseException;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.jbibtex.TokenMgrException;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.stereotype.Service;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Converts LaTeX-escaped text (e.g. {@code Schr{\&#34;{o}}der}, {@code \&#39;Alvarez}) into plain Unicode</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * (e.g. {@code Schr&#246;der}, {@code &#193;lvarez}), via JBibTeX&#39;s {@link LaTeXParser}/{@link LaTeXPrinter}.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Used by {@link BibTexSynthesisService} to clean up author/title/venue text synthesized from a</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * {@link CitationMetadataResolver} &#8212; see {@code</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md}.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;p&#62;Deliberately not applied to user-pasted BibTeX ({@link BibTexConverterService}&#39;s path): a user</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * who typed LaTeX escapes presumably wants them preserved as typed.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_19'/>
+19
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_19'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>@Slf4j</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>@Service</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_22'/>
+22
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_22'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>public class LaTeXNormalizationService {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_23'/>
+23
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_23'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_24'/>
+24
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_24'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_25'/>
+25
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_25'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * Normalizes {@code raw} LaTeX-escaped text to plain Unicode. Returns {@code raw} unchanged if it</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_26'/>
+26
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_26'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * is blank, or if it fails to parse as LaTeX (malformed input shouldn&#39;t fail a citation job &#8212; it</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_27'/>
+27
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_27'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * just means this one field keeps its raw form).</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_28'/>
+28
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_28'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_29'/>
+29
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_29'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public String normalize(String raw) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_30'/>
+30
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_30'>2</a>
+<span>
+1. normalize : negated conditional &rarr; KILLED<br/>
+2. normalize : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (raw == null || raw.isBlank()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_31'/>
+31
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_31'>1</a>
+<span>
+1. normalize : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/LaTeXNormalizationService::normalize &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      return raw;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_32'/>
+32
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_32'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_33'/>
+33
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_33'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    try {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_34'/>
+34
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_34'>1</a>
+<span>
+1. normalize : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/LaTeXNormalizationService::normalize &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      return new LaTeXPrinter().print(new LaTeXParser().parse(raw));</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_35'/>
+35
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_35'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    } catch (ParseException | TokenMgrException e) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_36'/>
+36
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_36'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      log.debug(&#34;Could not parse LaTeX text, leaving as-is: {}&#34;, raw);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_37'/>
+37
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_37'>1</a>
+<span>
+1. normalize : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/LaTeXNormalizationService::normalize &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      return raw;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_38'/>
+38
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_38'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_39'/>
+39
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_39'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@1675adad_40'/>
+40
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_40'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@1675adad_30'>30</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_30'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>normalize<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests]/[method:returns_null_unchanged()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>normalize<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests]/[method:normalizes_an_acute_accent_with_no_braces()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@1675adad_31'>31</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_31'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>normalize<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests]/[method:returns_null_unchanged()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/LaTeXNormalizationService::normalize &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@1675adad_34'>34</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_34'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>normalize<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests]/[method:normalizes_an_acute_accent_with_no_braces()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/LaTeXNormalizationService::normalize &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@1675adad_37'>37</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@1675adad_37'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>normalize<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests]/[method:falls_back_to_the_raw_text_when_it_fails_to_parse_as_latex()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/LaTeXNormalizationService::normalize &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+<li class='mutator'>EMPTY_RETURNS</li>
+<li class='mutator'>FALSE_RETURNS</li>
+<li class='mutator'>INCREMENTS</li>
+<li class='mutator'>INVERT_NEGS</li>
+<li class='mutator'>MATH</li>
+<li class='mutator'>NEGATE_CONDITIONALS</li>
+<li class='mutator'>NULL_RETURNS</li>
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+<li class='mutator'>TRUE_RETURNS</li>
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests]/[method:returns_null_unchanged()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests]/[method:normalizes_an_acute_accent_with_no_braces()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests]/[method:returns_blank_text_unchanged()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests]/[method:leaves_plain_text_unchanged()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests]/[method:normalizes_a_double_dot_umlaut()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests]/[method:normalizes_a_braced_acute_accent()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests]/[method:normalizes_a_braced_umlaut_mid_word()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.LaTeXNormalizationServiceTests]/[method:falls_back_to_the_raw_text_when_it_fails_to_parse_as_latex()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_to_entry_when_the_first_authors_name_has_no_letters()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_uses_first_author_lastname_and_year()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:treats_a_null_author_list_the_same_as_no_authors()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:maps_an_unrecognized_type_to_misc()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_disambiguates_with_a_letter_suffix()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_through_all_26_letters_then_increments_past_a_taken_number()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_tries_the_letter_z_before_falling_back_to_numbers()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:omits_venue_and_doi_when_blank_rather_than_null()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:formats_a_single_word_author_name_without_a_comma()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:maps_book_chapter_to_incollection_with_a_booktitle_field()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:strips_stray_braces_from_title_and_venue()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:maps_proceedings_article_to_inproceedings_with_a_booktitle_field()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:normalizes_latex_escapes_in_title_venue_and_author()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:omits_optional_fields_that_are_absent()] (4 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:synthesizes_a_bibtex_string_that_the_real_converter_can_parse_back()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchCitations_fetches_via_the_discovery_resolver_and_links_edges_in_the_other_direction()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_uses_crossref_as_a_last_resort_discovery_resolver()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_falls_back_to_semantic_scholar_when_openalex_has_no_record()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_records_unresolved_for_a_new_entry_with_no_doi()] (3 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_recovers_a_missing_title_via_a_fallback_resolver()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_adds_new_entries_and_links_edges()] (3 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_records_unresolved_when_no_resolver_can_find_a_referenced_work()] (2 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.17.0
+
+</body>
+</html>
