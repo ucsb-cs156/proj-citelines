@@ -88,18 +88,7 @@ export default function ResearcherProjectShowPage({
             </p>
           </div>
 
-          <Tabs defaultActiveKey={"collaborators"}>
-            <Tab
-              eventKey={"collaborators"}
-              title={"Collaborators"}
-              className="pt-2"
-            >
-              <CollaboratorsTabComponent
-                projectId={projectId}
-                testIdPrefix={testId}
-                isOwner={isOwner}
-              />
-            </Tab>
+          <Tabs defaultActiveKey={"citations"}>
             <Tab eventKey={"citations"} title={"Citations"} className="pt-2">
               <CitationsTabComponent
                 projectId={projectId}
@@ -110,6 +99,17 @@ export default function ResearcherProjectShowPage({
               <JobsTabComponent
                 projectId={projectId}
                 testIdPrefix={`${testId}-Jobs`}
+              />
+            </Tab>
+            <Tab
+              eventKey={"collaborators"}
+              title={"Collaborators"}
+              className="pt-2"
+            >
+              <CollaboratorsTabComponent
+                projectId={projectId}
+                testIdPrefix={testId}
+                isOwner={isOwner}
               />
             </Tab>
           </Tabs>
