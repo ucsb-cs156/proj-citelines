@@ -289,6 +289,7 @@ public class CheckLinksServiceTests {
     HttpHeaders headers = captor.getValue().getHeaders();
     assertTrue(headers.getFirst(HttpHeaders.USER_AGENT).contains("Mozilla"));
     assertTrue(headers.getFirst(HttpHeaders.ACCEPT).contains("text/html"));
+    assertEquals("en-US,en;q=0.5", headers.getFirst(HttpHeaders.ACCEPT_LANGUAGE));
   }
 
   @Test

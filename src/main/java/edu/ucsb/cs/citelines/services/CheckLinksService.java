@@ -198,7 +198,11 @@ public class CheckLinksService {
     HttpEntity<Void> request = new HttpEntity<>(headers);
     try {
       retryHelper.execute(
-          "HEAD " + url, () -> restTemplate.exchange(url, HttpMethod.HEAD, request, Void.class));
+          "HEAD " + url,
+          () -> {
+            restTemplate.exchange(url, HttpMethod.HEAD, request, Void.class);
+            return null;
+          });
       return false;
     } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {
       ctx.log("Invalid URL (%d) for %s: %s".formatted(e.getStatusCode().value(), citeKey, url));
@@ -215,7 +219,11 @@ public class CheckLinksService {
       String url, HttpEntity<Void> request, String citeKey, JobContext ctx) {
     try {
       retryHelper.execute(
-          "GET " + url, () -> restTemplate.exchange(url, HttpMethod.GET, request, String.class));
+          "GET " + url,
+          () -> {
+            restTemplate.exchange(url, HttpMethod.GET, request, String.class);
+            return null;
+          });
       return false;
     } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {
       ctx.log("Invalid URL (%d) for %s: %s".formatted(e.getStatusCode().value(), citeKey, url));
