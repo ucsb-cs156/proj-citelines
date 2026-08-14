@@ -158,6 +158,27 @@
       <version>1.0.20</version>
     </dependency>
 
+    <!-- citeproc-java: renders BibTeX entries into formatted citations/bibliographies
+    (APA, MLA, ACM, IEEE, Chicago, etc.) using Citation Style Language (CSL) styles, entirely
+    offline. See https://github.com/michel-kraemer/citeproc-java -->
+    <dependency>
+      <groupId>de.undercouch</groupId>
+      <artifactId>citeproc-java</artifactId>
+      <version>3.5.1</version>
+    </dependency>
+    <!-- Bundles the 10,000+ standard CSL styles (APA, MLA, ACM, IEEE, Chicago, etc.) -->
+    <dependency>
+      <groupId>org.citationstyles</groupId>
+      <artifactId>styles</artifactId>
+      <version>26.8</version>
+    </dependency>
+    <!-- Bundles the CSL locale files required to render styles -->
+    <dependency>
+      <groupId>org.citationstyles</groupId>
+      <artifactId>locales</artifactId>
+      <version>26.8</version>
+    </dependency>
+
     <!-- Shared async jobs system: https://github.com/ucsb-cs156/lib-jobs -->
     <dependency>
       <groupId>com.github.ucsb-cs156</groupId>
