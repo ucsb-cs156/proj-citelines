@@ -32,7 +32,9 @@ import org.springframework.web.client.RestTemplate;
  * <p>Like {@link OpenAlexService} and the other {@code CitationMetadataResolver}s, every link fetch
  * is paced and retried through {@link ApiRetryHelper}, using {@code citelines.api.delay-ms}/{@code
  * CITELINES_API_DELAY_MS} both as the minimum gap between calls and as the starting delay for
- * exponential backoff on 5xx errors and rate-limit (429) responses.
+ * exponential backoff on 5xx errors and rate-limit (429) responses. Because {@code doi.org} has
+ * been observed returning bare 403s as an anti-bot measure rather than a proper 429, the helper is
+ * configured to treat any 403 the same as a 429 for this job.
  */
 @Slf4j
 @Service
@@ -60,7 +62,12 @@ public class CheckLinksService {
     this.restTemplate = restTemplate;
     this.retryHelper =
         new ApiRetryHelper(
-            "CheckLinks", "CITELINES_API_DELAY_MS", citelinesApiDelayMs, 5, citelinesApiDelayMs);
+            "CheckLinks",
+            "CITELINES_API_DELAY_MS",
+            citelinesApiDelayMs,
+            5,
+            citelinesApiDelayMs,
+            /* treatAnyForbiddenAsRateLimit= */ true);
   }
 
   public void checkLinks(int projectId, JobContext ctx) {

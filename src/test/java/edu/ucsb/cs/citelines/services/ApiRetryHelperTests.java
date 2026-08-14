@@ -36,6 +36,11 @@ public class ApiRetryHelperTests {
         "GitHub", "GITHUB_PACE_VAR", 8000, retryMax, paceMs, clock::get, () -> jitterFactor);
   }
 
+  private ApiRetryHelper helperTreatingAnyForbiddenAsRateLimit(long paceMs) {
+    return new ApiRetryHelper(
+        "GitHub", "GITHUB_PACE_VAR", 8000, 3, paceMs, clock::get, () -> 0.0, true);
+  }
+
   private static HttpServerErrorException badGateway() {
     return HttpServerErrorException.create(
         HttpStatus.BAD_GATEWAY,
@@ -261,6 +266,27 @@ public class ApiRetryHelperTests {
                           }));
       assertSame(original, thrown);
       sleepMock.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  public void
+      with_treatAnyForbiddenAsRateLimit_a_403_without_rate_limit_in_the_body_is_retried_as_rate_limited() {
+    try (MockedStatic<Sleep> sleepMock = mockStatic(Sleep.class)) {
+      AtomicInteger attempts = new AtomicInteger();
+      String result =
+          helperTreatingAnyForbiddenAsRateLimit(0)
+              .execute(
+                  "GET /x",
+                  () -> {
+                    if (attempts.incrementAndGet() == 1) {
+                      throw clientError(HttpStatus.FORBIDDEN, "");
+                    }
+                    return "ok";
+                  });
+      assertEquals("ok", result);
+      assertEquals(2, attempts.get());
+      sleepMock.verify(() -> Sleep.sleepQuietly(8000));
     }
   }
 

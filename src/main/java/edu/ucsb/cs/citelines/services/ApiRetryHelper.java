@@ -28,7 +28,9 @@ import org.springframework.web.client.HttpServerErrorException;
  *       retryable event using the same doubling-plus-jitter backoff, and additionally doubles the
  *       pace <i>permanently</i> (for the life of the service instance), with a log suggestion to
  *       raise the pace's configuration variable. This satisfies API terms of service (e.g. Semantic
- *       Scholar's) that require exponential backoff on rate-limit responses.
+ *       Scholar's) that require exponential backoff on rate-limit responses. Callers whose provider
+ *       is known to return bare 403s as an anti-bot measure instead of a proper 429 (e.g. {@code
+ *       doi.org}) can opt every 403 into this same treatment via {@code treatAnyForbiddenAsRateLimit}.
  * </ul>
  *
  * <p>All other client errors (404 for a missing path, 401/403 for a bad token) are rethrown
@@ -54,6 +56,7 @@ public class ApiRetryHelper {
   private final AtomicLong lastCallMs = new AtomicLong(0);
   private final LongSupplier nowMs;
   private final DoubleSupplier jitterFactor;
+  private final boolean treatAnyForbiddenAsRateLimit;
 
   /** Thrown when the API is still failing after all retries; carries a clean one-line message. */
   public static class ApiUnavailableException extends RuntimeException {
@@ -68,6 +71,22 @@ public class ApiRetryHelper {
       long retryInitialDelayMs,
       int retryMax,
       long paceInitialMs) {
+    this(apiName, paceVariableName, retryInitialDelayMs, retryMax, paceInitialMs, false);
+  }
+
+  /**
+   * Like the five-arg constructor, but with {@code treatAnyForbiddenAsRateLimit} set: pass {@code
+   * true} when the provider is known to return bare 403s as an anti-bot measure instead of a
+   * proper 429 (e.g. {@code doi.org}), so that every 403 — not just ones whose body mentions "rate
+   * limit" — is treated as a rate-limit signal.
+   */
+  public ApiRetryHelper(
+      String apiName,
+      String paceVariableName,
+      long retryInitialDelayMs,
+      int retryMax,
+      long paceInitialMs,
+      boolean treatAnyForbiddenAsRateLimit) {
     this(
         apiName,
         paceVariableName,
@@ -75,7 +94,8 @@ public class ApiRetryHelper {
         retryMax,
         paceInitialMs,
         System::currentTimeMillis,
-        DEFAULT_JITTER_FACTOR);
+        DEFAULT_JITTER_FACTOR,
+        treatAnyForbiddenAsRateLimit);
   }
 
   // Visible for tests: nowMs lets the pacing arithmetic run against a controlled clock, and
@@ -89,6 +109,26 @@ public class ApiRetryHelper {
       long paceInitialMs,
       LongSupplier nowMs,
       DoubleSupplier jitterFactor) {
+    this(
+        apiName,
+        paceVariableName,
+        retryInitialDelayMs,
+        retryMax,
+        paceInitialMs,
+        nowMs,
+        jitterFactor,
+        false);
+  }
+
+  ApiRetryHelper(
+      String apiName,
+      String paceVariableName,
+      long retryInitialDelayMs,
+      int retryMax,
+      long paceInitialMs,
+      LongSupplier nowMs,
+      DoubleSupplier jitterFactor,
+      boolean treatAnyForbiddenAsRateLimit) {
     this.apiName = apiName;
     this.paceVariableName = paceVariableName;
     this.retryInitialDelayMs = retryInitialDelayMs;
@@ -96,6 +136,7 @@ public class ApiRetryHelper {
     this.paceMs = new AtomicLong(paceInitialMs);
     this.nowMs = nowMs;
     this.jitterFactor = jitterFactor;
+    this.treatAnyForbiddenAsRateLimit = treatAnyForbiddenAsRateLimit;
   }
 
   /**
@@ -162,13 +203,20 @@ public class ApiRetryHelper {
     return Math.round(baseDelayMs + baseDelayMs * JITTER_RATIO * jitterFactor.getAsDouble());
   }
 
-  /** A 429, or a 403 whose body mentions "rate limit" (GitHub's secondary-limit signature). */
-  private static boolean isRateLimited(HttpClientErrorException e) {
+  /**
+   * A 429; a 403 whose body mentions "rate limit" (GitHub's secondary-limit signature); or, when
+   * {@code treatAnyForbiddenAsRateLimit} is set, any 403 at all (some providers, e.g. {@code
+   * doi.org}, return a bare 403 as an anti-bot measure instead of a proper 429).
+   */
+  private boolean isRateLimited(HttpClientErrorException e) {
     if (e.getStatusCode().value() == 429) {
       return true;
     }
-    return e.getStatusCode().value() == 403
-        && e.getResponseBodyAsString().toLowerCase().contains("rate limit");
+    if (e.getStatusCode().value() != 403) {
+      return false;
+    }
+    return treatAnyForbiddenAsRateLimit
+        || e.getResponseBodyAsString().toLowerCase().contains("rate limit");
   }
 
   /** Sleeps just long enough that consecutive calls are at least paceMs apart. */
