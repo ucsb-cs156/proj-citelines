@@ -100,6 +100,27 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
         .andExpect(status().is(403));
   }
 
+  @Test
+  public void logged_out_users_cannot_upsert_a_comments_draft() throws Exception {
+    mockMvc
+        .perform(put("/api/bibtexentries/comments/draft?id=abc&projectId=1").content("draft"))
+        .andExpect(status().is(403));
+  }
+
+  @Test
+  public void logged_out_users_cannot_save_a_comments_draft() throws Exception {
+    mockMvc
+        .perform(post("/api/bibtexentries/comments/save?id=abc&projectId=1"))
+        .andExpect(status().is(403));
+  }
+
+  @Test
+  public void logged_out_users_cannot_discard_a_comments_draft() throws Exception {
+    mockMvc
+        .perform(delete("/api/bibtexentries/comments/draft?id=abc&projectId=1"))
+        .andExpect(status().is(403));
+  }
+
   @WithMockUser(
       username = "stranger",
       roles = {"USER"})
@@ -617,6 +638,263 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
 
     mockMvc
         .perform(delete("/api/bibtexentries/delete?id=missing&projectId=1").with(csrf()))
+        .andExpect(status().isNotFound());
+  }
+
+  // ---- Comments draft tests ----
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_create_a_comments_draft_when_the_entry_has_no_keyValuePairs_at_all()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existing = BibTexEntry.builder().id("abc123").projectId(1).citeKey("k").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+    when(bibTexEntryRepository.save(any(BibTexEntry.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            put("/api/bibtexentries/comments/draft?id=abc123&projectId=1")
+                .content("Draft *markdown*")
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<BibTexEntry> captor =
+        org.mockito.ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository, times(1)).save(captor.capture());
+    assertEquals(
+        "Draft *markdown*", captor.getValue().getKeyValuePairs().get("CITELINES_comments_draft"));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_overwrite_an_existing_comments_draft_leaving_comments_untouched()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existing =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .citeKey("k")
+            .keyValuePairs(
+                new java.util.HashMap<>(
+                    Map.of(
+                        "CITELINES_comments", "Published text",
+                        "CITELINES_comments_draft", "Old draft")))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+    when(bibTexEntryRepository.save(any(BibTexEntry.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                put("/api/bibtexentries/comments/draft?id=abc123&projectId=1")
+                    .content("New draft text")
+                    .with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    org.mockito.ArgumentCaptor<BibTexEntry> captor =
+        org.mockito.ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository, times(1)).save(captor.capture());
+    assertEquals(
+        "New draft text", captor.getValue().getKeyValuePairs().get("CITELINES_comments_draft"));
+    assertEquals("Published text", captor.getValue().getKeyValuePairs().get("CITELINES_comments"));
+
+    Map<String, Object> json = responseToJson(response);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> keyValuePairs = (Map<String, Object>) json.get("keyValuePairs");
+    assertEquals("New draft text", keyValuePairs.get("CITELINES_comments_draft"));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void upsert_comments_draft_throws_not_found_for_nonexistent_entry() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("missing")).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(
+            put("/api/bibtexentries/comments/draft?id=missing&projectId=1")
+                .content("text")
+                .with(csrf()))
+        .andExpect(status().isNotFound());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_save_a_comments_draft_promoting_it_to_comments() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existing =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .citeKey("k")
+            .keyValuePairs(
+                new java.util.HashMap<>(
+                    Map.of(
+                        "CITELINES_comments", "Old published text",
+                        "CITELINES_comments_draft", "Ready to publish")))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+    when(bibTexEntryRepository.save(any(BibTexEntry.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    MvcResult response =
+        mockMvc
+            .perform(post("/api/bibtexentries/comments/save?id=abc123&projectId=1").with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    org.mockito.ArgumentCaptor<BibTexEntry> captor =
+        org.mockito.ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository, times(1)).save(captor.capture());
+    assertEquals(
+        "Ready to publish", captor.getValue().getKeyValuePairs().get("CITELINES_comments"));
+    assertTrue(!captor.getValue().getKeyValuePairs().containsKey("CITELINES_comments_draft"));
+
+    Map<String, Object> json = responseToJson(response);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> keyValuePairs = (Map<String, Object>) json.get("keyValuePairs");
+    assertEquals("Ready to publish", keyValuePairs.get("CITELINES_comments"));
+    assertTrue(!keyValuePairs.containsKey("CITELINES_comments_draft"));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void saving_a_comments_draft_that_does_not_exist_returns_a_bad_request() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existing =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .citeKey("k")
+            .keyValuePairs(Map.of("CITELINES_comments", "Already published"))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+
+    MvcResult response =
+        mockMvc
+            .perform(post("/api/bibtexentries/comments/save?id=abc123&projectId=1").with(csrf()))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    Map<String, Object> json = responseToJson(response);
+    assertEquals("Entry abc123 has no draft comments to save.", json.get("message"));
+    verify(bibTexEntryRepository, times(0)).save(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void save_comments_draft_throws_not_found_for_nonexistent_entry() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("missing")).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(post("/api/bibtexentries/comments/save?id=missing&projectId=1").with(csrf()))
+        .andExpect(status().isNotFound());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_discard_a_comments_draft_leaving_comments_in_place() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existing =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .citeKey("k")
+            .keyValuePairs(
+                new java.util.HashMap<>(
+                    Map.of(
+                        "CITELINES_comments", "Published text",
+                        "CITELINES_comments_draft", "Abandoned draft")))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+    when(bibTexEntryRepository.save(any(BibTexEntry.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    MvcResult response =
+        mockMvc
+            .perform(delete("/api/bibtexentries/comments/draft?id=abc123&projectId=1").with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    org.mockito.ArgumentCaptor<BibTexEntry> captor =
+        org.mockito.ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository, times(1)).save(captor.capture());
+    assertEquals("Published text", captor.getValue().getKeyValuePairs().get("CITELINES_comments"));
+    assertTrue(!captor.getValue().getKeyValuePairs().containsKey("CITELINES_comments_draft"));
+
+    Map<String, Object> json = responseToJson(response);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> keyValuePairs = (Map<String, Object>) json.get("keyValuePairs");
+    assertEquals("Published text", keyValuePairs.get("CITELINES_comments"));
+    assertTrue(!keyValuePairs.containsKey("CITELINES_comments_draft"));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void discarding_a_comments_draft_that_does_not_exist_returns_a_bad_request()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existing =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .citeKey("k")
+            .keyValuePairs(Map.of("CITELINES_comments", "Published text"))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+
+    MvcResult response =
+        mockMvc
+            .perform(delete("/api/bibtexentries/comments/draft?id=abc123&projectId=1").with(csrf()))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+    Map<String, Object> json = responseToJson(response);
+    assertEquals("Entry abc123 has no draft comments to discard.", json.get("message"));
+    verify(bibTexEntryRepository, times(0)).save(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void discard_comments_draft_throws_not_found_for_nonexistent_entry() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("missing")).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(delete("/api/bibtexentries/comments/draft?id=missing&projectId=1").with(csrf()))
         .andExpect(status().isNotFound());
   }
 }

@@ -11,7 +11,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -224,6 +226,95 @@ public class BibTexEntriesController extends ApiController {
     existing.setKeyValuePairs(updated.getKeyValuePairs());
 
     return bibTexEntryRepository.save(existing);
+  }
+
+  /**
+   * Upserts the draft comments (CITELINES_comments_draft) for a BibTeX entry, leaving the published
+   * comments (CITELINES_comments) untouched. Used by the BibTexEntryComments component's autosave
+   * heartbeat and by the initial transition into edit mode (which seeds the draft from the current
+   * published comments, if any).
+   *
+   * @param id the id of the entry to update
+   * @param projectId the project the entry belongs to
+   * @param draft the new draft comments text, as Markdown
+   * @return the updated entry
+   */
+  @Operation(summary = "Upsert an entry's draft comments")
+  @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
+  @PutMapping("/comments/draft")
+  public BibTexEntry upsertCommentsDraft(
+      @Parameter(name = "id") @RequestParam String id,
+      @Parameter(name = "projectId") @RequestParam Long projectId,
+      @RequestBody String draft) {
+    BibTexEntry entry = findEntryOrThrow(id);
+    Map<String, String> keyValuePairs = mutableKeyValuePairs(entry);
+    keyValuePairs.put("CITELINES_comments_draft", draft);
+    entry.setKeyValuePairs(keyValuePairs);
+    return bibTexEntryRepository.save(entry);
+  }
+
+  /**
+   * Promotes an entry's draft comments to be its published comments: copies
+   * CITELINES_comments_draft into CITELINES_comments, then removes the draft field.
+   *
+   * @param id the id of the entry to update
+   * @param projectId the project the entry belongs to
+   * @return the updated entry
+   */
+  @Operation(summary = "Save an entry's draft comments as its published comments")
+  @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
+  @PostMapping("/comments/save")
+  public BibTexEntry saveCommentsDraft(
+      @Parameter(name = "id") @RequestParam String id,
+      @Parameter(name = "projectId") @RequestParam Long projectId) {
+    BibTexEntry entry = findEntryOrThrow(id);
+    Map<String, String> keyValuePairs = mutableKeyValuePairs(entry);
+    String draft = keyValuePairs.remove("CITELINES_comments_draft");
+    if (draft == null) {
+      throw new IllegalArgumentException("Entry %s has no draft comments to save.".formatted(id));
+    }
+    keyValuePairs.put("CITELINES_comments", draft);
+    entry.setKeyValuePairs(keyValuePairs);
+    return bibTexEntryRepository.save(entry);
+  }
+
+  /**
+   * Discards an entry's draft comments, so its previously published comments (if any) take
+   * precedence again. Used by the BibTexEntryComments component's "Restore this Version" button.
+   *
+   * @param id the id of the entry to update
+   * @param projectId the project the entry belongs to
+   * @return the updated entry
+   */
+  @Operation(summary = "Discard an entry's draft comments")
+  @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
+  @DeleteMapping("/comments/draft")
+  public BibTexEntry discardCommentsDraft(
+      @Parameter(name = "id") @RequestParam String id,
+      @Parameter(name = "projectId") @RequestParam Long projectId) {
+    BibTexEntry entry = findEntryOrThrow(id);
+    Map<String, String> keyValuePairs = mutableKeyValuePairs(entry);
+    String removed = keyValuePairs.remove("CITELINES_comments_draft");
+    if (removed == null) {
+      throw new IllegalArgumentException(
+          "Entry %s has no draft comments to discard.".formatted(id));
+    }
+    entry.setKeyValuePairs(keyValuePairs);
+    return bibTexEntryRepository.save(entry);
+  }
+
+  private BibTexEntry findEntryOrThrow(String id) {
+    return bibTexEntryRepository
+        .findById(id)
+        .orElseThrow(() -> new EntityNotFoundException(BibTexEntry.class, id));
+  }
+
+  // A mutable copy of the entry's keyValuePairs, so callers can put/remove keys without
+  // depending on whatever Map implementation MongoDB's deserializer happened to produce.
+  private static Map<String, String> mutableKeyValuePairs(BibTexEntry entry) {
+    return entry.getKeyValuePairs() == null
+        ? new HashMap<>()
+        : new HashMap<>(entry.getKeyValuePairs());
   }
 
   /**
