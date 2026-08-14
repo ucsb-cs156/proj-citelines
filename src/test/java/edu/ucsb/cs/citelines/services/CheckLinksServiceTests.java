@@ -3,6 +3,7 @@ package edu.ucsb.cs.citelines.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -30,6 +31,7 @@ public class CheckLinksServiceTests {
   private CheckLinksService checkLinksService;
   private BibTexEntryRepository bibTexEntryRepository;
   private RestTemplate restTemplate;
+  private Job job;
   private JobContext ctx;
 
   @BeforeEach
@@ -37,7 +39,8 @@ public class CheckLinksServiceTests {
     bibTexEntryRepository = mock(BibTexEntryRepository.class);
     restTemplate = mock(RestTemplate.class);
     checkLinksService = new CheckLinksService(bibTexEntryRepository, restTemplate);
-    ctx = new JobContext(null, Job.builder().build());
+    job = Job.builder().build();
+    ctx = new JobContext(null, job);
   }
 
   private static BibTexEntry entry(String citeKey, Map<String, String> keyValuePairs) {
@@ -62,6 +65,8 @@ public class CheckLinksServiceTests {
 
     assertEquals("True", kvp.get("CITELINES_invalid_doi"));
     verify(bibTexEntryRepository, times(1)).save(entry);
+    assertTrue(job.getLog().contains("Invalid DOI for bad2020: 10.1234/bad"));
+    assertTrue(job.getLog().contains("Done: checked 1 link, 1 flagged as suspicious."));
   }
 
   @Test
@@ -106,6 +111,8 @@ public class CheckLinksServiceTests {
 
     assertEquals("True", kvp.get("CITELINES_invalid_url"));
     verify(bibTexEntryRepository, times(1)).save(entry);
+    assertTrue(
+        job.getLog().contains("Invalid URL (404) for missing2020: https://example.org/missing"));
   }
 
   @Test
@@ -146,6 +153,7 @@ public class CheckLinksServiceTests {
 
     verify(restTemplate, never()).getForObject(any(String.class), eq(String.class));
     verify(bibTexEntryRepository, never()).save(any());
+    assertTrue(job.getLog().contains("Checking links for 1 entries in project 1."));
   }
 
   @Test
@@ -172,6 +180,7 @@ public class CheckLinksServiceTests {
 
     assertNull(kvp.get("CITELINES_invalid_doi"));
     verify(bibTexEntryRepository, never()).save(any());
+    assertTrue(job.getLog().contains("Could not check DOI for error2020 (10.1234/error):"));
   }
 
   @Test
@@ -188,6 +197,8 @@ public class CheckLinksServiceTests {
 
     assertNull(kvp.get("CITELINES_invalid_url"));
     verify(bibTexEntryRepository, never()).save(any());
+    assertTrue(
+        job.getLog().contains("Could not check URL for error2020 (https://example.org/error):"));
   }
 
   @Test
@@ -276,5 +287,6 @@ public class CheckLinksServiceTests {
 
     assertNull(kvp1.get("CITELINES_invalid_doi"));
     assertNull(kvp2.get("CITELINES_invalid_doi"));
+    assertTrue(job.getLog().contains("Done: checked 2 links, 0 flagged as suspicious."));
   }
 }
