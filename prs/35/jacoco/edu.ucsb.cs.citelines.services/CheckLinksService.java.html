@@ -111,7 +111,7 @@ public class CheckLinksService {
 <span class="fc" id="L111">        userAgent.append(&quot;+&quot;).append(sourceRepo);</span>
       }
 <span class="fc bfc" id="L113" title="All 2 branches covered.">      if (hasMailto) {</span>
-<span class="pc bpc" id="L114" title="1 of 2 branches missed.">        userAgent.append(hasSourceRepo ? &quot;; &quot; : &quot;&quot;).append(&quot;mailto:&quot;).append(mailto);</span>
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        userAgent.append(hasSourceRepo ? &quot;; &quot; : &quot;&quot;).append(&quot;mailto:&quot;).append(mailto);</span>
       }
 <span class="fc" id="L116">      userAgent.append(&quot;)&quot;);</span>
     }
@@ -218,9 +218,9 @@ public class CheckLinksService {
 <span class="fc" id="L218">    } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {</span>
 <span class="fc" id="L219">      ctx.log(&quot;Invalid URL (%d) for %s: %s&quot;.formatted(e.getStatusCode().value(), citeKey, url));</span>
 <span class="fc" id="L220">      return true;</span>
-<span class="nc" id="L221">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
-<span class="nc" id="L222">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
-<span class="nc" id="L223">      return false;</span>
+<span class="fc" id="L221">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L222">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
+<span class="fc" id="L223">      return false;</span>
     }
   }
 }
