@@ -11,6 +11,7 @@ import projectsFixtures from "fixtures/projectsFixtures";
 import { projectCollaboratorsFixtures } from "fixtures/projectCollaboratorsFixtures";
 import bibTexEntriesFixtures from "fixtures/bibTexEntriesFixtures";
 import { jobsFixtures } from "fixtures/jobsFixtures";
+import { tagsFixtures } from "fixtures/tagsFixtures";
 
 function renderAtProject1(queryClient = new QueryClient()) {
   return render(
@@ -52,6 +53,9 @@ describe("ResearcherProjectShowPage tests", () => {
     axiosMock
       .onGet("/api/jobs/project?projectId=1")
       .reply(200, jobsFixtures.threeJobs);
+    axiosMock
+      .onGet("/api/tags/project?projectId=1")
+      .reply(200, tagsFixtures.threeTags);
 
     renderAtProject1();
 
@@ -97,6 +101,18 @@ describe("ResearcherProjectShowPage tests", () => {
         screen.getByTestId("JobsTable-cell-row-0-col-jobName"),
       ).toHaveTextContent("MembershipAuditJob");
     });
+
+    expect(screen.getByText("Tags")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          "ResearcherProjectShowPage-Tags-TagTable-cell-row-0-col-tag",
+        ),
+      ).toHaveTextContent("methodology");
+    });
+    expect(
+      screen.getByTestId("ResearcherProjectShowPage-Tags-post-button"),
+    ).toBeInTheDocument();
   });
 
   test("a collaborator (non-owner) does not see the Add Collaborator button", async () => {
@@ -113,6 +129,9 @@ describe("ResearcherProjectShowPage tests", () => {
     axiosMock
       .onGet("/api/jobs/project?projectId=1")
       .reply(200, jobsFixtures.threeJobs);
+    axiosMock
+      .onGet("/api/tags/project?projectId=1")
+      .reply(200, tagsFixtures.threeTags);
 
     renderAtProject1();
 

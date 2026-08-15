@@ -10,6 +10,7 @@ import { Button, Tab, Tabs } from "react-bootstrap";
 import CollaboratorsTabComponent from "main/components/Projects/TabComponent/CollaboratorsTabComponent";
 import CitationsTabComponent from "main/components/Citations/TabComponent/CitationsTabComponent";
 import JobsTabComponent from "main/components/Projects/TabComponent/JobsTabComponent";
+import TagsTabComponent from "main/components/Tags/TabComponent/TagsTabComponent";
 import { GraphIcon } from "main/components/Common/Icons";
 
 export default function ResearcherProjectShowPage({
@@ -110,6 +111,12 @@ export default function ResearcherProjectShowPage({
                 projectId={projectId}
                 testIdPrefix={testId}
                 isOwner={isOwner}
+              />
+            </Tab>
+            <Tab eventKey={"tags"} title={"Tags"} className="pt-2">
+              <TagsTabComponent
+                projectId={projectId}
+                testIdPrefix={`${testId}-Tags`}
               />
             </Tab>
           </Tabs>
