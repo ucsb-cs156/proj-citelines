@@ -74,8 +74,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
   public void logged_out_users_cannot_post_by_doi() throws Exception {
     mockMvc
         .perform(
-            post("/api/bibtexentries/postByDoi?projectId=1")
-                .content("10.1038/s41586-020-2649-2"))
+            post("/api/bibtexentries/postByDoi?projectId=1").content("10.1038/s41586-020-2649-2"))
         .andExpect(status().is(403));
   }
 

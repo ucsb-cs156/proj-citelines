@@ -40,8 +40,8 @@ public class DoiToBibTexService {
 
   /**
    * Resolves {@code rawDoi} to a raw BibTeX string, optionally carrying a {@code
-   * CITELINES_relevance} field (mirroring what the frontend injects for a pasted-BibTeX entry —
-   * see {@code citelinesFields.js} — since a synthesized entry has no such field of its own).
+   * CITELINES_relevance} field (mirroring what the frontend injects for a pasted-BibTeX entry — see
+   * {@code citelinesFields.js} — since a synthesized entry has no such field of its own).
    *
    * @param rawDoi the DOI, in any format recognized by {@link DOIService#normalizeRawDOI}
    * @param projectId the project the resulting entry will be saved to, used only to generate a
@@ -63,8 +63,7 @@ public class DoiToBibTexService {
       Optional<ResolvedWork> found = resolver.resolveByDoi(doi);
       if (found.isPresent() && !isBlank(found.get().title())) {
         String citeKey =
-            bibTexSynthesisService.generateUniqueCiteKey(
-                found.get(), existingCiteKeys(projectId));
+            bibTexSynthesisService.generateUniqueCiteKey(found.get(), existingCiteKeys(projectId));
         String rawBibtex = bibTexSynthesisService.synthesizeRawBibTex(found.get(), citeKey);
         return injectRelevance(rawBibtex, relevance);
       }

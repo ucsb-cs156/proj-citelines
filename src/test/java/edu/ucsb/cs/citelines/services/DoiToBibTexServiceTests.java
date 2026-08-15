@@ -60,8 +60,7 @@ public class DoiToBibTexServiceTests {
         .thenReturn(Optional.of(resolvedWork()));
 
     String bibtex =
-        doiToBibTexService.resolveToBibTex(
-            "https://doi.org/10.1038/s41586-020-2649-2", 1, null);
+        doiToBibTexService.resolveToBibTex("https://doi.org/10.1038/s41586-020-2649-2", 1, null);
 
     assertTrue(bibtex.contains("harris2020"));
     assertTrue(bibtex.contains("Array programming with NumPy"));
@@ -75,8 +74,7 @@ public class DoiToBibTexServiceTests {
     when(crossrefResolver.resolveByDoi("10.1038/s41586-020-2649-2"))
         .thenReturn(Optional.of(resolvedWork()));
 
-    String bibtex =
-        doiToBibTexService.resolveToBibTex("10.1038/s41586-020-2649-2", 1, null);
+    String bibtex = doiToBibTexService.resolveToBibTex("10.1038/s41586-020-2649-2", 1, null);
 
     assertTrue(bibtex.contains("harris2020"));
   }
@@ -86,8 +84,7 @@ public class DoiToBibTexServiceTests {
     when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2"))
         .thenReturn(Optional.of(resolvedWork()));
 
-    String bibtex =
-        doiToBibTexService.resolveToBibTex("10.1038/s41586-020-2649-2", 1, "High");
+    String bibtex = doiToBibTexService.resolveToBibTex("10.1038/s41586-020-2649-2", 1, "High");
 
     assertTrue(bibtex.contains("CITELINES_relevance = {High}"));
   }
@@ -95,9 +92,7 @@ public class DoiToBibTexServiceTests {
   @Test
   void generates_a_citeKey_that_does_not_collide_with_an_existing_one() {
     when(bibTexEntryRepository.findByProjectId(1))
-        .thenReturn(
-            List.of(
-                BibTexEntry.builder().projectId(1).citeKey("harris2020").build()));
+        .thenReturn(List.of(BibTexEntry.builder().projectId(1).citeKey("harris2020").build()));
     when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2"))
         .thenReturn(Optional.of(resolvedWork()));
 
@@ -109,8 +104,7 @@ public class DoiToBibTexServiceTests {
   @Test
   void throws_DoiNotFoundException_when_the_string_is_not_a_recognizable_doi() {
     assertThrows(
-        DoiNotFoundException.class,
-        () -> doiToBibTexService.resolveToBibTex("not a doi", 1, null));
+        DoiNotFoundException.class, () -> doiToBibTexService.resolveToBibTex("not a doi", 1, null));
   }
 
   @Test
@@ -123,9 +117,7 @@ public class DoiToBibTexServiceTests {
     DoiNotFoundException exception =
         assertThrows(
             DoiNotFoundException.class,
-            () ->
-                doiToBibTexService.resolveToBibTex(
-                    "10.1038/s41586-020-2649-2", 1, null));
+            () -> doiToBibTexService.resolveToBibTex("10.1038/s41586-020-2649-2", 1, null));
     assertEquals(
         "Could not find a citation for DOI: 10.1038/s41586-020-2649-2", exception.getMessage());
   }
@@ -152,7 +144,6 @@ public class DoiToBibTexServiceTests {
 
     assertThrows(
         DoiNotFoundException.class,
-        () ->
-            doiToBibTexService.resolveToBibTex("10.1038/s41586-020-2649-2", 1, null));
+        () -> doiToBibTexService.resolveToBibTex("10.1038/s41586-020-2649-2", 1, null));
   }
 }

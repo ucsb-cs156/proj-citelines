@@ -109,8 +109,7 @@ public class BibTexEntriesController extends ApiController {
    * @param relationship {@code "reference"} or {@code "citation"}, if linking to a related entry
    * @param relevance the CITELINES_relevance value to attach to the new entry, if any
    * @param rawDoi the DOI to resolve
-   * @return the saved entry, as a single-element list (matching {@link #postBibTexEntries}'s
-   *     shape)
+   * @return the saved entry, as a single-element list (matching {@link #postBibTexEntries}'s shape)
    */
   @Operation(summary = "Resolve a DOI to a BibTeX entry and save it")
   @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
