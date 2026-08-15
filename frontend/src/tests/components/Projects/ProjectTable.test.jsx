@@ -35,6 +35,7 @@ describe("ProjectTable tests", () => {
     axiosMock.reset();
     axiosMock.resetHistory();
     mockToast.mockReset();
+    window.localStorage.clear();
   });
 
   test("renders without crashing for empty table", () => {
@@ -151,6 +152,7 @@ describe("ProjectTable tests", () => {
       projectId: 1,
       name: "New Name",
       description: "New Description",
+      citationFormat: "ACM",
     });
     await waitFor(() =>
       expect(mockToast).toHaveBeenCalledWith("Project updated successfully"),

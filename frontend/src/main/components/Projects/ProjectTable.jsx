@@ -41,6 +41,7 @@ export default function ProjectTable({
       projectId: formData.projectId,
       name: formData.name,
       description: formData.description,
+      citationFormat: formData.citationFormat,
     },
   });
 

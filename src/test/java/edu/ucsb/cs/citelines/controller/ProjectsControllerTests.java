@@ -119,6 +119,52 @@ public class ProjectsControllerTests extends ControllerTestCase {
   }
 
   @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void posting_a_project_without_citation_format_defaults_to_acm() throws Exception {
+    when(projectRepository.save(any(Project.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(post("/api/projects/post?name=Foo&description=Bar").with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<Project> captor = org.mockito.ArgumentCaptor.forClass(Project.class);
+    verify(projectRepository, times(1)).save(captor.capture());
+    assertEquals("ACM", captor.getValue().getCitationFormat());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void a_researcher_can_post_a_new_project_with_a_citation_format() throws Exception {
+    when(projectRepository.save(any(Project.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            post("/api/projects/post?name=Foo&description=Bar&citationFormat=IEEE").with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<Project> captor = org.mockito.ArgumentCaptor.forClass(Project.class);
+    verify(projectRepository, times(1)).save(captor.capture());
+    assertEquals("IEEE", captor.getValue().getCitationFormat());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void posting_a_project_with_an_invalid_citation_format_returns_400() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/projects/post?name=Foo&description=Bar&citationFormat=BOGUS").with(csrf()))
+        .andExpect(status().isBadRequest());
+  }
+
+  @WithMockUser(
       username = "admingaucho",
       roles = {"ADMIN"})
   @Test
@@ -270,6 +316,71 @@ public class ProjectsControllerTests extends ControllerTestCase {
     assertEquals("New Desc", existing.getDescription());
     String expectedJson = mapper.writeValueAsString(updated);
     assertEquals(expectedJson, response.getResponse().getContentAsString());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_update_a_project_citation_format() throws Exception {
+    Project existing =
+        Project.builder()
+            .id(1L)
+            .name("Old Name")
+            .description("Old Desc")
+            .owner("phtcon@example.org")
+            .citationFormat("ACM")
+            .build();
+    when(projectRepository.findById(eq(1L))).thenReturn(Optional.of(existing));
+    when(projectRepository.save(any(Project.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            put("/api/projects?projectId=1&name=New Name&description=New Desc&citationFormat=IEEE")
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    assertEquals("IEEE", existing.getCitationFormat());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void updating_a_project_without_citation_format_leaves_it_unchanged() throws Exception {
+    Project existing =
+        Project.builder()
+            .id(1L)
+            .name("Old Name")
+            .description("Old Desc")
+            .owner("phtcon@example.org")
+            .citationFormat("IEEE")
+            .build();
+    when(projectRepository.findById(eq(1L))).thenReturn(Optional.of(existing));
+    when(projectRepository.save(any(Project.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(put("/api/projects?projectId=1&name=New Name&description=New Desc").with(csrf()))
+        .andExpect(status().isOk());
+
+    assertEquals("IEEE", existing.getCitationFormat());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void updating_a_project_with_an_invalid_citation_format_returns_400() throws Exception {
+    Project existing = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(existing));
+
+    mockMvc
+        .perform(
+            put("/api/projects?projectId=1&name=New&description=New&citationFormat=BOGUS")
+                .with(csrf()))
+        .andExpect(status().isBadRequest());
   }
 
   @WithMockUser(

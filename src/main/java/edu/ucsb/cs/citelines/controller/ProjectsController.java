@@ -6,6 +6,7 @@ import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
 import edu.ucsb.cs.citelines.model.CurrentUser;
 import edu.ucsb.cs.citelines.repository.ProjectCollaboratorRepository;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
+import edu.ucsb.cs.citelines.services.CitationFormattingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,10 +36,26 @@ public class ProjectsController extends ApiController {
   @Autowired private ProjectCollaboratorRepository projectCollaboratorRepository;
 
   /**
+   * Validates that {@code citationFormat} is one of the keys of {@link
+   * CitationFormattingService#COMMON_ALIASES}.
+   *
+   * @throws IllegalArgumentException if {@code citationFormat} is not a recognized format
+   */
+  private void validateCitationFormat(String citationFormat) {
+    if (!CitationFormattingService.COMMON_ALIASES.containsKey(citationFormat)) {
+      throw new IllegalArgumentException(
+          "citationFormat must be one of %s"
+              .formatted(CitationFormattingService.COMMON_ALIASES.keySet()));
+    }
+  }
+
+  /**
    * This method creates a new Project, owned by the current user.
    *
    * @param name the name of the project
    * @param description the description of the project
+   * @param citationFormat the citation format for the project's references, one of the keys of
+   *     {@link CitationFormattingService#COMMON_ALIASES} (defaults to {@code "ACM"})
    * @return the created project
    */
   @Operation(summary = "Create a new project")
@@ -46,7 +63,10 @@ public class ProjectsController extends ApiController {
   @PostMapping("/post")
   public Project postProject(
       @Parameter(name = "name") @RequestParam String name,
-      @Parameter(name = "description") @RequestParam String description) {
+      @Parameter(name = "description") @RequestParam String description,
+      @Parameter(name = "citationFormat") @RequestParam(defaultValue = "ACM")
+          String citationFormat) {
+    validateCitationFormat(citationFormat);
     CurrentUser currentUser = getCurrentUser();
     Project project =
         Project.builder()
@@ -54,6 +74,7 @@ public class ProjectsController extends ApiController {
             .description(description)
             .owner(currentUser.getUser().getEmail())
             .dateCreated(LocalDateTime.now())
+            .citationFormat(citationFormat)
             .build();
     return projectRepository.save(project);
   }
@@ -102,11 +123,14 @@ public class ProjectsController extends ApiController {
   }
 
   /**
-   * This method updates the name and description of an existing project.
+   * This method updates the name, description, and citation format of an existing project.
    *
    * @param projectId the id of the project to update
    * @param name the new name of the project
    * @param description the new description of the project
+   * @param citationFormat the new citation format for the project's references, one of the keys of
+   *     {@link CitationFormattingService#COMMON_ALIASES}; if omitted, the project's existing
+   *     citation format is left unchanged
    * @return the updated project
    */
   @Operation(summary = "Update an existing project")
@@ -115,7 +139,8 @@ public class ProjectsController extends ApiController {
   public Project updateProject(
       @Parameter(name = "projectId") @RequestParam Long projectId,
       @Parameter(name = "name") @RequestParam String name,
-      @Parameter(name = "description") @RequestParam String description) {
+      @Parameter(name = "description") @RequestParam String description,
+      @Parameter(name = "citationFormat") @RequestParam(required = false) String citationFormat) {
     Project project =
         projectRepository
             .findById(projectId)
@@ -123,6 +148,10 @@ public class ProjectsController extends ApiController {
 
     project.setName(name);
     project.setDescription(description);
+    if (citationFormat != null) {
+      validateCitationFormat(citationFormat);
+      project.setCitationFormat(citationFormat);
+    }
 
     return projectRepository.save(project);
   }
