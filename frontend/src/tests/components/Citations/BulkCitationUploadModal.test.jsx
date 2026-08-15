@@ -47,10 +47,38 @@ describe("BulkCitationUploadModal tests", () => {
     expect(
       screen.getByText("Bulk Citations from ACM DL View All"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Click the link below to open this paper in a new tab or window\./,
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText("Upload")).toBeInTheDocument();
     expect(screen.getByTestId("BulkCitationUploadModal-rawText")).toHaveValue(
       "",
     );
+  });
+
+  test("shows a link to the paper (opening in a new tab) when keyValuePairs has a doi", () => {
+    renderModal({ keyValuePairs: { doi: "10.1145/3770762.3772609" } });
+
+    const link = screen.getByTestId("BulkCitationUploadModal-doi-link");
+    expect(link).toHaveAttribute(
+      "href",
+      "https://doi.org/10.1145/3770762.3772609",
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  test("shows no paper link when keyValuePairs has neither doi nor url", () => {
+    renderModal({ keyValuePairs: {} });
+
+    expect(
+      screen.queryByTestId("BulkCitationUploadModal-doi-link"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("BulkCitationUploadModal-url-link"),
+    ).not.toBeInTheDocument();
   });
 
   test("validates that pasted text is required", async () => {

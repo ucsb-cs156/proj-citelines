@@ -4,12 +4,14 @@ import { useForm } from "react-hook-form";
 import { useEffect } from "react";
 import { useBackendMutation } from "main/utils/useBackend";
 import { toast } from "react-toastify";
+import BibTexEntryLink from "main/components/Citations/BibTexEntryLink";
 
 export default function BulkCitationUploadModal({
   showModal,
   toggleShowModal,
   projectId,
   citeKey,
+  keyValuePairs,
   mutationQueryKeys = [],
 }) {
   const {
@@ -75,11 +77,16 @@ export default function BulkCitationUploadModal({
       <Form onSubmit={handleSubmit(onSubmit)}>
         <Modal.Body>
           <p>
-            On ACM Digital Library, open &quot;Cited By&quot;, click{" "}
+            Click the link below to open this paper in a new tab or window. On
+            ACM Digital Library, open &quot;Cited By&quot;, click{" "}
             <strong>View All</strong>, and paste the entire contents of that
             page below. Each citing paper will be added as a new citation of
             this entry.
           </p>
+          <BibTexEntryLink
+            keyValuePairs={keyValuePairs}
+            testId="BulkCitationUploadModal"
+          />
           <Form.Group>
             <Form.Label htmlFor="rawText">
               Pasted ACM DL &quot;Cited By&quot; Text

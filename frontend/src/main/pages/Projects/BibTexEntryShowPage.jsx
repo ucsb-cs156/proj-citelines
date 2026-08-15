@@ -316,6 +316,7 @@ export default function BibTexEntryShowPage({
             toggleShowModal={setShowBulkCitationUploadModal}
             projectId={projectId}
             citeKey={entry.citeKey}
+            keyValuePairs={entry.keyValuePairs}
             mutationQueryKeys={[citationsQueryKey]}
           />
           <BibTexEntryModal
