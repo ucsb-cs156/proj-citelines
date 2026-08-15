@@ -91,7 +91,7 @@ export default function ProjectModal({
               {errors.description?.message}
             </Form.Control.Feedback>
           </Form.Group>
-          <Form.Group>
+          <Form.Group className="mb-3">
             <Form.Label htmlFor="citationFormat">Citation Format</Form.Label>
             <Form.Select
               data-testid={"ProjectModal-citationFormat"}

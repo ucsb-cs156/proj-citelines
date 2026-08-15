@@ -129,7 +129,8 @@ public class ProjectsController extends ApiController {
    * @param name the new name of the project
    * @param description the new description of the project
    * @param citationFormat the new citation format for the project's references, one of the keys of
-   *     {@link CitationFormattingService#COMMON_ALIASES} (defaults to {@code "ACM"})
+   *     {@link CitationFormattingService#COMMON_ALIASES}; if omitted, the project's existing
+   *     citation format is left unchanged
    * @return the updated project
    */
   @Operation(summary = "Update an existing project")
@@ -139,9 +140,7 @@ public class ProjectsController extends ApiController {
       @Parameter(name = "projectId") @RequestParam Long projectId,
       @Parameter(name = "name") @RequestParam String name,
       @Parameter(name = "description") @RequestParam String description,
-      @Parameter(name = "citationFormat") @RequestParam(defaultValue = "ACM")
-          String citationFormat) {
-    validateCitationFormat(citationFormat);
+      @Parameter(name = "citationFormat") @RequestParam(required = false) String citationFormat) {
     Project project =
         projectRepository
             .findById(projectId)
@@ -149,7 +148,10 @@ public class ProjectsController extends ApiController {
 
     project.setName(name);
     project.setDescription(description);
-    project.setCitationFormat(citationFormat);
+    if (citationFormat != null) {
+      validateCitationFormat(citationFormat);
+      project.setCitationFormat(citationFormat);
+    }
 
     return projectRepository.save(project);
   }
