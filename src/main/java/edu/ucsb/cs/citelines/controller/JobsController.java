@@ -4,9 +4,11 @@ import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
+import edu.ucsb.cs.citelines.jobs.CheckLinksJob;
 import edu.ucsb.cs.citelines.jobs.GetCitationsJob;
 import edu.ucsb.cs.citelines.jobs.GetReferencesJob;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
+import edu.ucsb.cs.citelines.services.CheckLinksService;
 import edu.ucsb.cs.citelines.services.CitationGraphService;
 import edu.ucsb.cs156.jobs.entities.Job;
 import edu.ucsb.cs156.jobs.repositories.JobsRepository;
@@ -40,6 +42,7 @@ public class JobsController extends ApiController {
   @Autowired private ProjectRepository projectRepository;
   @Autowired private BibTexEntryRepository bibTexEntryRepository;
   @Autowired private CitationGraphService citationGraphService;
+  @Autowired private CheckLinksService checkLinksService;
 
   @Operation(summary = "List jobs scoped to a project")
   @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
@@ -78,6 +81,20 @@ public class JobsController extends ApiController {
             .projectId(projectId.intValue())
             .citeKey(citeKey)
             .citationGraphService(citationGraphService)
+            .build());
+  }
+
+  @Operation(summary = "Launch a job to check DOI/URL links for a project's BibTeX entries")
+  @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
+  @PostMapping("/launch/checkLinks")
+  public Job launchCheckLinks(@Parameter(name = "projectId") @RequestParam Long projectId) {
+    projectRepository
+        .findById(projectId)
+        .orElseThrow(() -> new EntityNotFoundException(Project.class, projectId));
+    return jobService.runAsJob(
+        CheckLinksJob.builder()
+            .projectId(projectId.intValue())
+            .checkLinksService(checkLinksService)
             .build());
   }
 

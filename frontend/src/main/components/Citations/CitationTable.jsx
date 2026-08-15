@@ -11,6 +11,7 @@ import { truncate } from "main/utils/truncate";
 const CITEKEY_MAX_LENGTH = 8;
 const AUTHOR_MAX_LENGTH = 15;
 const TITLE_MAX_LENGTH = 20;
+const WARNING_EMOJI = "\u26A0\uFE0F";
 
 export default function CitationTable({
   citations,
@@ -76,6 +77,8 @@ export default function CitationTable({
       cell: ({ cell }) => {
         const doi = cell.row.original.keyValuePairs?.doi;
         if (doi) {
+          const invalidDoi =
+            cell.row.original.keyValuePairs?.CITELINES_invalid_doi === "True";
           return (
             <a
               href={`https://doi.org/${doi}`}
@@ -83,12 +86,14 @@ export default function CitationTable({
               rel="noopener noreferrer"
               data-testid={`${testId}-cell-row-${cell.row.index}-col-doi-link`}
             >
-              doi
+              doi{invalidDoi ? ` ${WARNING_EMOJI}` : ""}
             </a>
           );
         }
         const url = cell.row.original.keyValuePairs?.url;
         if (url) {
+          const invalidUrl =
+            cell.row.original.keyValuePairs?.CITELINES_invalid_url === "True";
           return (
             <a
               href={url}
@@ -96,7 +101,7 @@ export default function CitationTable({
               rel="noopener noreferrer"
               data-testid={`${testId}-cell-row-${cell.row.index}-col-url-link`}
             >
-              url
+              url{invalidUrl ? ` ${WARNING_EMOJI}` : ""}
             </a>
           );
         }
