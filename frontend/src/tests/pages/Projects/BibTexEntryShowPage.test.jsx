@@ -62,6 +62,12 @@ describe("BibTexEntryShowPage tests", () => {
     axiosMock
       .onGet("/api/bibtexentries/export")
       .reply(200, "@article{smith2020,\n  title = {A Very Long Title}\n}\n");
+    axiosMock
+      .onGet("/api/bibtexentries/formatted")
+      .reply(200, "Smith, J. A Very Long Title.");
+    axiosMock
+      .onGet("/api/projects/1")
+      .reply(200, { id: 1, citationFormat: "ACM" });
     axiosMock.onGet("/api/citationedges/references").reply(200, []);
     axiosMock.onGet("/api/citationedges/citations").reply(200, []);
     axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
@@ -102,6 +108,30 @@ describe("BibTexEntryShowPage tests", () => {
     expect(
       axiosMock.history.get.find((r) => r.url === "/api/bibtexentries/entry")
         .params,
+    ).toEqual({ projectId: "1", id: ENTRY_ID });
+  });
+
+  test("shows a Formatted Reference card with the project's citation format and the formatted citation", async () => {
+    renderAtSmith2020();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("BibTexEntryShowPage-FormattedReferenceCard"),
+      ).toHaveTextContent("Formatted Reference");
+    });
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-formatted-citation-label"),
+    ).toHaveTextContent("Formatted Citation (ACM)");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("BibTexEntryShowPage-formatted-citation"),
+      ).toHaveTextContent("Smith, J. A Very Long Title.");
+    });
+
+    expect(
+      axiosMock.history.get.find(
+        (r) => r.url === "/api/bibtexentries/formatted",
+      ).params,
     ).toEqual({ projectId: "1", id: ENTRY_ID });
   });
 

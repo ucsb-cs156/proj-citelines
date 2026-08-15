@@ -4,9 +4,12 @@ import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs.citelines.collections.CitationEdge;
 import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
+import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
+import edu.ucsb.cs.citelines.repository.ProjectRepository;
 import edu.ucsb.cs.citelines.services.BibTexConverterService;
 import edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService;
+import edu.ucsb.cs.citelines.services.CitationFormattingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -47,6 +50,10 @@ public class BibTexEntriesController extends ApiController {
   @Autowired private CitationEdgeRepository citationEdgeRepository;
 
   @Autowired private BibTexEntryCoalescingService bibTexEntryCoalescingService;
+
+  @Autowired private ProjectRepository projectRepository;
+
+  @Autowired private CitationFormattingService citationFormattingService;
 
   /**
    * Parses pasted BibTeX text (which may contain more than one entry) and saves the resulting
@@ -189,6 +196,32 @@ public class BibTexEntriesController extends ApiController {
             .orElseThrow(() -> new EntityNotFoundException(BibTexEntry.class, id));
     String bibtex = bibTexConverterService.convertEntryToBibTexString(entry);
     return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(bibtex);
+  }
+
+  /**
+   * Renders a stored BibTeX entry as a formatted citation, using the citation format/style chosen
+   * for its project (see {@code Project#citationFormat}), e.g. for the "Formatted Reference" card
+   * on the BibTexEntryShowPage.
+   *
+   * @param id the id of the entry to format
+   * @param projectId the project the entry belongs to
+   * @return the entry, formatted as a citation in the project's chosen citation format/style
+   */
+  @Operation(summary = "Get a formatted citation for a BibTeX entry")
+  @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
+  @GetMapping("/formatted")
+  public ResponseEntity<String> formattedCitation(
+      @Parameter(name = "id") @RequestParam String id,
+      @Parameter(name = "projectId") @RequestParam Long projectId)
+      throws IOException {
+    BibTexEntry entry = findEntryOrThrow(id);
+    Project project =
+        projectRepository
+            .findById(projectId)
+            .orElseThrow(() -> new EntityNotFoundException(Project.class, projectId));
+    String formatted =
+        citationFormattingService.formatEntry(entry, project.getCitationFormat(), null);
+    return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(formatted);
   }
 
   /**
