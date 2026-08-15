@@ -18,6 +18,7 @@ import { toast } from "react-toastify";
 import CitationTable from "main/components/Citations/CitationTable";
 import BibTexEntryModal from "main/components/Citations/BibTexEntryModal";
 import BibTexEntryComments from "main/components/Citations/BibTexEntryComments";
+import BibTexEntryLink from "main/components/Citations/BibTexEntryLink";
 import {
   RELEVANCE_OPTIONS,
   extractCitelinesFields,
@@ -296,6 +297,11 @@ export default function BibTexEntryShowPage({
           <h1 data-testid={`${testId}-title`} className="h3 mb-3 fw-semibold">
             {entry.citeKey}
           </h1>
+
+          <BibTexEntryLink
+            keyValuePairs={entry.keyValuePairs}
+            testId={testId}
+          />
 
           <Form.Group className="mb-3" style={{ maxWidth: "200px" }}>
             <Form.Label htmlFor={`${testId}-relevance-select`}>

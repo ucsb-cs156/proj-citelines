@@ -114,6 +114,16 @@ describe("BibTexEntryShowPage tests", () => {
     expect(goToProjectButton).toHaveAttribute("href", "/project/1");
   });
 
+  test("shows a BibTexEntryLink with the entry's keyValuePairs right below the header", async () => {
+    renderAtSmith2020();
+
+    const doiLink = await screen.findByTestId("BibTexEntryShowPage-doi-link");
+    expect(doiLink).toHaveAttribute(
+      "href",
+      "https://doi.org/10.1038/s41586-020-2649-2",
+    );
+  });
+
   test("strips CITELINES_ fields out of the displayed bibtex text", async () => {
     axiosMock.reset();
     axiosMock
