@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ResolvedWork.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">ResolvedWork.java</span></div><h1>ResolvedWork.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import java.util.List;
+
+/**
+ * A minimal, resolver-agnostic projection of a scholarly work, carrying only the fields {@link
+ * BibTexSynthesisService} needs to synthesize a BibTeX entry, plus enough of its reference/citation
+ * graph for {@link CitationGraphService} to discover related works without a second round-trip
+ * where a resolver's API already hands them over in the same response.
+ *
+ * &lt;p&gt;{@code id} is the resolving {@link CitationMetadataResolver}'s own native id for this work
+ * (e.g. an OpenAlex id like {@code &quot;W3035965352&quot;}, with any URL prefix already stripped) — ids are
+ * only meaningful within the resolver that produced them, never compared across resolvers. {@code
+ * doi}, by contrast, is always normalized (via {@link DOIService#normalizeRawDOI}) so it can be
+ * compared across resolvers for deduplication.
+ *
+ * &lt;p&gt;{@code referencedWorkIds} holds native ids that still need a same-resolver follow-up fetch to
+ * hydrate (OpenAlex's two-step id-list-then-batch-fetch shape). {@code embeddedReferences}/{@code
+ * embeddedCitations} hold related works that arrived already fully hydrated in the same response
+ * that resolved this work (Crossref's inline {@code reference} array, Semantic Scholar's inline
+ * {@code references}/{@code citations} fields) — a resolver populates at most one of {@code
+ * referencedWorkIds} or {@code embeddedReferences}, never both. All three list fields are always
+ * non-null (an empty {@link java.util.List#of()} when not applicable) — every {@link
+ * CitationMetadataResolver} implementation is expected to uphold this, since callers rely on it.
+ */
+<span class="fc" id="L26">public record ResolvedWork(</span>
+    String id,
+    String doi,
+    String title,
+    Integer year,
+    String type,
+    List&lt;String&gt; authorNames,
+    String venue,
+    List&lt;String&gt; referencedWorkIds,
+    List&lt;ResolvedWork&gt; embeddedReferences,
+    List&lt;ResolvedWork&gt; embeddedCitations) {}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
