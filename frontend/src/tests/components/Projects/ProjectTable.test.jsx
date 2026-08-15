@@ -51,10 +51,11 @@ describe("ProjectTable tests", () => {
     const headers = [
       "id",
       "Project Name",
+      "Settings",
       "Description",
       "Date Created",
       "Owner",
-      "Settings",
+      "Citation Format",
       "Edit",
       "Delete",
     ];
