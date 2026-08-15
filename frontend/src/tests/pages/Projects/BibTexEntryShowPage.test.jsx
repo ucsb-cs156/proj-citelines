@@ -439,11 +439,18 @@ describe("BibTexEntryShowPage tests", () => {
     );
   });
 
-  test("shows a Delete Entry button that opens a confirmation modal", async () => {
+  test("shows a Delete button flush right at the top that opens a confirmation modal", async () => {
     renderAtSmith2020();
     await screen.findByTestId("BibTexEntryShowPage-delete-button");
 
-    fireEvent.click(screen.getByTestId("BibTexEntryShowPage-delete-button"));
+    const deleteButton = screen.getByTestId(
+      "BibTexEntryShowPage-delete-button",
+    );
+    expect(deleteButton).toHaveTextContent("Delete");
+    expect(deleteButton).toHaveClass("btn-danger");
+    expect(deleteButton).toHaveClass("btn-sm");
+
+    fireEvent.click(deleteButton);
 
     expect(
       screen.getByText("Permanently delete this entry?"),
@@ -496,7 +503,7 @@ describe("BibTexEntryShowPage tests", () => {
     );
   });
 
-  test("shows a second row with Edit and Delete buttons formatted like the CitationTable's buttons", async () => {
+  test("shows an Edit button in the BibTex Entry card header formatted like the CitationTable's Edit button", async () => {
     renderAtSmith2020();
     await screen.findByTestId("BibTexEntryShowPage-title");
 
@@ -504,16 +511,12 @@ describe("BibTexEntryShowPage tests", () => {
     expect(editButton).toHaveTextContent("Edit");
     expect(editButton).toHaveClass("btn-outline-primary");
     expect(editButton).toHaveClass("btn-sm");
-
-    const deleteButton = screen.getByTestId(
-      "BibTexEntryShowPage-delete-button-sm",
-    );
-    expect(deleteButton).toHaveTextContent("Delete");
-    expect(deleteButton).toHaveClass("btn-danger");
-    expect(deleteButton).toHaveClass("btn-sm");
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-BibtexCard-header"),
+    ).toContainElement(editButton);
   });
 
-  test("clicking the second-row Edit button opens the edit modal, and submitting PUTs the updated bibtex", async () => {
+  test("clicking the Edit button opens the edit modal, and submitting PUTs the updated bibtex", async () => {
     axiosMock
       .onPut("/api/bibtexentries")
       .reply(200, bibTexEntriesFixtures.oneEntry);
@@ -547,15 +550,19 @@ describe("BibTexEntryShowPage tests", () => {
     );
   });
 
-  test("clicking the second-row Delete button opens the same confirmation modal as Delete Entry", async () => {
+  test("clicking the Edit button in the card header does not toggle the card open/closed", async () => {
     renderAtSmith2020();
-    await screen.findByTestId("BibTexEntryShowPage-delete-button-sm");
-
-    fireEvent.click(screen.getByTestId("BibTexEntryShowPage-delete-button-sm"));
+    await screen.findByTestId("BibTexEntryShowPage-edit-button");
 
     expect(
-      screen.getByText("Permanently delete this entry?"),
-    ).toBeInTheDocument();
+      screen.getByTestId("BibTexEntryShowPage-BibtexCard-header"),
+    ).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(screen.getByTestId("BibTexEntryShowPage-edit-button"));
+
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-BibtexCard-header"),
+    ).toHaveAttribute("aria-expanded", "true");
   });
 
   test("the BibTex Entry card is open by default, and the other three cards are closed by default", async () => {
