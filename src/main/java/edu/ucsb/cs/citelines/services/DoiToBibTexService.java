@@ -22,20 +22,48 @@ public class DoiToBibTexService {
   private final DOIService doiService;
   private final BibTexSynthesisService bibTexSynthesisService;
   private final BibTexEntryRepository bibTexEntryRepository;
+  private final CitationGraphService citationGraphService;
   private final List<CitationMetadataResolver> resolversInPriorityOrder;
 
   public DoiToBibTexService(
       DOIService doiService,
       BibTexSynthesisService bibTexSynthesisService,
       BibTexEntryRepository bibTexEntryRepository,
+      CitationGraphService citationGraphService,
       OpenAlexService openAlexService,
       SemanticScholarResolver semanticScholarResolver,
       CrossrefResolver crossrefResolver) {
     this.doiService = doiService;
     this.bibTexSynthesisService = bibTexSynthesisService;
     this.bibTexEntryRepository = bibTexEntryRepository;
+    this.citationGraphService = citationGraphService;
     this.resolversInPriorityOrder =
         List.of(openAlexService, semanticScholarResolver, crossrefResolver);
+  }
+
+  /**
+   * Looks up whether {@code projectId} already has an entry for {@code rawDoi}, so a caller can
+   * link to that entry instead of creating a duplicate for the same paper (see issue #67; reuses
+   * {@link CitationGraphService}'s existing DOI-dedup index rather than a second copy of it, the
+   * same way {@link BulkCitationUploadFromACMDLViewAllService} does).
+   *
+   * <p>Returns empty both when the project has no matching entry and when {@code rawDoi} isn't a
+   * recognizable DOI at all — the latter is left for {@link #resolveToBibTex} to report as a {@link
+   * DoiNotFoundException}, so callers only need to branch on "found" vs. "not found."
+   *
+   * @param rawDoi the DOI, in any format recognized by {@link DOIService#normalizeRawDOI}
+   * @param projectId the project to check for an existing entry
+   * @return the existing entry for this DOI, if the project already has one
+   */
+  public Optional<BibTexEntry> findExistingEntryForDoi(String rawDoi, int projectId) {
+    String doi;
+    try {
+      doi = doiService.normalizeRawDOI(rawDoi);
+    } catch (IllegalArgumentException e) {
+      return Optional.empty();
+    }
+    return Optional.ofNullable(
+        citationGraphService.loadExistingEntries(projectId).byDoi().get(doi));
   }
 
   /**
