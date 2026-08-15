@@ -1,7 +1,6 @@
 package edu.ucsb.cs.citelines.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -75,8 +74,7 @@ class CitationFormattingServiceTests {
   void formats_bibtex_in_acm_style_without_a_leading_citation_number_label() {
     String result = citationFormattingService.formatBibTex(SINGLE_ENTRY, "ACM", null);
 
-    assertFalse(result.startsWith("["), "Expected no leading [1] label, got: " + result);
-    assertFalse(result.contains("["), "Expected no citation-number brackets, got: " + result);
+    assertEquals("Jane Smith. 2020. A Great Paper. Journal of Testing (2020).", result);
   }
 
   @Test
