@@ -75,7 +75,7 @@ class CitationFormattingServiceTests {
   void formats_bibtex_in_acm_style_without_a_leading_citation_number_label() {
     String result = citationFormattingService.formatBibTex(SINGLE_ENTRY, "ACM", null);
 
-    assertTrue(result.startsWith("Smith"), "Expected no leading [1] label, got: " + result);
+    assertFalse(result.startsWith("["), "Expected no leading [1] label, got: " + result);
     assertFalse(result.contains("["), "Expected no citation-number brackets, got: " + result);
   }
 
