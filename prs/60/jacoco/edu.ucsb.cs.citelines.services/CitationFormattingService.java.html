@@ -125,9 +125,22 @@ import org.springframework.stereotype.Service;
 <span class="fc" id="L125">    Bibliography bibliography = csl.makeBibliography();</span>
 <span class="fc" id="L126">    StringBuilder result = new StringBuilder();</span>
 <span class="fc bfc" id="L127" title="All 2 branches covered.">    for (String entry : bibliography.getEntries()) {</span>
-<span class="fc" id="L128">      result.append(entry.trim()).append(&quot;\n&quot;);</span>
+<span class="fc" id="L128">      result.append(stripLeadingCitationNumber(entry.trim(), cslStyle)).append(&quot;\n&quot;);</span>
     }
 <span class="fc" id="L130">    return result.toString().trim();</span>
+  }
+
+  /**
+   * The ACM CSL style renders each bibliography entry with a leading {@code [n]} citation-number
+   * label (e.g. {@code &quot;[1]Smith, J. ...&quot;}). That label is meant for print bibliographies with
+   * numbered in-text citations, but is not wanted when displaying a single formatted reference in
+   * this app, so it is stripped here at the source for the ACM style.
+   */
+  private String stripLeadingCitationNumber(String entry, String cslStyle) {
+<span class="fc bfc" id="L140" title="All 2 branches covered.">    if (!&quot;association-for-computing-machinery&quot;.equals(cslStyle)) {</span>
+<span class="fc" id="L141">      return entry;</span>
+    }
+<span class="fc" id="L143">    return entry.replaceFirst(&quot;^\\[\\d+\\]\\s*&quot;, &quot;&quot;);</span>
   }
 
   /**
@@ -139,8 +152,8 @@ import org.springframework.stereotype.Service;
    */
   public String formatEntry(BibTexEntry entry, String styleFormat, String outputFormat)
       throws IOException {
-<span class="fc" id="L142">    String rawBibTex = bibTexConverterService.convertEntryToBibTexString(entry);</span>
-<span class="fc" id="L143">    return formatBibTex(rawBibTex, styleFormat, outputFormat);</span>
+<span class="fc" id="L155">    String rawBibTex = bibTexConverterService.convertEntryToBibTexString(entry);</span>
+<span class="fc" id="L156">    return formatBibTex(rawBibTex, styleFormat, outputFormat);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
