@@ -166,11 +166,9 @@ public class TagsControllerTests extends ControllerTestCase {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     Tag existingTag =
         Tag.builder().id(1L).tag("method").explanation("old").project(project).build();
-    Tag updatedTag =
-        Tag.builder().id(1L).tag("methodology").explanation("new").project(project).build();
     when(tagRepository.findById(1L)).thenReturn(Optional.of(existingTag));
     when(tagRepository.findByProjectIdAndTag(1L, "methodology")).thenReturn(Optional.empty());
-    when(tagRepository.save(any(Tag.class))).thenReturn(updatedTag);
+    when(tagRepository.save(any(Tag.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
     MvcResult response =
         mockMvc
@@ -178,8 +176,11 @@ public class TagsControllerTests extends ControllerTestCase {
             .andExpect(status().isOk())
             .andReturn();
 
-    verify(tagRepository, times(1)).save(any(Tag.class));
-    String expectedJson = mapper.writeValueAsString(updatedTag);
+    org.mockito.ArgumentCaptor<Tag> captor = org.mockito.ArgumentCaptor.forClass(Tag.class);
+    verify(tagRepository, times(1)).save(captor.capture());
+    assertEquals("methodology", captor.getValue().getTag());
+    assertEquals("new", captor.getValue().getExplanation());
+    String expectedJson = mapper.writeValueAsString(captor.getValue());
     assertEquals(expectedJson, response.getResponse().getContentAsString());
   }
 
