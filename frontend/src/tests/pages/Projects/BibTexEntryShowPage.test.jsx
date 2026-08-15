@@ -383,6 +383,47 @@ describe("BibTexEntryShowPage tests", () => {
     });
   });
 
+  test("clicking Bulk Citations from ACM DL View All opens the modal, and submitting launches the job with the current entry's citeKey", async () => {
+    axiosMock
+      .onPost("/api/jobs/launch/bulkCitationUploadFromAcmDlViewAll")
+      .reply(200, { id: 99 });
+
+    renderAtSmith2020();
+    await screen.findByTestId(
+      "BibTexEntryShowPage-bulk-citation-upload-button",
+    );
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-bulk-citation-upload-button"),
+    );
+
+    expect(
+      screen.getByTestId("BulkCitationUploadModal-base"),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("BulkCitationUploadModal-rawText"), {
+      target: {
+        value:
+          "Reimer Y et al. A Paper.\nhttps://doi.org/10.1145/3770762.3772609",
+      },
+    });
+    fireEvent.click(screen.getByTestId("BulkCitationUploadModal-submit"));
+
+    await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+    expect(axiosMock.history.post[0].url).toBe(
+      "/api/jobs/launch/bulkCitationUploadFromAcmDlViewAll",
+    );
+    expect(axiosMock.history.post[0].params).toEqual({
+      projectId: "1",
+      citeKey: "smith2020",
+    });
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith(
+        "Bulk citation upload job launched — check the Jobs tab for progress.",
+      ),
+    );
+  });
+
   test("shows a Relevance dropdown defaulting to Unreviewed when no relevance field is present", async () => {
     renderAtSmith2020();
 
