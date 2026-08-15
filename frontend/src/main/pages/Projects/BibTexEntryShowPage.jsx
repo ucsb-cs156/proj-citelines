@@ -69,6 +69,7 @@ export default function BibTexEntryShowPage({
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showAddReferenceModal, setShowAddReferenceModal] = useState(false);
   const [showAddCitationModal, setShowAddCitationModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { data: entry, failureCount: entryBackendFailureCount } = useBackend(
@@ -294,6 +295,13 @@ export default function BibTexEntryShowPage({
             relationship="citation"
             mutationQueryKeys={[citationsQueryKey]}
           />
+          <BibTexEntryModal
+            showModal={showEditModal}
+            toggleShowModal={setShowEditModal}
+            projectId={projectId}
+            entryToEdit={entry}
+            mutationQueryKeys={[exportQueryKey]}
+          />
           <h1 data-testid={`${testId}-title`} className="h3 mb-3 fw-semibold">
             {entry.citeKey}
           </h1>
@@ -381,6 +389,27 @@ export default function BibTexEntryShowPage({
                 data-testid={`${testId}-delete-button`}
               >
                 Delete Entry
+              </Button>
+            </div>
+          </Row>
+
+          <Row className="mb-3">
+            <div className="d-flex justify-content-end gap-2">
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={() => setShowEditModal(true)}
+                data-testid={`${testId}-edit-button`}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setShowDeleteModal(true)}
+                data-testid={`${testId}-delete-row2-button`}
+              >
+                Delete
               </Button>
             </div>
           </Row>
