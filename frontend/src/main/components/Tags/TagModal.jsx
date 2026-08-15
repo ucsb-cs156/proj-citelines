@@ -1,7 +1,8 @@
 import Modal from "react-bootstrap/Modal";
 import { Form } from "react-bootstrap";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { useEffect } from "react";
+import ColorChooser from "main/components/Common/ColorChooser";
 
 export default function TagModal({
   onSubmitAction,
@@ -14,6 +15,7 @@ export default function TagModal({
 }) {
   const {
     register,
+    control,
     formState: { errors },
     handleSubmit,
     reset,
@@ -77,6 +79,21 @@ export default function TagModal({
             <Form.Control.Feedback type="invalid">
               {errors.explanation?.message}
             </Form.Control.Feedback>
+          </Form.Group>
+          <Form.Group>
+            <Form.Label>Color</Form.Label>
+            <Controller
+              name="color"
+              control={control}
+              defaultValue=""
+              render={({ field: { value, onChange } }) => (
+                <ColorChooser
+                  value={value}
+                  onChange={onChange}
+                  testId={`${testId}-ColorChooser`}
+                />
+              )}
+            />
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>

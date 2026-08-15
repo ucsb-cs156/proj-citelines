@@ -18,6 +18,8 @@ public class Tag {
 
   private String explanation;
 
+  private String color;
+
   @ManyToOne
   @JoinColumn(name = "project_id")
   @ToString.Exclude

@@ -29,6 +29,7 @@ export default function TagsTabComponent({
       projectId: projectId,
       tag: tag.tag,
       explanation: tag.explanation,
+      color: tag.color,
     },
   });
 

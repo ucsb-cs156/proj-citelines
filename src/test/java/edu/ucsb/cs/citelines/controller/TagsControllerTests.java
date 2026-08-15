@@ -96,6 +96,40 @@ public class TagsControllerTests extends ControllerTestCase {
       username = "phtcon",
       roles = {"RESEARCHER"})
   @Test
+  public void owner_can_add_a_tag_with_a_color() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    Tag tag =
+        Tag.builder()
+            .id(1L)
+            .tag("method")
+            .explanation("uses methodology")
+            .color("#FF0000")
+            .project(project)
+            .build();
+    when(projectRepository.findById(eq(1L))).thenReturn(Optional.of(project));
+    when(tagRepository.findByProjectIdAndTag(1L, "method")).thenReturn(Optional.empty());
+    when(tagRepository.save(any(Tag.class))).thenReturn(tag);
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                post(
+                        "/api/tags/post?tag=method&explanation=uses+methodology&color=%23FF0000&projectId=1")
+                    .with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    org.mockito.ArgumentCaptor<Tag> captor = org.mockito.ArgumentCaptor.forClass(Tag.class);
+    verify(tagRepository, times(1)).save(captor.capture());
+    assertEquals("#FF0000", captor.getValue().getColor());
+    String expectedJson = mapper.writeValueAsString(tag);
+    assertEquals(expectedJson, response.getResponse().getContentAsString());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
   public void post_throws_not_found_for_nonexistent_project() throws Exception {
     when(projectRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -172,7 +206,10 @@ public class TagsControllerTests extends ControllerTestCase {
 
     MvcResult response =
         mockMvc
-            .perform(put("/api/tags?id=1&projectId=1&tag=methodology&explanation=new").with(csrf()))
+            .perform(
+                put(
+                        "/api/tags?id=1&projectId=1&tag=methodology&explanation=new&color=%2300FF00")
+                    .with(csrf()))
             .andExpect(status().isOk())
             .andReturn();
 
@@ -180,6 +217,7 @@ public class TagsControllerTests extends ControllerTestCase {
     verify(tagRepository, times(1)).save(captor.capture());
     assertEquals("methodology", captor.getValue().getTag());
     assertEquals("new", captor.getValue().getExplanation());
+    assertEquals("#00FF00", captor.getValue().getColor());
     String expectedJson = mapper.writeValueAsString(captor.getValue());
     assertEquals(expectedJson, response.getResponse().getContentAsString());
   }

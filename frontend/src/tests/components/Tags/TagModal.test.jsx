@@ -50,6 +50,7 @@ describe("TagModal tests", () => {
     expect(onSubmitAction.mock.calls[0][0]).toEqual({
       tag: "methodology",
       explanation: "Describes the methodology",
+      color: "",
     });
   });
 
@@ -107,5 +108,33 @@ describe("TagModal tests", () => {
     expect(
       screen.getByTestId("CustomTagModal-closeButton"),
     ).toBeInTheDocument();
+  });
+
+  test("allows choosing a color via the ColorChooser and submits it", async () => {
+    const onSubmitAction = vi.fn();
+
+    render(
+      <TagModal
+        showModal={true}
+        toggleShowModal={vi.fn()}
+        onSubmitAction={onSubmitAction}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId("TagModal-tag"), {
+      target: { value: "methodology" },
+    });
+    fireEvent.change(screen.getByTestId("TagModal-explanation"), {
+      target: { value: "Describes the methodology" },
+    });
+    fireEvent.click(screen.getByTestId("TagModal-ColorChooser-swatch-#e53935"));
+    fireEvent.click(screen.getByTestId("TagModal-submit"));
+
+    await waitFor(() => expect(onSubmitAction).toHaveBeenCalled());
+    expect(onSubmitAction.mock.calls[0][0]).toEqual({
+      tag: "methodology",
+      explanation: "Describes the methodology",
+      color: "#e53935",
+    });
   });
 });

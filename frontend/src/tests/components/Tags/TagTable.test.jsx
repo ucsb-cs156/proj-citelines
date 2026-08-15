@@ -50,6 +50,16 @@ describe("TagTable tests", () => {
     expect(screen.queryByText("Delete")).not.toBeInTheDocument();
   });
 
+  test("renders tags as colored pill badges", () => {
+    renderTable({ tags: tagsFixtures.threeTags, projectId: 1, testId: "TT" });
+
+    const badge = screen.getByTestId("TT-cell-row-0-col-tag-badge");
+    expect(badge).toHaveTextContent("methodology");
+    expect(badge).toHaveStyle(
+      `background-color: ${tagsFixtures.threeTags[0].color}`,
+    );
+  });
+
   test("shows edit/delete buttons when canEdit is true", () => {
     renderTable({
       tags: tagsFixtures.threeTags,
@@ -97,6 +107,7 @@ describe("TagTable tests", () => {
       projectId: 1,
       tag: "new-tag",
       explanation: "New explanation",
+      color: tagsFixtures.threeTags[0].color,
     });
     await waitFor(() =>
       expect(mockToast).toHaveBeenCalledWith("Tag updated successfully"),

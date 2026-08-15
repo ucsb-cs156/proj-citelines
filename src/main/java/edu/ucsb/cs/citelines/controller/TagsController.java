@@ -42,6 +42,7 @@ public class TagsController extends ApiController {
   public Tag postTag(
       @Parameter(name = "tag") @RequestParam String tag,
       @Parameter(name = "explanation") @RequestParam String explanation,
+      @Parameter(name = "color") @RequestParam(required = false) String color,
       @Parameter(name = "projectId") @RequestParam Long projectId)
       throws EntityNotFoundException {
 
@@ -52,7 +53,8 @@ public class TagsController extends ApiController {
 
     ensureTagIsUnique(projectId, tag, null);
 
-    Tag newTag = Tag.builder().tag(tag).explanation(explanation).project(project).build();
+    Tag newTag =
+        Tag.builder().tag(tag).explanation(explanation).color(color).project(project).build();
 
     return tagRepository.save(newTag);
   }
@@ -85,7 +87,8 @@ public class TagsController extends ApiController {
       @Parameter(name = "id") @RequestParam Long id,
       @Parameter(name = "projectId") @RequestParam Long projectId,
       @Parameter(name = "tag") @RequestParam String tag,
-      @Parameter(name = "explanation") @RequestParam String explanation)
+      @Parameter(name = "explanation") @RequestParam String explanation,
+      @Parameter(name = "color") @RequestParam(required = false) String color)
       throws EntityNotFoundException {
     Tag existingTag =
         tagRepository.findById(id).orElseThrow(() -> new EntityNotFoundException(Tag.class, id));
@@ -94,6 +97,7 @@ public class TagsController extends ApiController {
 
     existingTag.setTag(tag);
     existingTag.setExplanation(explanation);
+    existingTag.setColor(color);
 
     return tagRepository.save(existingTag);
   }

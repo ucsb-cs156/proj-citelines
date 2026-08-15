@@ -67,6 +67,7 @@ describe("TagsTabComponent tests", () => {
       projectId: 1,
       tag: "methodology",
       explanation: "Describes methodology",
+      color: "",
     });
     await waitFor(() =>
       expect(mockToast).toHaveBeenCalledWith("Tag successfully added."),
