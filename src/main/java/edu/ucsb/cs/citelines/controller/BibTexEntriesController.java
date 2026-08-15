@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -77,13 +78,7 @@ public class BibTexEntriesController extends ApiController {
       @Parameter(name = "relatedCiteKey") @RequestParam(required = false) String relatedCiteKey,
       @Parameter(name = "relationship") @RequestParam(required = false) String relationship,
       @RequestBody String rawBibTex) {
-    if (relatedCiteKey != null
-        && relationship != null
-        && !"reference".equals(relationship)
-        && !"citation".equals(relationship)) {
-      throw new IllegalArgumentException(
-          "relationship must be 'reference' or 'citation', but was: " + relationship);
-    }
+    validateRelationship(relatedCiteKey, relationship);
 
     List<BibTexEntry> entries =
         bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());
@@ -101,17 +96,26 @@ public class BibTexEntriesController extends ApiController {
   }
 
   /**
-   * Resolves a DOI to a BibTeX entry (via {@link DoiToBibTexService}) and saves it, exactly as
-   * {@link #postBibTexEntries} would for the equivalent pasted BibTeX text — see issue #63.
+   * Resolves a DOI to a BibTeX entry and saves it, exactly as {@link #postBibTexEntries} would for
+   * the equivalent pasted BibTeX text — see issue #63.
+   *
+   * <p>If the project already has an entry for this DOI (via {@link
+   * DoiToBibTexService#findExistingEntryForDoi}), that entry is reused rather than creating a
+   * duplicate for the same paper — see issue #67. {@code relevance} is only ever applied to a newly
+   * synthesized entry, never to an existing one (which may already have been reviewed/hand-edited);
+   * a {@code relatedCiteKey}/{@code relationship} pair, if provided, still gets linked to the
+   * existing entry either way, since linking a citation/reference that turns out to already be in
+   * the project is the case this fix matters most for.
    *
    * @param projectId the project the entry belongs to
    * @param relatedCiteKey the citeKey of the entry to link the new entry to, if any
    * @param relationship {@code "reference"} or {@code "citation"}, if linking to a related entry
-   * @param relevance the CITELINES_relevance value to attach to the new entry, if any
+   * @param relevance the CITELINES_relevance value to attach, if a new entry is created
    * @param rawDoi the DOI to resolve
-   * @return the saved entry, as a single-element list (matching {@link #postBibTexEntries}'s shape)
+   * @return the (new or existing) entry, as a single-element list (matching {@link
+   *     #postBibTexEntries}'s shape)
    */
-  @Operation(summary = "Resolve a DOI to a BibTeX entry and save it")
+  @Operation(summary = "Resolve a DOI to a BibTeX entry and save it, or link an existing one")
   @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
   @PostMapping("/postByDoi")
   public List<BibTexEntry> postBibTexEntryByDoi(
@@ -120,8 +124,31 @@ public class BibTexEntriesController extends ApiController {
       @Parameter(name = "relationship") @RequestParam(required = false) String relationship,
       @Parameter(name = "relevance") @RequestParam(required = false) String relevance,
       @RequestBody String rawDoi) {
+    validateRelationship(relatedCiteKey, relationship);
+
+    Optional<BibTexEntry> existingEntry =
+        doiToBibTexService.findExistingEntryForDoi(rawDoi, projectId.intValue());
+    if (existingEntry.isPresent()) {
+      BibTexEntry entry = existingEntry.get();
+      if (relatedCiteKey != null && relationship != null) {
+        citationEdgeRepository.save(
+            makeCitationEdge(projectId.intValue(), relatedCiteKey, relationship, entry));
+      }
+      return List.of(entry);
+    }
+
     String rawBibTex = doiToBibTexService.resolveToBibTex(rawDoi, projectId.intValue(), relevance);
     return postBibTexEntries(projectId, relatedCiteKey, relationship, rawBibTex);
+  }
+
+  private static void validateRelationship(String relatedCiteKey, String relationship) {
+    if (relatedCiteKey != null
+        && relationship != null
+        && !"reference".equals(relationship)
+        && !"citation".equals(relationship)) {
+      throw new IllegalArgumentException(
+          "relationship must be 'reference' or 'citation', but was: " + relationship);
+    }
   }
 
   // A pasted entry may share a citeKey with one already stored for this project (e.g. a paper

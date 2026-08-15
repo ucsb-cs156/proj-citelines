@@ -1,16 +1,21 @@
 package edu.ucsb.cs.citelines.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs.citelines.errors.DoiNotFoundException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -18,6 +23,7 @@ public class DoiToBibTexServiceTests {
 
   private DoiToBibTexService doiToBibTexService;
   private BibTexEntryRepository bibTexEntryRepository;
+  private CitationGraphService citationGraphService;
   private OpenAlexService openAlexService;
   private SemanticScholarResolver semanticScholarResolver;
   private CrossrefResolver crossrefResolver;
@@ -25,6 +31,7 @@ public class DoiToBibTexServiceTests {
   @BeforeEach
   void setup() {
     bibTexEntryRepository = mock(BibTexEntryRepository.class);
+    citationGraphService = mock(CitationGraphService.class);
     openAlexService = mock(OpenAlexService.class);
     semanticScholarResolver = mock(SemanticScholarResolver.class);
     crossrefResolver = mock(CrossrefResolver.class);
@@ -35,6 +42,7 @@ public class DoiToBibTexServiceTests {
             new DOIService(),
             new BibTexSynthesisService(new LaTeXNormalizationService()),
             bibTexEntryRepository,
+            citationGraphService,
             openAlexService,
             semanticScholarResolver,
             crossrefResolver);
@@ -169,5 +177,39 @@ public class DoiToBibTexServiceTests {
     assertThrows(
         DoiNotFoundException.class,
         () -> doiToBibTexService.resolveToBibTex("10.1038/s41586-020-2649-2", 1, null));
+  }
+
+  @Test
+  void finds_an_existing_entry_for_a_doi_already_in_the_project() {
+    BibTexEntry existingEntry = BibTexEntry.builder().projectId(1).citeKey("harris2020").build();
+    when(citationGraphService.loadExistingEntries(1))
+        .thenReturn(
+            new CitationGraphService.ExistingEntries(
+                Map.of("10.1038/s41586-020-2649-2", existingEntry), Set.of("harris2020")));
+
+    Optional<BibTexEntry> found =
+        doiToBibTexService.findExistingEntryForDoi("10.1038/s41586-020-2649-2", 1);
+
+    assertTrue(found.isPresent());
+    assertEquals("harris2020", found.get().getCiteKey());
+  }
+
+  @Test
+  void returns_empty_when_no_existing_entry_matches_the_doi() {
+    when(citationGraphService.loadExistingEntries(1))
+        .thenReturn(new CitationGraphService.ExistingEntries(Map.of(), Set.of()));
+
+    Optional<BibTexEntry> found =
+        doiToBibTexService.findExistingEntryForDoi("10.1038/s41586-020-2649-2", 1);
+
+    assertFalse(found.isPresent());
+  }
+
+  @Test
+  void returns_empty_without_consulting_the_project_when_the_string_is_not_a_recognizable_doi() {
+    Optional<BibTexEntry> found = doiToBibTexService.findExistingEntryForDoi("not a doi", 1);
+
+    assertFalse(found.isPresent());
+    verify(citationGraphService, never()).loadExistingEntries(1);
   }
 }
