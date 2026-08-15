@@ -638,7 +638,9 @@ public class CheckLinksServiceTests {
     Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL));
     BibTexEntry entry = entry("acm2020", kvp);
     when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
-    mockHandle(HANDLE, new ResponseEntity<>("{\"responseCode\":100}", HttpStatus.OK));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
 
     checkLinksService.checkLinks(1, ctx);
 

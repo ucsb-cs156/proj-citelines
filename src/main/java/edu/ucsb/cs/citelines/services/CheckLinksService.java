@@ -246,6 +246,11 @@ public class CheckLinksService {
   // definitive answer, or null when the check itself couldn't be completed (network error,
   // malformed response, retries exhausted) — callers fall back to the direct URL check in that
   // case, same as every other "could not check" path in this class.
+  //
+  // The API mirrors its JSON responseCode in the HTTP status: responseCode 1 ("found") comes back
+  // as a 200, but responseCode 100 ("not found") comes back as a 404 — which RestTemplate turns
+  // into a thrown HttpClientErrorException.NotFound rather than a normal response, so that case is
+  // handled in its own catch clause below rather than by inspecting the body of a 2xx response.
   private Boolean checkHandleExists(String handle, String citeKey, JobContext ctx) {
     String url = "https://doi.org/api/handles/" + handle;
     HttpHeaders headers = new HttpHeaders();
@@ -256,17 +261,16 @@ public class CheckLinksService {
           retryHelper.execute(
               "GET " + url,
               () -> noRedirectRestTemplate.exchange(url, HttpMethod.GET, request, String.class));
-      JsonNode body = objectMapper.readTree(response.getBody());
-      int responseCode = body.path("responseCode").asInt(-1);
+      int responseCode = readResponseCode(response.getBody());
       if (responseCode == 1) {
         return Boolean.TRUE;
-      } else if (responseCode == 100) {
-        return Boolean.FALSE;
       }
       ctx.log(
           "Could not verify handle %s for %s: unexpected Handle API responseCode %d"
               .formatted(handle, citeKey, responseCode));
       return null;
+    } catch (HttpClientErrorException.NotFound e) {
+      return Boolean.FALSE;
     } catch (JsonProcessingException e) {
       ctx.log(
           "Could not verify handle %s for %s: malformed Handle API response"
@@ -276,6 +280,11 @@ public class CheckLinksService {
       ctx.log("Could not verify handle %s for %s: %s".formatted(handle, citeKey, e.getMessage()));
       return null;
     }
+  }
+
+  private int readResponseCode(String body) throws JsonProcessingException {
+    JsonNode node = objectMapper.readTree(body);
+    return node.path("responseCode").asInt(-1);
   }
 
   private boolean isInvalidUrlDirectly(String url, String citeKey, JobContext ctx) {
