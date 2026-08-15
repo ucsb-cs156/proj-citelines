@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.jbibtex.BibTeXDatabase;
 import org.jbibtex.Key;
@@ -34,6 +35,16 @@ public class CitationFormattingService {
 
   /** Default CSL style, used when {@code styleFormat} is not recognized. */
   public static final String DEFAULT_STYLE = "apa";
+
+  /**
+   * Matches a leading citation-number label that some CSL styles (e.g. ACM, IEEE, Vancouver,
+   * Nature, Science) prepend to each bibliography entry, either as {@code "[1]"} or {@code "1."}
+   * followed by whitespace. That label is meant for print bibliographies with numbered in-text
+   * citations, but is not wanted when displaying a single formatted reference in this app, so it
+   * is stripped from every rendered entry regardless of style; see {@link #formatBibTex}.
+   */
+  private static final Pattern LEADING_CITATION_NUMBER =
+      Pattern.compile("^(\\[\\d+\\]|\\d+\\.)\\s*");
 
   /**
    * Friendly, all-caps aliases for some commonly requested citation styles, mapped to the CSL style
@@ -125,22 +136,17 @@ public class CitationFormattingService {
     Bibliography bibliography = csl.makeBibliography();
     StringBuilder result = new StringBuilder();
     for (String entry : bibliography.getEntries()) {
-      result.append(stripLeadingCitationNumber(entry.trim(), cslStyle)).append("\n");
+      result.append(stripLeadingCitationNumber(entry.trim())).append("\n");
     }
     return result.toString().trim();
   }
 
   /**
-   * The ACM CSL style renders each bibliography entry with a leading {@code [n]} citation-number
-   * label (e.g. {@code "[1]Smith, J. ..."}). That label is meant for print bibliographies with
-   * numbered in-text citations, but is not wanted when displaying a single formatted reference in
-   * this app, so it is stripped here at the source for the ACM style.
+   * Strips the leading citation-number label (see {@link #LEADING_CITATION_NUMBER}) from a
+   * rendered bibliography entry. Package-private for direct unit testing.
    */
-  private String stripLeadingCitationNumber(String entry, String cslStyle) {
-    if (!"association-for-computing-machinery".equals(cslStyle)) {
-      return entry;
-    }
-    return entry.replaceFirst("^\\[\\d+\\]\\s*", "");
+  String stripLeadingCitationNumber(String entry) {
+    return LEADING_CITATION_NUMBER.matcher(entry).replaceFirst("");
   }
 
   /**
