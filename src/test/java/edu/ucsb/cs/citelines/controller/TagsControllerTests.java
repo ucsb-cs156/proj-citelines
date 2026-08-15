@@ -113,8 +113,7 @@ public class TagsControllerTests extends ControllerTestCase {
     MvcResult response =
         mockMvc
             .perform(
-                post(
-                        "/api/tags/post?tag=method&explanation=uses+methodology&color=%23FF0000&projectId=1")
+                post("/api/tags/post?tag=method&explanation=uses+methodology&color=%23FF0000&projectId=1")
                     .with(csrf()))
             .andExpect(status().isOk())
             .andReturn();
@@ -207,8 +206,7 @@ public class TagsControllerTests extends ControllerTestCase {
     MvcResult response =
         mockMvc
             .perform(
-                put(
-                        "/api/tags?id=1&projectId=1&tag=methodology&explanation=new&color=%2300FF00")
+                put("/api/tags?id=1&projectId=1&tag=methodology&explanation=new&color=%2300FF00")
                     .with(csrf()))
             .andExpect(status().isOk())
             .andReturn();
