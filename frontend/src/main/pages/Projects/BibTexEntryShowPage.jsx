@@ -17,6 +17,7 @@ import {
 import { toast } from "react-toastify";
 import CitationTable from "main/components/Citations/CitationTable";
 import BibTexEntryModal from "main/components/Citations/BibTexEntryModal";
+import BulkCitationUploadModal from "main/components/Citations/BulkCitationUploadModal";
 import BibTexEntryComments from "main/components/Citations/BibTexEntryComments";
 import BibTexEntryLink from "main/components/Citations/BibTexEntryLink";
 import {
@@ -69,6 +70,8 @@ export default function BibTexEntryShowPage({
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showAddReferenceModal, setShowAddReferenceModal] = useState(false);
   const [showAddCitationModal, setShowAddCitationModal] = useState(false);
+  const [showBulkCitationUploadModal, setShowBulkCitationUploadModal] =
+    useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { data: entry, failureCount: entryBackendFailureCount } = useBackend(
@@ -294,6 +297,13 @@ export default function BibTexEntryShowPage({
             relationship="citation"
             mutationQueryKeys={[citationsQueryKey]}
           />
+          <BulkCitationUploadModal
+            showModal={showBulkCitationUploadModal}
+            toggleShowModal={setShowBulkCitationUploadModal}
+            projectId={projectId}
+            citeKey={entry.citeKey}
+            mutationQueryKeys={[citationsQueryKey]}
+          />
           <h1 data-testid={`${testId}-title`} className="h3 mb-3 fw-semibold">
             {entry.citeKey}
           </h1>
@@ -381,6 +391,18 @@ export default function BibTexEntryShowPage({
                 data-testid={`${testId}-delete-button`}
               >
                 Delete Entry
+              </Button>
+            </div>
+          </Row>
+
+          <Row className="mb-3">
+            <div className="d-flex gap-2">
+              <Button
+                variant="outline-primary"
+                onClick={() => setShowBulkCitationUploadModal(true)}
+                data-testid={`${testId}-bulk-citation-upload-button`}
+              >
+                Bulk Citations from ACM DL View All
               </Button>
             </div>
           </Row>
