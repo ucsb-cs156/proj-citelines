@@ -40,8 +40,8 @@ public class DoiToBibTexService {
 
   /**
    * Resolves {@code rawDoi} to a raw BibTeX string, optionally carrying a {@code
-   * CITELINES_relevance} field (mirroring what the frontend injects for a pasted-BibTeX entry —
-   * see {@code citelinesFields.js} — since a synthesized entry has no such field of its own).
+   * CITELINES_relevance} field (mirroring what the frontend injects for a pasted-BibTeX entry — see
+   * {@code citelinesFields.js} — since a synthesized entry has no such field of its own).
    *
    * @param rawDoi the DOI, in any format recognized by {@link DOIService#normalizeRawDOI}
    * @param projectId the project the resulting entry will be saved to, used only to generate a
@@ -63,41 +63,40 @@ public class DoiToBibTexService {
 <span class="fc" id="L63">      Optional&lt;ResolvedWork&gt; found = resolver.resolveByDoi(doi);</span>
 <span class="fc bfc" id="L64" title="All 4 branches covered.">      if (found.isPresent() &amp;&amp; !isBlank(found.get().title())) {</span>
 <span class="fc" id="L65">        String citeKey =</span>
-<span class="fc" id="L66">            bibTexSynthesisService.generateUniqueCiteKey(</span>
-<span class="fc" id="L67">                found.get(), existingCiteKeys(projectId));</span>
-<span class="fc" id="L68">        String rawBibtex = bibTexSynthesisService.synthesizeRawBibTex(found.get(), citeKey);</span>
-<span class="fc" id="L69">        return injectRelevance(rawBibtex, relevance);</span>
+<span class="fc" id="L66">            bibTexSynthesisService.generateUniqueCiteKey(found.get(), existingCiteKeys(projectId));</span>
+<span class="fc" id="L67">        String rawBibtex = bibTexSynthesisService.synthesizeRawBibTex(found.get(), citeKey);</span>
+<span class="fc" id="L68">        return injectRelevance(rawBibtex, relevance);</span>
       }
-<span class="fc" id="L71">    }</span>
+<span class="fc" id="L70">    }</span>
 
-<span class="fc" id="L73">    throw new DoiNotFoundException(rawDoi);</span>
+<span class="fc" id="L72">    throw new DoiNotFoundException(rawDoi);</span>
   }
 
   private Set&lt;String&gt; existingCiteKeys(int projectId) {
-<span class="fc" id="L77">    Set&lt;String&gt; existingCiteKeys = new HashSet&lt;&gt;();</span>
-<span class="fc bfc" id="L78" title="All 2 branches covered.">    for (BibTexEntry entry : bibTexEntryRepository.findByProjectId(projectId)) {</span>
-<span class="fc" id="L79">      existingCiteKeys.add(entry.getCiteKey());</span>
-<span class="fc" id="L80">    }</span>
-<span class="fc" id="L81">    return existingCiteKeys;</span>
+<span class="fc" id="L76">    Set&lt;String&gt; existingCiteKeys = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">    for (BibTexEntry entry : bibTexEntryRepository.findByProjectId(projectId)) {</span>
+<span class="fc" id="L78">      existingCiteKeys.add(entry.getCiteKey());</span>
+<span class="fc" id="L79">    }</span>
+<span class="fc" id="L80">    return existingCiteKeys;</span>
   }
 
   private static boolean isBlank(String value) {
-<span class="pc bpc" id="L85" title="1 of 4 branches missed.">    return value == null || value.isBlank();</span>
+<span class="pc bpc" id="L84" title="1 of 4 branches missed.">    return value == null || value.isBlank();</span>
   }
 
   // BibTexSynthesisService.synthesizeRawBibTex always produces a single, flat &quot;@type{key,\n
   // field = {value},\n...}\n&quot; entry, so inserting one more field is just a matter of splicing it
   // in before the entry's closing brace.
   private static String injectRelevance(String rawBibtex, String relevance) {
-<span class="fc bfc" id="L92" title="All 2 branches covered.">    if (isBlank(relevance)) {</span>
-<span class="fc" id="L93">      return rawBibtex;</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (isBlank(relevance)) {</span>
+<span class="fc" id="L92">      return rawBibtex;</span>
     }
-<span class="fc" id="L95">    int lastBrace = rawBibtex.lastIndexOf('}');</span>
-<span class="fc" id="L96">    return rawBibtex.substring(0, lastBrace)</span>
+<span class="fc" id="L94">    int lastBrace = rawBibtex.lastIndexOf('}');</span>
+<span class="fc" id="L95">    return rawBibtex.substring(0, lastBrace)</span>
         + &quot;  CITELINES_relevance = {&quot;
         + relevance
         + &quot;},\n&quot;
-<span class="fc" id="L100">        + rawBibtex.substring(lastBrace);</span>
+<span class="fc" id="L99">        + rawBibtex.substring(lastBrace);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
