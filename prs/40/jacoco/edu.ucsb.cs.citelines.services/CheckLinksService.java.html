@@ -246,79 +246,88 @@ public class CheckLinksService {
   // definitive answer, or null when the check itself couldn't be completed (network error,
   // malformed response, retries exhausted) — callers fall back to the direct URL check in that
   // case, same as every other &quot;could not check&quot; path in this class.
+  //
+  // The API mirrors its JSON responseCode in the HTTP status: responseCode 1 (&quot;found&quot;) comes back
+  // as a 200, but responseCode 100 (&quot;not found&quot;) comes back as a 404 — which RestTemplate turns
+  // into a thrown HttpClientErrorException.NotFound rather than a normal response, so that case is
+  // handled in its own catch clause below rather than by inspecting the body of a 2xx response.
   private Boolean checkHandleExists(String handle, String citeKey, JobContext ctx) {
-<span class="fc" id="L250">    String url = &quot;https://doi.org/api/handles/&quot; + handle;</span>
-<span class="fc" id="L251">    HttpHeaders headers = new HttpHeaders();</span>
-<span class="fc" id="L252">    headers.set(HttpHeaders.USER_AGENT, doiUserAgent);</span>
-<span class="fc" id="L253">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
+<span class="fc" id="L255">    String url = &quot;https://doi.org/api/handles/&quot; + handle;</span>
+<span class="fc" id="L256">    HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L257">    headers.set(HttpHeaders.USER_AGENT, doiUserAgent);</span>
+<span class="fc" id="L258">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
     try {
-<span class="fc" id="L255">      ResponseEntity&lt;String&gt; response =</span>
-<span class="fc" id="L256">          retryHelper.execute(</span>
+<span class="fc" id="L260">      ResponseEntity&lt;String&gt; response =</span>
+<span class="fc" id="L261">          retryHelper.execute(</span>
               &quot;GET &quot; + url,
-<span class="fc" id="L258">              () -&gt; noRedirectRestTemplate.exchange(url, HttpMethod.GET, request, String.class));</span>
-<span class="fc" id="L259">      JsonNode body = objectMapper.readTree(response.getBody());</span>
-<span class="fc" id="L260">      int responseCode = body.path(&quot;responseCode&quot;).asInt(-1);</span>
-<span class="fc bfc" id="L261" title="All 2 branches covered.">      if (responseCode == 1) {</span>
-<span class="fc" id="L262">        return Boolean.TRUE;</span>
-<span class="fc bfc" id="L263" title="All 2 branches covered.">      } else if (responseCode == 100) {</span>
-<span class="fc" id="L264">        return Boolean.FALSE;</span>
+<span class="fc" id="L263">              () -&gt; noRedirectRestTemplate.exchange(url, HttpMethod.GET, request, String.class));</span>
+<span class="fc" id="L264">      int responseCode = readResponseCode(response.getBody());</span>
+<span class="fc bfc" id="L265" title="All 2 branches covered.">      if (responseCode == 1) {</span>
+<span class="fc" id="L266">        return Boolean.TRUE;</span>
       }
-<span class="fc" id="L266">      ctx.log(</span>
+<span class="fc" id="L268">      ctx.log(</span>
           &quot;Could not verify handle %s for %s: unexpected Handle API responseCode %d&quot;
-<span class="fc" id="L268">              .formatted(handle, citeKey, responseCode));</span>
-<span class="fc" id="L269">      return null;</span>
-<span class="fc" id="L270">    } catch (JsonProcessingException e) {</span>
-<span class="fc" id="L271">      ctx.log(</span>
+<span class="fc" id="L270">              .formatted(handle, citeKey, responseCode));</span>
+<span class="fc" id="L271">      return null;</span>
+<span class="fc" id="L272">    } catch (HttpClientErrorException.NotFound e) {</span>
+<span class="fc" id="L273">      return Boolean.FALSE;</span>
+<span class="fc" id="L274">    } catch (JsonProcessingException e) {</span>
+<span class="fc" id="L275">      ctx.log(</span>
           &quot;Could not verify handle %s for %s: malformed Handle API response&quot;
-<span class="fc" id="L273">              .formatted(handle, citeKey));</span>
-<span class="fc" id="L274">      return null;</span>
-<span class="fc" id="L275">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
-<span class="fc" id="L276">      ctx.log(&quot;Could not verify handle %s for %s: %s&quot;.formatted(handle, citeKey, e.getMessage()));</span>
-<span class="fc" id="L277">      return null;</span>
+<span class="fc" id="L277">              .formatted(handle, citeKey));</span>
+<span class="fc" id="L278">      return null;</span>
+<span class="fc" id="L279">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L280">      ctx.log(&quot;Could not verify handle %s for %s: %s&quot;.formatted(handle, citeKey, e.getMessage()));</span>
+<span class="fc" id="L281">      return null;</span>
     }
   }
 
+  private int readResponseCode(String body) throws JsonProcessingException {
+<span class="fc" id="L286">    JsonNode node = objectMapper.readTree(body);</span>
+<span class="fc" id="L287">    return node.path(&quot;responseCode&quot;).asInt(-1);</span>
+  }
+
   private boolean isInvalidUrlDirectly(String url, String citeKey, JobContext ctx) {
-<span class="fc" id="L282">    HttpHeaders headers = new HttpHeaders();</span>
-<span class="fc" id="L283">    headers.set(HttpHeaders.USER_AGENT, BROWSER_USER_AGENT);</span>
-<span class="fc" id="L284">    headers.set(HttpHeaders.ACCEPT, BROWSER_ACCEPT);</span>
-<span class="fc" id="L285">    headers.set(HttpHeaders.ACCEPT_LANGUAGE, BROWSER_ACCEPT_LANGUAGE);</span>
-<span class="fc" id="L286">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
+<span class="fc" id="L291">    HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L292">    headers.set(HttpHeaders.USER_AGENT, BROWSER_USER_AGENT);</span>
+<span class="fc" id="L293">    headers.set(HttpHeaders.ACCEPT, BROWSER_ACCEPT);</span>
+<span class="fc" id="L294">    headers.set(HttpHeaders.ACCEPT_LANGUAGE, BROWSER_ACCEPT_LANGUAGE);</span>
+<span class="fc" id="L295">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
     try {
-<span class="fc" id="L288">      retryHelper.execute(</span>
+<span class="fc" id="L297">      retryHelper.execute(</span>
           &quot;HEAD &quot; + url,
           () -&gt; {
-<span class="fc" id="L291">            restTemplate.exchange(url, HttpMethod.HEAD, request, Void.class);</span>
-<span class="fc" id="L292">            return null;</span>
+<span class="fc" id="L300">            restTemplate.exchange(url, HttpMethod.HEAD, request, Void.class);</span>
+<span class="fc" id="L301">            return null;</span>
           });
-<span class="fc" id="L294">      return false;</span>
-<span class="fc" id="L295">    } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {</span>
-<span class="fc" id="L296">      ctx.log(&quot;Invalid URL (%d) for %s: %s&quot;.formatted(e.getStatusCode().value(), citeKey, url));</span>
-<span class="fc" id="L297">      return true;</span>
-<span class="fc" id="L298">    } catch (HttpClientErrorException.MethodNotAllowed e) {</span>
-<span class="fc" id="L299">      return isInvalidUrlViaGet(url, request, citeKey, ctx);</span>
-<span class="fc" id="L300">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
-<span class="fc" id="L301">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
-<span class="fc" id="L302">      return false;</span>
+<span class="fc" id="L303">      return false;</span>
+<span class="fc" id="L304">    } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {</span>
+<span class="fc" id="L305">      ctx.log(&quot;Invalid URL (%d) for %s: %s&quot;.formatted(e.getStatusCode().value(), citeKey, url));</span>
+<span class="fc" id="L306">      return true;</span>
+<span class="fc" id="L307">    } catch (HttpClientErrorException.MethodNotAllowed e) {</span>
+<span class="fc" id="L308">      return isInvalidUrlViaGet(url, request, citeKey, ctx);</span>
+<span class="fc" id="L309">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L310">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
+<span class="fc" id="L311">      return false;</span>
     }
   }
 
   private boolean isInvalidUrlViaGet(
       String url, HttpEntity&lt;Void&gt; request, String citeKey, JobContext ctx) {
     try {
-<span class="fc" id="L309">      retryHelper.execute(</span>
+<span class="fc" id="L318">      retryHelper.execute(</span>
           &quot;GET &quot; + url,
           () -&gt; {
-<span class="fc" id="L312">            restTemplate.exchange(url, HttpMethod.GET, request, String.class);</span>
-<span class="fc" id="L313">            return null;</span>
+<span class="fc" id="L321">            restTemplate.exchange(url, HttpMethod.GET, request, String.class);</span>
+<span class="fc" id="L322">            return null;</span>
           });
-<span class="fc" id="L315">      return false;</span>
-<span class="fc" id="L316">    } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {</span>
-<span class="fc" id="L317">      ctx.log(&quot;Invalid URL (%d) for %s: %s&quot;.formatted(e.getStatusCode().value(), citeKey, url));</span>
-<span class="fc" id="L318">      return true;</span>
-<span class="fc" id="L319">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
-<span class="fc" id="L320">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
-<span class="fc" id="L321">      return false;</span>
+<span class="fc" id="L324">      return false;</span>
+<span class="fc" id="L325">    } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {</span>
+<span class="fc" id="L326">      ctx.log(&quot;Invalid URL (%d) for %s: %s&quot;.formatted(e.getStatusCode().value(), citeKey, url));</span>
+<span class="fc" id="L327">      return true;</span>
+<span class="fc" id="L328">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L329">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
+<span class="fc" id="L330">      return false;</span>
     }
   }
 }
