@@ -74,7 +74,9 @@ public class BulkCitationUploadFromACMDLViewAllService {
   /** One reference-text-then-DOI-line pair from the pasted input; either field may be null. */
   record ParsedEntry(String refText, String doiLine) {}
 
-  private enum Outcome {
+  // Package-visible so tests can assert processEntry's exact return value per branch directly,
+  // rather than only through bulkUpload's aggregate tallies (see processEntry's doc).
+  enum Outcome {
     ADDED,
     LINKED,
     ERROR
@@ -142,7 +144,7 @@ public class BulkCitationUploadFromACMDLViewAllService {
         added++;
       } else if (outcome == Outcome.LINKED) {
         linked++;
-      } else if (outcome == Outcome.ERROR) {
+      } else {
         errors++;
       }
     }
@@ -157,7 +159,10 @@ public class BulkCitationUploadFromACMDLViewAllService {
                 errors));
   }
 
-  private Outcome processEntry(
+  // Package-visible so tests can assert the exact returned Outcome per branch directly — needed
+  // to distinguish a genuine Outcome.ERROR from a null return (a real Pitest mutation) when
+  // bulkUpload's tally loop treats both identically via its trailing catch-all else.
+  Outcome processEntry(
       ParsedEntry parsedEntry,
       int projectId,
       String currentPaperCiteKey,

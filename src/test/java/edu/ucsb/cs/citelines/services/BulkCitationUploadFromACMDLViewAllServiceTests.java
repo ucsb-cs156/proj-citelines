@@ -452,4 +452,134 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
         job.getLog()
             .contains("Done: checked 2 entries, 1 added, 0 linked to existing entries, 1 errors."));
   }
+
+  // ---- processEntry() outcomes, asserted directly ----
+  //
+  // bulkUpload's tally loop only distinguishes ADDED and LINKED explicitly, falling through to a
+  // catch-all else for anything else (including ERROR) — the only branch structure that's both
+  // exhaustively covered by real tests (Outcome has exactly 3 values) and doesn't need special
+  // handling for a case that can't occur in production. That means the tally loop alone can't
+  // tell "processEntry genuinely returned ERROR" apart from a hypothetically broken return value,
+  // so each branch is verified directly here against processEntry's actual return value instead.
+
+  private static final CitationGraphService.ExistingEntries EMPTY_EXISTING =
+      new CitationGraphService.ExistingEntries(new HashMap<>(), new HashSet<>());
+
+  @Test
+  void processEntry_returns_error_when_there_is_no_doi_line() {
+    var parsedEntry =
+        new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
+            "A trailing reference with no DOI.", null);
+
+    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+
+    assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.ERROR, outcome);
+  }
+
+  @Test
+  void processEntry_returns_error_when_the_doi_line_does_not_parse_as_a_doi() {
+    var parsedEntry =
+        new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
+            "Some reference.", "https://doi.org/not-a-valid-doi-format");
+
+    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+
+    assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.ERROR, outcome);
+  }
+
+  @Test
+  void processEntry_returns_error_when_the_doi_cannot_be_resolved() {
+    when(citationGraphService.tryResolveByDoi("10.1145/3770762.3772609"))
+        .thenReturn(Optional.empty());
+    var parsedEntry =
+        new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
+            null, "https://doi.org/10.1145/3770762.3772609");
+
+    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+
+    assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.ERROR, outcome);
+  }
+
+  @Test
+  void processEntry_returns_error_when_no_title_is_available() {
+    CitationMetadataResolver resolver = mock(CitationMetadataResolver.class);
+    ResolvedWork blankTitleWork = work("10.1145/3770762.3772609", "");
+    when(citationGraphService.tryResolveByDoi("10.1145/3770762.3772609"))
+        .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, blankTitleWork)));
+    when(citationGraphService.tryRecoverMissingTitle(eq(blankTitleWork), eq(resolver), eq(ctx)))
+        .thenReturn(null);
+    var parsedEntry =
+        new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
+            null, "https://doi.org/10.1145/3770762.3772609");
+
+    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+
+    assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.ERROR, outcome);
+  }
+
+  @Test
+  void processEntry_returns_error_when_the_title_does_not_match_the_reference() {
+    CitationMetadataResolver resolver = mock(CitationMetadataResolver.class);
+    ResolvedWork resolvedWork = work("10.1145/3770762.3772609", "A Completely Different Paper");
+    when(citationGraphService.tryResolveByDoi("10.1145/3770762.3772609"))
+        .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, resolvedWork)));
+    var parsedEntry =
+        new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
+            "Some unrelated reference text.", "https://doi.org/10.1145/3770762.3772609");
+
+    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+
+    assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.ERROR, outcome);
+  }
+
+  @Test
+  void processEntry_returns_error_when_it_resolves_to_the_current_paper_itself() {
+    CitationMetadataResolver resolver = mock(CitationMetadataResolver.class);
+    ResolvedWork resolvedWork = work("10.1145/3770762.3772609", "Array Programming");
+    when(citationGraphService.tryResolveByDoi("10.1145/3770762.3772609"))
+        .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, resolvedWork)));
+    when(citationGraphService.resolveOrCreateEntry(eq(resolvedWork), eq(1), any()))
+        .thenReturn(new CitationGraphService.ResolveOrCreateResult("harris2020", false));
+    var parsedEntry =
+        new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
+            null, "https://doi.org/10.1145/3770762.3772609");
+
+    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+
+    assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.ERROR, outcome);
+  }
+
+  @Test
+  void processEntry_returns_added_for_a_newly_created_entry() {
+    CitationMetadataResolver resolver = mock(CitationMetadataResolver.class);
+    ResolvedWork resolvedWork = work("10.1145/3770762.3772609", "A New Paper");
+    when(citationGraphService.tryResolveByDoi("10.1145/3770762.3772609"))
+        .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, resolvedWork)));
+    when(citationGraphService.resolveOrCreateEntry(eq(resolvedWork), eq(1), any()))
+        .thenReturn(new CitationGraphService.ResolveOrCreateResult("newkey2020", true));
+    var parsedEntry =
+        new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
+            null, "https://doi.org/10.1145/3770762.3772609");
+
+    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+
+    assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.ADDED, outcome);
+  }
+
+  @Test
+  void processEntry_returns_linked_for_an_existing_entry() {
+    CitationMetadataResolver resolver = mock(CitationMetadataResolver.class);
+    ResolvedWork resolvedWork = work("10.1145/3770762.3772609", "Already Known Paper");
+    when(citationGraphService.tryResolveByDoi("10.1145/3770762.3772609"))
+        .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, resolvedWork)));
+    when(citationGraphService.resolveOrCreateEntry(eq(resolvedWork), eq(1), any()))
+        .thenReturn(new CitationGraphService.ResolveOrCreateResult("known2020", false));
+    var parsedEntry =
+        new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
+            null, "https://doi.org/10.1145/3770762.3772609");
+
+    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+
+    assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.LINKED, outcome);
+  }
 }
