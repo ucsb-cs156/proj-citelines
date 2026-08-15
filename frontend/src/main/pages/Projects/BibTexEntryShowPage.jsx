@@ -40,7 +40,14 @@ const CARD_DEFS = [
 /** A card whose body can be independently expanded/collapsed, unlike react-bootstrap's Accordion
  * (where by default only one item can be open at a time). `header` is rendered next to the
  * open/close toggle so callers can put dynamic content (e.g. a count) there. */
-function CollapsibleCard({ testId, header, isOpen, onToggle, children }) {
+function CollapsibleCard({
+  testId,
+  header,
+  headerActions,
+  isOpen,
+  onToggle,
+  children,
+}) {
   return (
     <Card className="mb-3" data-testid={testId}>
       <Card.Header
@@ -52,6 +59,11 @@ function CollapsibleCard({ testId, header, isOpen, onToggle, children }) {
         style={{ cursor: "pointer" }}
       >
         <div className="flex-grow-1">{header}</div>
+        {headerActions && (
+          <div className="me-2" onClick={(e) => e.stopPropagation()}>
+            {headerActions}
+          </div>
+        )}
         <span data-testid={`${testId}-toggle-icon`}>{isOpen ? "▲" : "▼"}</span>
       </Card.Header>
       <Collapse in={isOpen}>
@@ -72,10 +84,12 @@ export default function BibTexEntryShowPage({
   const [showAddCitationModal, setShowAddCitationModal] = useState(false);
   const [showBulkCitationUploadModal, setShowBulkCitationUploadModal] =
     useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  const entryQueryKey = `/api/bibtexentries/entry?projectId=${projectId}&id=${entryId}`;
   const { data: entry, failureCount: entryBackendFailureCount } = useBackend(
-    [`/api/bibtexentries/entry?projectId=${projectId}&id=${entryId}`],
+    [entryQueryKey],
     {
       method: "GET",
       url: "/api/bibtexentries/entry",
@@ -304,9 +318,26 @@ export default function BibTexEntryShowPage({
             citeKey={entry.citeKey}
             mutationQueryKeys={[citationsQueryKey]}
           />
-          <h1 data-testid={`${testId}-title`} className="h3 mb-3 fw-semibold">
-            {entry.citeKey}
-          </h1>
+          <BibTexEntryModal
+            showModal={showEditModal}
+            toggleShowModal={setShowEditModal}
+            projectId={projectId}
+            entryToEdit={entry}
+            mutationQueryKeys={[exportQueryKey, entryQueryKey]}
+          />
+          <div className="d-flex justify-content-between align-items-start mb-3">
+            <h1 data-testid={`${testId}-title`} className="h3 fw-semibold mb-0">
+              {entry.citeKey}
+            </h1>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setShowDeleteModal(true)}
+              data-testid={`${testId}-delete-button`}
+            >
+              Delete
+            </Button>
+          </div>
 
           <BibTexEntryLink
             keyValuePairs={entry.keyValuePairs}
@@ -385,13 +416,6 @@ export default function BibTexEntryShowPage({
               >
                 Add Citation
               </Button>
-              <Button
-                variant="outline-danger"
-                onClick={() => setShowDeleteModal(true)}
-                data-testid={`${testId}-delete-button`}
-              >
-                Delete Entry
-              </Button>
             </div>
           </Row>
 
@@ -442,6 +466,16 @@ export default function BibTexEntryShowPage({
           <CollapsibleCard
             testId={`${testId}-BibtexCard`}
             header="BibTex Entry"
+            headerActions={
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={() => setShowEditModal(true)}
+                data-testid={`${testId}-edit-button`}
+              >
+                Edit
+              </Button>
+            }
             isOpen={cardOpenState.bibtex}
             onToggle={() => toggleCard("bibtex", "card_bibtex")}
           >

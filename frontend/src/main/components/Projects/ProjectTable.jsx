@@ -123,19 +123,6 @@ export default function ProjectTable({
       },
     },
     {
-      header: "Description",
-      accessorKey: "description",
-    },
-    {
-      header: "Date Created",
-      id: "dateCreated",
-      accessorFn: (row) => formatTime(row.dateCreated),
-    },
-    {
-      header: "Owner",
-      accessorKey: "owner",
-    },
-    {
       header: "Settings",
       id: "settings",
       cell: ({ cell }) => {
@@ -149,6 +136,23 @@ export default function ProjectTable({
           </Link>
         );
       },
+    },
+    {
+      header: "Description",
+      accessorKey: "description",
+    },
+    {
+      header: "Date Created",
+      id: "dateCreated",
+      accessorFn: (row) => formatTime(row.dateCreated),
+    },
+    {
+      header: "Owner",
+      accessorKey: "owner",
+    },
+    {
+      header: "Citation Format",
+      accessorKey: "citationFormat",
     },
     {
       header: "Edit",

@@ -480,11 +480,18 @@ describe("BibTexEntryShowPage tests", () => {
     );
   });
 
-  test("shows a Delete Entry button that opens a confirmation modal", async () => {
+  test("shows a Delete button flush right at the top that opens a confirmation modal", async () => {
     renderAtSmith2020();
     await screen.findByTestId("BibTexEntryShowPage-delete-button");
 
-    fireEvent.click(screen.getByTestId("BibTexEntryShowPage-delete-button"));
+    const deleteButton = screen.getByTestId(
+      "BibTexEntryShowPage-delete-button",
+    );
+    expect(deleteButton).toHaveTextContent("Delete");
+    expect(deleteButton).toHaveClass("btn-danger");
+    expect(deleteButton).toHaveClass("btn-sm");
+
+    fireEvent.click(deleteButton);
 
     expect(
       screen.getByText("Permanently delete this entry?"),
@@ -535,6 +542,68 @@ describe("BibTexEntryShowPage tests", () => {
     await waitFor(() =>
       expect(mockToast).toHaveBeenCalledWith("Entry deleted successfully"),
     );
+  });
+
+  test("shows an Edit button in the BibTex Entry card header formatted like the CitationTable's Edit button", async () => {
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    const editButton = screen.getByTestId("BibTexEntryShowPage-edit-button");
+    expect(editButton).toHaveTextContent("Edit");
+    expect(editButton).toHaveClass("btn-outline-primary");
+    expect(editButton).toHaveClass("btn-sm");
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-BibtexCard-header"),
+    ).toContainElement(editButton);
+  });
+
+  test("clicking the Edit button opens the edit modal, and submitting PUTs the updated bibtex", async () => {
+    axiosMock
+      .onPut("/api/bibtexentries")
+      .reply(200, bibTexEntriesFixtures.oneEntry);
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-edit-button");
+
+    fireEvent.click(screen.getByTestId("BibTexEntryShowPage-edit-button"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("BibTexEntryModal-base")).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId("BibTexEntryModal-bibtex").value).toContain(
+        "A Very Long Title",
+      );
+    });
+
+    fireEvent.change(screen.getByTestId("BibTexEntryModal-bibtex"), {
+      target: { value: "@article{smith2020, title = {Updated Title}}" },
+    });
+    fireEvent.click(screen.getByTestId("BibTexEntryModal-submit"));
+
+    await waitFor(() => expect(axiosMock.history.put.length).toBe(1));
+    expect(axiosMock.history.put[0].params).toEqual({
+      id: "64f1b2c3d4e5f6a7b8c9d0e1",
+      projectId: "1",
+    });
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith("Citation updated successfully"),
+    );
+  });
+
+  test("clicking the Edit button in the card header does not toggle the card open/closed", async () => {
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-edit-button");
+
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-BibtexCard-header"),
+    ).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(screen.getByTestId("BibTexEntryShowPage-edit-button"));
+
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-BibtexCard-header"),
+    ).toHaveAttribute("aria-expanded", "true");
   });
 
   test("the BibTex Entry card is open by default, and the other three cards are closed by default", async () => {
