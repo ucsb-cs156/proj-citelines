@@ -130,8 +130,7 @@ public class ProjectsControllerTests extends ControllerTestCase {
         .perform(post("/api/projects/post?name=Foo&description=Bar").with(csrf()))
         .andExpect(status().isOk());
 
-    org.mockito.ArgumentCaptor<Project> captor =
-        org.mockito.ArgumentCaptor.forClass(Project.class);
+    org.mockito.ArgumentCaptor<Project> captor = org.mockito.ArgumentCaptor.forClass(Project.class);
     verify(projectRepository, times(1)).save(captor.capture());
     assertEquals("ACM", captor.getValue().getCitationFormat());
   }
@@ -149,8 +148,7 @@ public class ProjectsControllerTests extends ControllerTestCase {
             post("/api/projects/post?name=Foo&description=Bar&citationFormat=IEEE").with(csrf()))
         .andExpect(status().isOk());
 
-    org.mockito.ArgumentCaptor<Project> captor =
-        org.mockito.ArgumentCaptor.forClass(Project.class);
+    org.mockito.ArgumentCaptor<Project> captor = org.mockito.ArgumentCaptor.forClass(Project.class);
     verify(projectRepository, times(1)).save(captor.capture());
     assertEquals("IEEE", captor.getValue().getCitationFormat());
   }
@@ -162,8 +160,7 @@ public class ProjectsControllerTests extends ControllerTestCase {
   public void posting_a_project_with_an_invalid_citation_format_returns_400() throws Exception {
     mockMvc
         .perform(
-            post("/api/projects/post?name=Foo&description=Bar&citationFormat=BOGUS")
-                .with(csrf()))
+            post("/api/projects/post?name=Foo&description=Bar&citationFormat=BOGUS").with(csrf()))
         .andExpect(status().isBadRequest());
   }
 
@@ -340,8 +337,7 @@ public class ProjectsControllerTests extends ControllerTestCase {
 
     mockMvc
         .perform(
-            put(
-                    "/api/projects?projectId=1&name=New Name&description=New Desc&citationFormat=IEEE")
+            put("/api/projects?projectId=1&name=New Name&description=New Desc&citationFormat=IEEE")
                 .with(csrf()))
         .andExpect(status().isOk());
 

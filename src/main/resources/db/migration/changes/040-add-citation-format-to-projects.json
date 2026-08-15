@@ -30,10 +30,8 @@
             }
           },
           {
-            "addCheckConstraint": {
-              "tableName": "project",
-              "constraintName": "citation_format_valid",
-              "checkCondition": "citation_format IN ('APA', 'MLA', 'ACM', 'IEEE', 'CHICAGO-AUTHOR-DATE', 'CHICAGO-FULLNOTE', 'HARVARD', 'VANCOUVER', 'NATURE', 'SCIENCE')"
+            "sql": {
+              "sql": "ALTER TABLE project ADD CONSTRAINT citation_format_valid CHECK (citation_format IN ('APA', 'MLA', 'ACM', 'IEEE', 'CHICAGO-AUTHOR-DATE', 'CHICAGO-FULLNOTE', 'HARVARD', 'VANCOUVER', 'NATURE', 'SCIENCE'))"
             }
           }
         ]

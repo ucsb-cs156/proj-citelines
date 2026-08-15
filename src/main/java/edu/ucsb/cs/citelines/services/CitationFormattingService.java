@@ -41,10 +41,10 @@ public class CitationFormattingService {
    * identifier (e.g. {@code "nature"} or {@code "vancouver-brackets"}) may also be passed directly
    * to {@link #formatBibTex}.
    *
-   * <p>This is also the single place in the backend listing the citation formats a {@code
-   * Project} may choose (see {@code Project#citationFormat}). The frontend mirrors this list in
-   * {@code frontend/src/main/utils/citationFormats.js}; if you add/remove/rename a format here,
-   * update that file to match.
+   * <p>This is also the single place in the backend listing the citation formats a {@code Project}
+   * may choose (see {@code Project#citationFormat}). The frontend mirrors this list in {@code
+   * frontend/src/main/utils/citationFormats.js}; if you add/remove/rename a format here, update
+   * that file to match.
    */
   public static final Map<String, String> COMMON_ALIASES =
       Map.ofEntries(

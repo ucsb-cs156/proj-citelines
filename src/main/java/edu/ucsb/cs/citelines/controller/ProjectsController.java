@@ -64,8 +64,7 @@ public class ProjectsController extends ApiController {
   public Project postProject(
       @Parameter(name = "name") @RequestParam String name,
       @Parameter(name = "description") @RequestParam String description,
-      @Parameter(name = "citationFormat")
-          @RequestParam(defaultValue = "ACM")
+      @Parameter(name = "citationFormat") @RequestParam(defaultValue = "ACM")
           String citationFormat) {
     validateCitationFormat(citationFormat);
     CurrentUser currentUser = getCurrentUser();
@@ -129,8 +128,8 @@ public class ProjectsController extends ApiController {
    * @param projectId the id of the project to update
    * @param name the new name of the project
    * @param description the new description of the project
-   * @param citationFormat the new citation format for the project's references, one of the keys
-   *     of {@link CitationFormattingService#COMMON_ALIASES} (defaults to {@code "ACM"})
+   * @param citationFormat the new citation format for the project's references, one of the keys of
+   *     {@link CitationFormattingService#COMMON_ALIASES} (defaults to {@code "ACM"})
    * @return the updated project
    */
   @Operation(summary = "Update an existing project")
@@ -140,8 +139,7 @@ public class ProjectsController extends ApiController {
       @Parameter(name = "projectId") @RequestParam Long projectId,
       @Parameter(name = "name") @RequestParam String name,
       @Parameter(name = "description") @RequestParam String description,
-      @Parameter(name = "citationFormat")
-          @RequestParam(defaultValue = "ACM")
+      @Parameter(name = "citationFormat") @RequestParam(defaultValue = "ACM")
           String citationFormat) {
     validateCitationFormat(citationFormat);
     Project project =
