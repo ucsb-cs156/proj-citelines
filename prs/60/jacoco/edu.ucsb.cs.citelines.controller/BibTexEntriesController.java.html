@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BibTexEntriesController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.controller</a> &gt; <span class="el_source">BibTexEntriesController.java</span></div><h1>BibTexEntriesController.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.controller;
+
+import edu.ucsb.cs.citelines.collections.BibTexEntry;
+import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
+import edu.ucsb.cs.citelines.collections.CitationEdge;
+import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
+import edu.ucsb.cs.citelines.entity.Project;
+import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
+import edu.ucsb.cs.citelines.repository.ProjectRepository;
+import edu.ucsb.cs.citelines.services.BibTexConverterService;
+import edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService;
+import edu.ucsb.cs.citelines.services.CitationFormattingService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * CRUD endpoints for BibTeX citation entries, stored in MongoDB and scoped to a Project. All
+ * operations are available to a project's owner and its collaborators alike (matching how they
+ * jointly manage other project content) — only managing the collaborator list itself is owner-only
+ * (see ProjectCollaboratorsController).
+ */
+@Tag(name = &quot;BibTexEntries&quot;)
+@RequestMapping(&quot;/api/bibtexentries&quot;)
+@RestController
+<span class="fc" id="L43">@Slf4j</span>
+<span class="fc" id="L44">public class BibTexEntriesController extends ApiController {</span>
+
+  @Autowired private BibTexEntryRepository bibTexEntryRepository;
+
+  @Autowired private BibTexConverterService bibTexConverterService;
+
+  @Autowired private CitationEdgeRepository citationEdgeRepository;
+
+  @Autowired private BibTexEntryCoalescingService bibTexEntryCoalescingService;
+
+  @Autowired private ProjectRepository projectRepository;
+
+  @Autowired private CitationFormattingService citationFormattingService;
+
+  /**
+   * Parses pasted BibTeX text (which may contain more than one entry) and saves the resulting
+   * entries. An entry whose citeKey already exists for this project updates that entry rather than
+   * creating a duplicate (see {@link #reuseExistingIdIfPresent}).
+   *
+   * &lt;p&gt;If {@code relatedCiteKey} and {@code relationship} are both provided, a {@link CitationEdge}
+   * is also recorded between {@code relatedCiteKey} and each newly saved entry, so that a citation
+   * the external APIs failed to find can be entered manually from the BibTexEntryShowPage (see
+   * issue #24). When {@code relationship} is {@code &quot;reference&quot;} the related entry is treated as
+   * citing the new entries; when it is {@code &quot;citation&quot;} the new entries are treated as citing the
+   * related entry.
+   *
+   * @param projectId the project the entries belong to
+   * @param relatedCiteKey the citeKey of the entry to link the new entries to, if any
+   * @param relationship {@code &quot;reference&quot;} or {@code &quot;citation&quot;}, if linking to a related entry
+   * @param rawBibTex the pasted BibTeX text
+   * @return the saved entries
+   */
+  @Operation(summary = &quot;Parse and save one or more BibTeX entries pasted for a project&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @PostMapping(&quot;/post&quot;)
+  public List&lt;BibTexEntry&gt; postBibTexEntries(
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
+      @Parameter(name = &quot;relatedCiteKey&quot;) @RequestParam(required = false) String relatedCiteKey,
+      @Parameter(name = &quot;relationship&quot;) @RequestParam(required = false) String relationship,
+      @RequestBody String rawBibTex) {
+<span class="fc bfc" id="L84" title="All 4 branches covered.">    if (relatedCiteKey != null</span>
+        &amp;&amp; relationship != null
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        &amp;&amp; !&quot;reference&quot;.equals(relationship)</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">        &amp;&amp; !&quot;citation&quot;.equals(relationship)) {</span>
+<span class="fc" id="L88">      throw new IllegalArgumentException(</span>
+          &quot;relationship must be 'reference' or 'citation', but was: &quot; + relationship);
+    }
+
+<span class="fc" id="L92">    List&lt;BibTexEntry&gt; entries =</span>
+<span class="fc" id="L93">        bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());</span>
+<span class="fc" id="L94">    entries.forEach(entry -&gt; reuseExistingIdIfPresent(projectId.intValue(), entry));</span>
+<span class="fc" id="L95">    List&lt;BibTexEntry&gt; saved = bibTexEntryRepository.saveAll(entries);</span>
+
+<span class="fc bfc" id="L97" title="All 4 branches covered.">    if (relatedCiteKey != null &amp;&amp; relationship != null) {</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">      for (BibTexEntry entry : saved) {</span>
+<span class="fc" id="L99">        citationEdgeRepository.save(</span>
+<span class="fc" id="L100">            makeCitationEdge(projectId.intValue(), relatedCiteKey, relationship, entry));</span>
+<span class="fc" id="L101">      }</span>
+    }
+
+<span class="fc" id="L104">    return saved;</span>
+  }
+
+  // A pasted entry may share a citeKey with one already stored for this project (e.g. a paper
+  // already recorded via the &quot;Get References&quot;/&quot;Get Citations&quot; jobs, or re-pasted by mistake).
+  // Reusing the existing id makes save() overwrite that entry instead of inserting a duplicate,
+  // which would otherwise break the assumption (relied on throughout, e.g. by
+  // CitationEdgesController) that a project has at most one entry per citeKey.
+  //
+  // If more than one entry is already stored for that citeKey (e.g. duplicates created before
+  // this de-duplication existed), they are coalesced into a single entry first (via
+  // BibTexEntryCoalescingService) so that assumption holds going forward.
+  private void reuseExistingIdIfPresent(int projectId, BibTexEntry entry) {
+<span class="fc" id="L117">    List&lt;BibTexEntry&gt; existing =</span>
+<span class="fc" id="L118">        bibTexEntryRepository.findAllByProjectIdAndCiteKey(projectId, entry.getCiteKey());</span>
+<span class="fc bfc" id="L119" title="All 2 branches covered.">    if (existing.isEmpty()) {</span>
+<span class="fc" id="L120">      return;</span>
+    }
+<span class="fc" id="L122">    BibTexEntry coalesced = bibTexEntryCoalescingService.coalesce(existing);</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">    if (existing.size() &gt; 1) {</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">      List&lt;BibTexEntry&gt; duplicates = existing.stream().filter(e -&gt; e != coalesced).toList();</span>
+<span class="fc" id="L125">      bibTexEntryRepository.deleteAll(duplicates);</span>
+    }
+<span class="fc" id="L127">    entry.setId(coalesced.getId());</span>
+<span class="fc" id="L128">  }</span>
+
+  private static CitationEdge makeCitationEdge(
+      int projectId, String relatedCiteKey, String relationship, BibTexEntry entry) {
+<span class="fc" id="L132">    boolean isReference = &quot;reference&quot;.equals(relationship);</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">    String citingCiteKey = isReference ? relatedCiteKey : entry.getCiteKey();</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">    String citedCiteKey = isReference ? entry.getCiteKey() : relatedCiteKey;</span>
+<span class="fc" id="L135">    return CitationEdge.builder()</span>
+<span class="fc" id="L136">        .id(CitationEdge.makeId(projectId, citingCiteKey, citedCiteKey))</span>
+<span class="fc" id="L137">        .projectId(projectId)</span>
+<span class="fc" id="L138">        .citingCiteKey(citingCiteKey)</span>
+<span class="fc" id="L139">        .citedCiteKey(citedCiteKey)</span>
+<span class="fc" id="L140">        .build();</span>
+  }
+
+  /**
+   * Lists the BibTeX entries associated with a project.
+   *
+   * @param projectId the project to list entries for
+   * @return the entries for that project
+   */
+  @Operation(summary = &quot;List all BibTeX entries for a project&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @GetMapping(&quot;/project&quot;)
+  public List&lt;BibTexEntry&gt; bibTexEntriesForProject(
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) {
+<span class="fc" id="L154">    return bibTexEntryRepository.findByProjectId(projectId.intValue());</span>
+  }
+
+  /**
+   * Looks up a single BibTeX entry by its (Mongo) id, e.g. for the BibTexEntryShowPage.
+   *
+   * &lt;p&gt;Looked up by id rather than citeKey since a citeKey may itself contain a {@code /} (e.g. a
+   * DOI-derived key like {@code 10.1145/3770762.3772609}), which breaks when used as a path segment
+   * in the frontend's route — see issue #24.
+   *
+   * @param projectId the project the entry belongs to
+   * @param id the id of the entry
+   * @return the entry
+   */
+  @Operation(summary = &quot;Get a single BibTeX entry by id&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @GetMapping(&quot;/entry&quot;)
+  public BibTexEntry bibTexEntryById(
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
+      @Parameter(name = &quot;id&quot;) @RequestParam String id) {
+<span class="fc" id="L174">    return bibTexEntryRepository</span>
+<span class="fc" id="L175">        .findById(id)</span>
+<span class="fc" id="L176">        .orElseThrow(() -&gt; new EntityNotFoundException(BibTexEntry.class, id));</span>
+  }
+
+  /**
+   * Converts a stored entry back into raw BibTeX text, e.g. to pre-fill an edit form.
+   *
+   * @param id the id of the entry to export
+   * @param projectId the project the entry belongs to
+   * @return the entry, formatted as BibTeX text
+   */
+  @Operation(summary = &quot;Export a BibTeX entry back to BibTeX text, for editing&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @GetMapping(&quot;/export&quot;)
+  public ResponseEntity&lt;String&gt; exportBibTexEntry(
+      @Parameter(name = &quot;id&quot;) @RequestParam String id,
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId)
+      throws IOException {
+<span class="fc" id="L193">    BibTexEntry entry =</span>
+        bibTexEntryRepository
+<span class="fc" id="L195">            .findById(id)</span>
+<span class="fc" id="L196">            .orElseThrow(() -&gt; new EntityNotFoundException(BibTexEntry.class, id));</span>
+<span class="fc" id="L197">    String bibtex = bibTexConverterService.convertEntryToBibTexString(entry);</span>
+<span class="fc" id="L198">    return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(bibtex);</span>
+  }
+
+  /**
+   * Renders a stored BibTeX entry as a formatted citation, using the citation format/style chosen
+   * for its project (see {@code Project#citationFormat}), e.g. for the &quot;Formatted Reference&quot; card
+   * on the BibTexEntryShowPage.
+   *
+   * @param id the id of the entry to format
+   * @param projectId the project the entry belongs to
+   * @return the entry, formatted as a citation in the project's chosen citation format/style
+   */
+  @Operation(summary = &quot;Get a formatted citation for a BibTeX entry&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @GetMapping(&quot;/formatted&quot;)
+  public ResponseEntity&lt;String&gt; formattedCitation(
+      @Parameter(name = &quot;id&quot;) @RequestParam String id,
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId)
+      throws IOException {
+<span class="fc" id="L217">    BibTexEntry entry = findEntryOrThrow(id);</span>
+<span class="fc" id="L218">    Project project =</span>
+        projectRepository
+<span class="fc" id="L220">            .findById(projectId)</span>
+<span class="fc" id="L221">            .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L222">    String formatted =</span>
+<span class="fc" id="L223">        citationFormattingService.formatEntry(entry, project.getCitationFormat(), null);</span>
+<span class="fc" id="L224">    return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body(formatted);</span>
+  }
+
+  /**
+   * Re-parses edited BibTeX text (which must contain exactly one entry) and replaces the stored
+   * entry with the same id.
+   *
+   * @param id the id of the entry to update
+   * @param projectId the project the entry belongs to
+   * @param rawBibTex the edited BibTeX text
+   * @return the updated entry
+   */
+  @Operation(summary = &quot;Update a BibTeX entry from edited BibTeX text&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @PutMapping(&quot;&quot;)
+  public BibTexEntry updateBibTexEntry(
+      @Parameter(name = &quot;id&quot;) @RequestParam String id,
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
+      @RequestBody String rawBibTex) {
+<span class="fc" id="L243">    BibTexEntry existing =</span>
+        bibTexEntryRepository
+<span class="fc" id="L245">            .findById(id)</span>
+<span class="fc" id="L246">            .orElseThrow(() -&gt; new EntityNotFoundException(BibTexEntry.class, id));</span>
+
+<span class="fc" id="L248">    List&lt;BibTexEntry&gt; parsed =</span>
+<span class="fc" id="L249">        bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());</span>
+<span class="fc bfc" id="L250" title="All 2 branches covered.">    if (parsed.size() != 1) {</span>
+<span class="fc" id="L251">      throw new IllegalArgumentException(</span>
+          &quot;Please provide exactly one BibTeX entry when editing (found %d).&quot;
+<span class="fc" id="L253">              .formatted(parsed.size()));</span>
+    }
+
+<span class="fc" id="L256">    BibTexEntry updated = parsed.get(0);</span>
+<span class="fc" id="L257">    existing.setEntryType(updated.getEntryType());</span>
+<span class="fc" id="L258">    existing.setCiteKey(updated.getCiteKey());</span>
+<span class="fc" id="L259">    existing.setKeyValuePairs(updated.getKeyValuePairs());</span>
+
+<span class="fc" id="L261">    return bibTexEntryRepository.save(existing);</span>
+  }
+
+  /**
+   * Upserts the draft comments (CITELINES_comments_draft) for a BibTeX entry, leaving the published
+   * comments (CITELINES_comments) untouched. Used by the BibTexEntryComments component's autosave
+   * heartbeat and by the initial transition into edit mode (which seeds the draft from the current
+   * published comments, if any).
+   *
+   * @param id the id of the entry to update
+   * @param projectId the project the entry belongs to
+   * @param draft the new draft comments text, as Markdown
+   * @return the updated entry
+   */
+  @Operation(summary = &quot;Upsert an entry's draft comments&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @PutMapping(&quot;/comments/draft&quot;)
+  public BibTexEntry upsertCommentsDraft(
+      @Parameter(name = &quot;id&quot;) @RequestParam String id,
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
+      @RequestBody String draft) {
+<span class="fc" id="L282">    BibTexEntry entry = findEntryOrThrow(id);</span>
+<span class="fc" id="L283">    Map&lt;String, String&gt; keyValuePairs = mutableKeyValuePairs(entry);</span>
+<span class="fc" id="L284">    keyValuePairs.put(&quot;CITELINES_comments_draft&quot;, draft);</span>
+<span class="fc" id="L285">    entry.setKeyValuePairs(keyValuePairs);</span>
+<span class="fc" id="L286">    return bibTexEntryRepository.save(entry);</span>
+  }
+
+  /**
+   * Promotes an entry's draft comments to be its published comments: copies
+   * CITELINES_comments_draft into CITELINES_comments, then removes the draft field.
+   *
+   * @param id the id of the entry to update
+   * @param projectId the project the entry belongs to
+   * @return the updated entry
+   */
+  @Operation(summary = &quot;Save an entry's draft comments as its published comments&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @PostMapping(&quot;/comments/save&quot;)
+  public BibTexEntry saveCommentsDraft(
+      @Parameter(name = &quot;id&quot;) @RequestParam String id,
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) {
+<span class="fc" id="L303">    BibTexEntry entry = findEntryOrThrow(id);</span>
+<span class="fc" id="L304">    Map&lt;String, String&gt; keyValuePairs = mutableKeyValuePairs(entry);</span>
+<span class="fc" id="L305">    String draft = keyValuePairs.remove(&quot;CITELINES_comments_draft&quot;);</span>
+<span class="fc bfc" id="L306" title="All 2 branches covered.">    if (draft == null) {</span>
+<span class="fc" id="L307">      throw new IllegalArgumentException(&quot;Entry %s has no draft comments to save.&quot;.formatted(id));</span>
+    }
+<span class="fc" id="L309">    keyValuePairs.put(&quot;CITELINES_comments&quot;, draft);</span>
+<span class="fc" id="L310">    entry.setKeyValuePairs(keyValuePairs);</span>
+<span class="fc" id="L311">    return bibTexEntryRepository.save(entry);</span>
+  }
+
+  /**
+   * Discards an entry's draft comments, so its previously published comments (if any) take
+   * precedence again. Used by the BibTexEntryComments component's &quot;Restore this Version&quot; button.
+   *
+   * @param id the id of the entry to update
+   * @param projectId the project the entry belongs to
+   * @return the updated entry
+   */
+  @Operation(summary = &quot;Discard an entry's draft comments&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @DeleteMapping(&quot;/comments/draft&quot;)
+  public BibTexEntry discardCommentsDraft(
+      @Parameter(name = &quot;id&quot;) @RequestParam String id,
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) {
+<span class="fc" id="L328">    BibTexEntry entry = findEntryOrThrow(id);</span>
+<span class="fc" id="L329">    Map&lt;String, String&gt; keyValuePairs = mutableKeyValuePairs(entry);</span>
+<span class="fc" id="L330">    String removed = keyValuePairs.remove(&quot;CITELINES_comments_draft&quot;);</span>
+<span class="fc bfc" id="L331" title="All 2 branches covered.">    if (removed == null) {</span>
+<span class="fc" id="L332">      throw new IllegalArgumentException(</span>
+<span class="fc" id="L333">          &quot;Entry %s has no draft comments to discard.&quot;.formatted(id));</span>
+    }
+<span class="fc" id="L335">    entry.setKeyValuePairs(keyValuePairs);</span>
+<span class="fc" id="L336">    return bibTexEntryRepository.save(entry);</span>
+  }
+
+  private BibTexEntry findEntryOrThrow(String id) {
+<span class="fc" id="L340">    return bibTexEntryRepository</span>
+<span class="fc" id="L341">        .findById(id)</span>
+<span class="fc" id="L342">        .orElseThrow(() -&gt; new EntityNotFoundException(BibTexEntry.class, id));</span>
+  }
+
+  // A mutable copy of the entry's keyValuePairs, so callers can put/remove keys without
+  // depending on whatever Map implementation MongoDB's deserializer happened to produce.
+  private static Map&lt;String, String&gt; mutableKeyValuePairs(BibTexEntry entry) {
+<span class="fc bfc" id="L348" title="All 2 branches covered.">    return entry.getKeyValuePairs() == null</span>
+<span class="fc" id="L349">        ? new HashMap&lt;&gt;()</span>
+<span class="fc" id="L350">        : new HashMap&lt;&gt;(entry.getKeyValuePairs());</span>
+  }
+
+  /**
+   * Deletes a BibTeX entry.
+   *
+   * @param id the id of the entry to delete
+   * @param projectId the project the entry belongs to
+   * @return a confirmation message
+   */
+  @Operation(summary = &quot;Delete a BibTeX entry&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @DeleteMapping(&quot;/delete&quot;)
+  public Object deleteBibTexEntry(
+      @Parameter(name = &quot;id&quot;) @RequestParam String id,
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) {
+<span class="fc" id="L366">    BibTexEntry entry =</span>
+        bibTexEntryRepository
+<span class="fc" id="L368">            .findById(id)</span>
+<span class="fc" id="L369">            .orElseThrow(() -&gt; new EntityNotFoundException(BibTexEntry.class, id));</span>
+
+<span class="fc" id="L371">    bibTexEntryRepository.delete(entry);</span>
+
+<span class="fc" id="L373">    return genericMessage(&quot;BibTexEntry with id %s deleted&quot;.formatted(entry.getId()));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ProjectCollaboratorsController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.controller</a> &gt; <span class="el_source">ProjectCollaboratorsController.java</span></div><h1>ProjectCollaboratorsController.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.controller;
+
+import edu.ucsb.cs.citelines.entity.Project;
+import edu.ucsb.cs.citelines.entity.ProjectCollaborator;
+import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
+import edu.ucsb.cs.citelines.repository.ProjectCollaboratorRepository;
+import edu.ucsb.cs.citelines.repository.ProjectRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@Tag(name = &quot;ProjectCollaborators&quot;)
+@RequestMapping(&quot;/api/projectcollaborators&quot;)
+@RestController
+<span class="fc" id="L26">@Slf4j</span>
+<span class="fc" id="L27">public class ProjectCollaboratorsController extends ApiController {</span>
+
+  @Autowired private ProjectCollaboratorRepository projectCollaboratorRepository;
+
+  @Autowired private ProjectRepository projectRepository;
+
+  /**
+   * This method adds a new collaborator to a project.
+   *
+   * @return the created ProjectCollaborator
+   */
+  @Operation(summary = &quot;Add a collaborator to a project&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasOwnerPermissions(#root, #projectId)&quot;)
+  @PostMapping(&quot;/post&quot;)
+  public ProjectCollaborator postProjectCollaborator(
+      @Parameter(name = &quot;firstName&quot;) @RequestParam String firstName,
+      @Parameter(name = &quot;lastName&quot;) @RequestParam String lastName,
+      @Parameter(name = &quot;email&quot;) @RequestParam String email,
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId)
+      throws EntityNotFoundException {
+
+<span class="fc" id="L48">    Project project =</span>
+        projectRepository
+<span class="fc" id="L50">            .findById(projectId)</span>
+<span class="fc" id="L51">            .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+
+    ProjectCollaborator collaborator =
+<span class="fc" id="L54">        ProjectCollaborator.builder()</span>
+<span class="fc" id="L55">            .firstName(firstName)</span>
+<span class="fc" id="L56">            .lastName(lastName)</span>
+<span class="fc" id="L57">            .email(email.strip())</span>
+<span class="fc" id="L58">            .project(project)</span>
+<span class="fc" id="L59">            .build();</span>
+
+<span class="fc" id="L61">    return projectCollaboratorRepository.save(collaborator);</span>
+  }
+
+  /**
+   * This method returns a list of collaborators for a given project.
+   *
+   * @return a list of collaborators for a project.
+   */
+  @Operation(summary = &quot;List all collaborators for a project&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @GetMapping(&quot;/project&quot;)
+  public Iterable&lt;ProjectCollaborator&gt; collaboratorsForProject(
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) throws EntityNotFoundException {
+<span class="fc" id="L74">    projectRepository</span>
+<span class="fc" id="L75">        .findById(projectId)</span>
+<span class="fc" id="L76">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L77">    return projectCollaboratorRepository.findByProjectId(projectId);</span>
+  }
+
+  @Operation(summary = &quot;Delete a collaborator&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasOwnerPermissions(#root, #projectId)&quot;)
+  @DeleteMapping(&quot;/delete&quot;)
+  @Transactional
+  public ResponseEntity&lt;String&gt; deleteProjectCollaborator(
+      @Parameter(name = &quot;id&quot;) @RequestParam Long id,
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId)
+      throws EntityNotFoundException {
+<span class="fc" id="L88">    ProjectCollaborator collaborator =</span>
+        projectCollaboratorRepository
+<span class="fc" id="L90">            .findById(id)</span>
+<span class="fc" id="L91">            .orElseThrow(() -&gt; new EntityNotFoundException(ProjectCollaborator.class, id));</span>
+
+<span class="fc" id="L93">    projectCollaboratorRepository.delete(collaborator);</span>
+
+<span class="fc" id="L95">    return ResponseEntity.ok(&quot;Successfully deleted collaborator.&quot;);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
