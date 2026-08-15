@@ -125,9 +125,22 @@ public class CitationFormattingService {
     Bibliography bibliography = csl.makeBibliography();
     StringBuilder result = new StringBuilder();
     for (String entry : bibliography.getEntries()) {
-      result.append(entry.trim()).append("\n");
+      result.append(stripLeadingCitationNumber(entry.trim(), cslStyle)).append("\n");
     }
     return result.toString().trim();
+  }
+
+  /**
+   * The ACM CSL style renders each bibliography entry with a leading {@code [n]} citation-number
+   * label (e.g. {@code "[1]Smith, J. ..."}). That label is meant for print bibliographies with
+   * numbered in-text citations, but is not wanted when displaying a single formatted reference in
+   * this app, so it is stripped here at the source for the ACM style.
+   */
+  private String stripLeadingCitationNumber(String entry, String cslStyle) {
+    if (!"association-for-computing-machinery".equals(cslStyle)) {
+      return entry;
+    }
+    return entry.replaceFirst("^\\[\\d+\\]\\s*", "");
   }
 
   /**
