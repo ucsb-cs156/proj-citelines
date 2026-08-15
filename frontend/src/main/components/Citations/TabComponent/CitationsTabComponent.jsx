@@ -3,12 +3,14 @@ import { useState } from "react";
 import { Button, Row } from "react-bootstrap";
 import CitationTable from "main/components/Citations/CitationTable";
 import BibTexEntryModal from "main/components/Citations/BibTexEntryModal";
+import DoiEntryModal from "main/components/Citations/DoiEntryModal";
 
 export default function CitationsTabComponent({
   projectId,
   testIdPrefix = "CitationsTabComponent",
 }) {
   const [postModal, showPostModal] = useState(false);
+  const [doiModal, showDoiModal] = useState(false);
 
   const queryKey = `/api/bibtexentries/project?projectId=${projectId}`;
 
@@ -31,13 +33,27 @@ export default function CitationsTabComponent({
         projectId={projectId}
         mutationQueryKeys={[queryKey]}
       />
+      <DoiEntryModal
+        showModal={doiModal}
+        toggleShowModal={showDoiModal}
+        projectId={projectId}
+        mutationQueryKeys={[queryKey]}
+      />
       <Row className="p-2">
-        <Button
-          onClick={() => showPostModal(true)}
-          data-testid={`${testIdPrefix}-post-button`}
-        >
-          Add Citation
-        </Button>
+        <div className="d-flex gap-2">
+          <Button
+            onClick={() => showPostModal(true)}
+            data-testid={`${testIdPrefix}-post-button`}
+          >
+            Add Citation via BibTex
+          </Button>
+          <Button
+            onClick={() => showDoiModal(true)}
+            data-testid={`${testIdPrefix}-doi-button`}
+          >
+            Add Citation via DOI
+          </Button>
+        </div>
       </Row>
       <Row>
         <CitationTable
