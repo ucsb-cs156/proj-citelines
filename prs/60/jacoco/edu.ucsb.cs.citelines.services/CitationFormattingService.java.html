@@ -40,8 +40,8 @@ import org.springframework.stereotype.Service;
    * Matches a leading citation-number label that some CSL styles (e.g. ACM, IEEE, Vancouver,
    * Nature, Science) prepend to each bibliography entry, either as {@code &quot;[1]&quot;} or {@code &quot;1.&quot;}
    * followed by whitespace. That label is meant for print bibliographies with numbered in-text
-   * citations, but is not wanted when displaying a single formatted reference in this app, so it
-   * is stripped from every rendered entry regardless of style; see {@link #formatBibTex}.
+   * citations, but is not wanted when displaying a single formatted reference in this app, so it is
+   * stripped from every rendered entry regardless of style; see {@link #formatBibTex}.
    */
 <span class="fc" id="L46">  private static final Pattern LEADING_CITATION_NUMBER =</span>
 <span class="fc" id="L47">      Pattern.compile(&quot;^(\\[\\d+\\]|\\d+\\.)\\s*&quot;);</span>
@@ -142,8 +142,8 @@ import org.springframework.stereotype.Service;
   }
 
   /**
-   * Strips the leading citation-number label (see {@link #LEADING_CITATION_NUMBER}) from a
-   * rendered bibliography entry. Package-private for direct unit testing.
+   * Strips the leading citation-number label (see {@link #LEADING_CITATION_NUMBER}) from a rendered
+   * bibliography entry. Package-private for direct unit testing.
    */
   String stripLeadingCitationNumber(String entry) {
 <span class="fc" id="L149">    return LEADING_CITATION_NUMBER.matcher(entry).replaceFirst(&quot;&quot;);</span>
