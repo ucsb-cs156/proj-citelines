@@ -52,8 +52,7 @@ public class TagsController extends ApiController {
 
     ensureTagIsUnique(projectId, tag, null);
 
-    Tag newTag =
-        Tag.builder().tag(tag).explanation(explanation).project(project).build();
+    Tag newTag = Tag.builder().tag(tag).explanation(explanation).project(project).build();
 
     return tagRepository.save(newTag);
   }

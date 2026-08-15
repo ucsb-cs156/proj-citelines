@@ -74,12 +74,7 @@ public class TagsControllerTests extends ControllerTestCase {
   public void owner_can_add_a_tag() throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     Tag tag =
-        Tag.builder()
-            .id(1L)
-            .tag("method")
-            .explanation("uses methodology")
-            .project(project)
-            .build();
+        Tag.builder().id(1L).tag("method").explanation("uses methodology").project(project).build();
     when(projectRepository.findById(eq(1L))).thenReturn(Optional.of(project));
     when(tagRepository.findByProjectIdAndTag(1L, "method")).thenReturn(Optional.empty());
     when(tagRepository.save(any(Tag.class))).thenReturn(tag);
@@ -129,8 +124,7 @@ public class TagsControllerTests extends ControllerTestCase {
 
     mockMvc
         .perform(
-            post("/api/tags/post?tag=method&explanation=uses+methodology&projectId=1")
-                .with(csrf()))
+            post("/api/tags/post?tag=method&explanation=uses+methodology&projectId=1").with(csrf()))
         .andExpect(status().isBadRequest());
   }
 
@@ -145,7 +139,10 @@ public class TagsControllerTests extends ControllerTestCase {
     when(tagRepository.findByProjectId(1L)).thenReturn(List.of(tag));
 
     MvcResult response =
-        mockMvc.perform(get("/api/tags/project?projectId=1")).andExpect(status().isOk()).andReturn();
+        mockMvc
+            .perform(get("/api/tags/project?projectId=1"))
+            .andExpect(status().isOk())
+            .andReturn();
 
     String expectedJson = mapper.writeValueAsString(List.of(tag));
     assertEquals(expectedJson, response.getResponse().getContentAsString());
@@ -177,8 +174,7 @@ public class TagsControllerTests extends ControllerTestCase {
 
     MvcResult response =
         mockMvc
-            .perform(
-                put("/api/tags?id=1&projectId=1&tag=methodology&explanation=new").with(csrf()))
+            .perform(put("/api/tags?id=1&projectId=1&tag=methodology&explanation=new").with(csrf()))
             .andExpect(status().isOk())
             .andReturn();
 
@@ -218,8 +214,7 @@ public class TagsControllerTests extends ControllerTestCase {
     when(tagRepository.findByProjectIdAndTag(1L, "methodology")).thenReturn(Optional.of(otherTag));
 
     mockMvc
-        .perform(
-            put("/api/tags?id=1&projectId=1&tag=methodology&explanation=new").with(csrf()))
+        .perform(put("/api/tags?id=1&projectId=1&tag=methodology&explanation=new").with(csrf()))
         .andExpect(status().isBadRequest());
   }
 
@@ -276,8 +271,7 @@ public class TagsControllerTests extends ControllerTestCase {
 
     mockMvc
         .perform(
-            post("/api/tags/post?tag=method&explanation=uses+methodology&projectId=1")
-                .with(csrf()))
+            post("/api/tags/post?tag=method&explanation=uses+methodology&projectId=1").with(csrf()))
         .andExpect(status().is(403));
   }
 }
