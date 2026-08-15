@@ -8,12 +8,17 @@ import { getContrastTextColor } from "main/utils/colorUtils";
 describe("TagSelector tests", () => {
   const allTags = tagsFixtures.threeTags;
 
-  test("renders without crashing with no props", () => {
+  test("renders without crashing with no props", async () => {
     render(<TagSelector projectId={1} />);
     expect(screen.getByTestId("TagSelector")).toBeInTheDocument();
+    expect(screen.getByTestId("TagSelector-assigned-tags")).toBeInTheDocument();
     expect(screen.getByTestId("TagSelector-no-tags")).toHaveTextContent(
       "No tags assigned",
     );
+    fireEvent.click(screen.getByTestId("TagSelector-add-tag-dropdown"));
+    expect(
+      await screen.findByTestId("TagSelector-no-available-tags"),
+    ).toBeInTheDocument();
   });
 
   test("renders assigned tags as colored pill badges with contrast text", () => {
@@ -67,6 +72,11 @@ describe("TagSelector tests", () => {
     await waitFor(() => {
       expect(screen.getByText(allTags[0].explanation)).toBeInTheDocument();
     });
+    const tooltip = document.getElementById(
+      "TagSelector-assigned-tag-1-tooltip",
+    );
+    expect(tooltip).toBeInTheDocument();
+    expect(tooltip).toHaveTextContent(allTags[0].explanation);
   });
 
   test("dropdown lists only unassigned tags, with pill and explanation", async () => {
@@ -96,6 +106,16 @@ describe("TagSelector tests", () => {
     expect(screen.getByTestId("TagSelector-available-tag-2")).toHaveTextContent(
       allTags[1].explanation,
     );
+    expect(
+      screen.queryByTestId("TagSelector-no-available-tags"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.mouseOver(screen.getByTestId("TagSelector-available-tag-2"));
+    await waitFor(() => {
+      expect(
+        document.getElementById("TagSelector-available-tag-2-tooltip"),
+      ).toBeInTheDocument();
+    });
   });
 
   test("clicking an available tag calls onAddTag with the tag", async () => {
