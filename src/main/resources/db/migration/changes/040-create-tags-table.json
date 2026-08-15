@@ -1,0 +1,42 @@
+{
+  "databaseChangeLog": [
+    {
+      "changeSet": {
+        "id": "040-create-tags-table",
+        "author": "pc",
+        "preConditions": [
+          { "onFail": "MARK_RAN" },
+          { "not": { "tableExists": { "tableName": "tag" } } }
+        ],
+        "changes": [
+          {
+            "createTable": {
+              "tableName": "tag",
+              "columns": [
+                {
+                  "column": {
+                    "name": "id",
+                    "type": "BIGINT",
+                    "autoIncrement": true,
+                    "constraints": { "nullable": false, "primaryKey": true }
+                  }
+                },
+                { "column": { "name": "tag", "type": "VARCHAR(255)" } },
+                { "column": { "name": "explanation", "type": "VARCHAR(2000)" } },
+                { "column": { "name": "color", "type": "VARCHAR(7)" } },
+                { "column": { "name": "project_id", "type": "BIGINT" } }
+              ]
+            }
+          },
+          {
+            "addUniqueConstraint": {
+              "tableName": "tag",
+              "columnNames": "project_id, tag",
+              "constraintName": "uk_tag_project_id_tag"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
