@@ -1,5 +1,6 @@
 package edu.ucsb.cs.citelines.controller;
 
+import edu.ucsb.cs.citelines.errors.DoiNotFoundException;
 import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
 import edu.ucsb.cs.citelines.errors.ForbiddenException;
 import edu.ucsb.cs.citelines.model.CurrentUser;
@@ -25,7 +26,7 @@ public abstract class ApiController {
     return Map.of("message", message);
   }
 
-  @ExceptionHandler({EntityNotFoundException.class})
+  @ExceptionHandler({EntityNotFoundException.class, DoiNotFoundException.class})
   @ResponseStatus(HttpStatus.NOT_FOUND)
   public Object handleEntityNotFoundException(Throwable e) {
     return Map.of(

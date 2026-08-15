@@ -118,16 +118,7 @@ public class CitationGraphService {
             ? fetchReferencedWorks(discoveryResolver, sourceWork, projectId, sourceCiteKey, ctx)
             : fetchCitingWorks(discoveryResolver, sourceWork, ctx);
 
-    Map<String, BibTexEntry> existingByDoi = new HashMap<>();
-    Set<String> existingCiteKeys = new HashSet<>();
-    for (BibTexEntry entry : bibTexEntryRepository.findByProjectId(projectId)) {
-      existingCiteKeys.add(entry.getCiteKey());
-      String entryDoi =
-          entry.getKeyValuePairs() != null ? entry.getKeyValuePairs().get("doi") : null;
-      if (entryDoi != null) {
-        existingByDoi.put(entryDoi, entry);
-      }
-    }
+    ExistingEntries existing = loadExistingEntries(projectId);
 
     int added = 0;
     int linked = 0;
@@ -157,21 +148,12 @@ public class CitationGraphService {
         continue;
       }
 
-      BibTexEntry existing = work.doi() != null ? existingByDoi.get(work.doi()) : null;
-      String citeKey;
-      if (existing != null) {
-        citeKey = existing.getCiteKey();
+      ResolveOrCreateResult result = resolveOrCreateEntry(work, projectId, existing);
+      if (!result.created()) {
         linked++;
-        ctx.log("Linking to existing entry %s: %s".formatted(citeKey, work.title()));
+        ctx.log("Linking to existing entry %s: %s".formatted(result.citeKey(), work.title()));
       } else {
-        citeKey = bibTexSynthesisService.generateUniqueCiteKey(work, existingCiteKeys);
-        existingCiteKeys.add(citeKey);
-        String rawBibtex = bibTexSynthesisService.synthesizeRawBibTex(work, citeKey);
-        BibTexEntry newEntry = bibTexConverterService.parseToEntries(rawBibtex, projectId).get(0);
-        bibTexEntryRepository.save(newEntry);
-        if (work.doi() != null) {
-          existingByDoi.put(work.doi(), newEntry);
-        } else {
+        if (work.doi() == null) {
           saveUnresolved(
               projectId,
               sourceCiteKey,
@@ -183,10 +165,10 @@ public class CitationGraphService {
               REASON_MISSING_DOI);
         }
         added++;
-        ctx.log("Added new entry %s: %s".formatted(citeKey, work.title()));
+        ctx.log("Added new entry %s: %s".formatted(result.citeKey(), work.title()));
       }
 
-      citationEdgeRepository.save(makeEdge(projectId, sourceCiteKey, citeKey, direction));
+      citationEdgeRepository.save(makeEdge(projectId, sourceCiteKey, result.citeKey(), direction));
     }
 
     ctx.log(
@@ -194,25 +176,41 @@ public class CitationGraphService {
             .formatted(added, added == 1 ? "entry" : "entries", linked, unresolved));
   }
 
-  private record ResolverResult(CitationMetadataResolver resolver, ResolvedWork work) {}
+  /**
+   * The result of a successful cross-resolver DOI lookup: which resolver found it, and what it
+   * found. Package-visible so {@link BulkCitationUploadFromACMDLViewAllService} can reuse the same
+   * waterfall this class uses to discover a "source" entry's own record.
+   */
+  record ResolverResult(CitationMetadataResolver resolver, ResolvedWork work) {}
 
   /**
-   * Tries each resolver in priority order until one has a record for {@code doi}. Throws if none
-   * do, listing every resolver tried.
+   * Tries each resolver in priority order until one has a record for {@code doi}, returning empty
+   * if none do. Package-visible for reuse by {@link BulkCitationUploadFromACMDLViewAllService},
+   * whose DOI sanity check treats "no resolver has ever heard of this DOI" as its invalidity
+   * signal.
    */
-  private ResolverResult resolveSourceWork(String doi, JobContext ctx) {
+  Optional<ResolverResult> tryResolveByDoi(String doi) {
     for (CitationMetadataResolver resolver : resolversInPriorityOrder) {
       Optional<ResolvedWork> found = resolver.resolveByDoi(doi);
       if (found.isPresent()) {
-        return new ResolverResult(resolver, found.get());
+        return Optional.of(new ResolverResult(resolver, found.get()));
       }
     }
-    String triedNames =
-        resolversInPriorityOrder.stream()
-            .map(CitationMetadataResolver::name)
-            .collect(Collectors.joining(", "));
-    ctx.log("No record found for DOI %s in any of: %s".formatted(doi, triedNames));
-    throw new IllegalStateException("No record found for DOI: " + doi);
+    return Optional.empty();
+  }
+
+  /** Like {@link #tryResolveByDoi}, but throws (after logging every resolver tried) if none do. */
+  private ResolverResult resolveSourceWork(String doi, JobContext ctx) {
+    return tryResolveByDoi(doi)
+        .orElseThrow(
+            () -> {
+              String triedNames =
+                  resolversInPriorityOrder.stream()
+                      .map(CitationMetadataResolver::name)
+                      .collect(Collectors.joining(", "));
+              ctx.log("No record found for DOI %s in any of: %s".formatted(doi, triedNames));
+              return new IllegalStateException("No record found for DOI: " + doi);
+            });
   }
 
   /**
@@ -221,8 +219,10 @@ public class CitationGraphService {
    * with no DOI at all (e.g. a Crossref reference item that is pure unstructured free text) has
    * nothing any resolver's DOI lookup could use, so is not attempted — see the design doc's
    * explicit non-goal around fuzzy/bibliographic title search.
+   *
+   * <p>Package-visible for reuse by {@link BulkCitationUploadFromACMDLViewAllService}.
    */
-  private ResolvedWork tryRecoverMissingTitle(
+  ResolvedWork tryRecoverMissingTitle(
       ResolvedWork stub, CitationMetadataResolver discoveryResolver, JobContext ctx) {
     if (stub.doi() == null || stub.doi().isBlank()) {
       return null;
@@ -238,6 +238,75 @@ public class CitationGraphService {
       }
     }
     return null;
+  }
+
+  /**
+   * A project's existing entries, indexed for fast dedup lookups during resolve-or-create: {@code
+   * byDoi} to detect an entry that already represents a given DOI, {@code citeKeys} to keep newly
+   * generated citeKeys from colliding with ones already in use. Both are mutated in place by {@link
+   * #resolveOrCreateEntry} as new entries are created, so a single instance should be reused across
+   * every work resolved in one job run — see that method's doc.
+   */
+  record ExistingEntries(Map<String, BibTexEntry> byDoi, Set<String> citeKeys) {}
+
+  /**
+   * Builds a snapshot of {@code projectId}'s existing entries for {@link #resolveOrCreateEntry} to
+   * dedup against. Package-visible for reuse by {@link BulkCitationUploadFromACMDLViewAllService}.
+   */
+  ExistingEntries loadExistingEntries(int projectId) {
+    Map<String, BibTexEntry> byDoi = new HashMap<>();
+    Set<String> citeKeys = new HashSet<>();
+    for (BibTexEntry entry : bibTexEntryRepository.findByProjectId(projectId)) {
+      citeKeys.add(entry.getCiteKey());
+      String entryDoi =
+          entry.getKeyValuePairs() != null ? entry.getKeyValuePairs().get("doi") : null;
+      if (entryDoi != null) {
+        byDoi.put(entryDoi, entry);
+      }
+    }
+    return new ExistingEntries(byDoi, citeKeys);
+  }
+
+  /** Whether {@link #resolveOrCreateEntry} linked to an existing entry or created a new one. */
+  record ResolveOrCreateResult(String citeKey, boolean created) {}
+
+  /**
+   * Returns the citeKey of the existing entry representing {@code work}'s DOI, if {@code existing}
+   * already has one; otherwise synthesizes, saves, and indexes a new {@link BibTexEntry} for it and
+   * returns that new entry's citeKey. Mutates {@code existing} in place so a second work with the
+   * same DOI (or that generates a colliding citeKey) is caught in the same run. Package-visible for
+   * reuse by {@link BulkCitationUploadFromACMDLViewAllService}.
+   */
+  ResolveOrCreateResult resolveOrCreateEntry(
+      ResolvedWork work, int projectId, ExistingEntries existing) {
+    BibTexEntry existingEntry = work.doi() != null ? existing.byDoi().get(work.doi()) : null;
+    if (existingEntry != null) {
+      return new ResolveOrCreateResult(existingEntry.getCiteKey(), false);
+    }
+    String citeKey = bibTexSynthesisService.generateUniqueCiteKey(work, existing.citeKeys());
+    existing.citeKeys().add(citeKey);
+    String rawBibtex = bibTexSynthesisService.synthesizeRawBibTex(work, citeKey);
+    BibTexEntry newEntry = bibTexConverterService.parseToEntries(rawBibtex, projectId).get(0);
+    bibTexEntryRepository.save(newEntry);
+    if (work.doi() != null) {
+      existing.byDoi().put(work.doi(), newEntry);
+    }
+    return new ResolveOrCreateResult(citeKey, true);
+  }
+
+  /**
+   * Saves a "{@code citingCiteKey} cites {@code citedCiteKey}" edge directly, for callers (like
+   * {@link BulkCitationUploadFromACMDLViewAllService}) that already know which side is which,
+   * rather than a source-relative {@link Direction}.
+   */
+  void saveCitationEdge(int projectId, String citingCiteKey, String citedCiteKey) {
+    citationEdgeRepository.save(
+        CitationEdge.builder()
+            .id(CitationEdge.makeId(projectId, citingCiteKey, citedCiteKey))
+            .projectId(projectId)
+            .citingCiteKey(citingCiteKey)
+            .citedCiteKey(citedCiteKey)
+            .build());
   }
 
   private List<ResolvedWork> fetchReferencedWorks(

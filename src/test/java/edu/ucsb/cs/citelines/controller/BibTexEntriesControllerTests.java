@@ -3,6 +3,9 @@ package edu.ucsb.cs.citelines.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,10 +24,12 @@ import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
 import edu.ucsb.cs.citelines.config.ProjectSecurity;
 import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.entity.ProjectCollaborator;
+import edu.ucsb.cs.citelines.errors.DoiNotFoundException;
 import edu.ucsb.cs.citelines.repository.ProjectCollaboratorRepository;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
 import edu.ucsb.cs.citelines.services.BibTexConverterService;
 import edu.ucsb.cs.citelines.services.DOIService;
+import edu.ucsb.cs.citelines.services.DoiToBibTexService;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,6 +55,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
   @MockitoBean ProjectCollaboratorRepository projectCollaboratorRepository;
   @MockitoBean BibTexEntryRepository bibTexEntryRepository;
   @MockitoBean CitationEdgeRepository citationEdgeRepository;
+  @MockitoBean DoiToBibTexService doiToBibTexService;
 
   private static final String RAW_BIBTEX =
       """
@@ -65,6 +71,14 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
   public void logged_out_users_cannot_post() throws Exception {
     mockMvc
         .perform(post("/api/bibtexentries/post?projectId=1").content(RAW_BIBTEX))
+        .andExpect(status().is(403));
+  }
+
+  @Test
+  public void logged_out_users_cannot_post_by_doi() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/postByDoi?projectId=1").content("10.1038/s41586-020-2649-2"))
         .andExpect(status().is(403));
   }
 
@@ -984,5 +998,182 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
     mockMvc
         .perform(delete("/api/bibtexentries/comments/draft?id=missing&projectId=1").with(csrf()))
         .andExpect(status().isNotFound());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_post_a_citation_via_doi_and_it_is_resolved_and_saved() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(doiToBibTexService.findExistingEntryForDoi("10.1038/s41586-020-2649-2", 1))
+        .thenReturn(Optional.empty());
+    when(doiToBibTexService.resolveToBibTex("10.1038/s41586-020-2649-2", 1, "High"))
+        .thenReturn(RAW_BIBTEX);
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                post("/api/bibtexentries/postByDoi?projectId=1&relevance=High")
+                    .content("10.1038/s41586-020-2649-2")
+                    .with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> body =
+        mapper.readValue(response.getResponse().getContentAsString(), List.class);
+    assertEquals(1, body.size());
+    assertEquals("smith2020", body.get(0).get("citeKey"));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void posting_an_unresolvable_doi_returns_not_found_and_saves_nothing() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(doiToBibTexService.findExistingEntryForDoi("10.9999/nonexistent", 1))
+        .thenReturn(Optional.empty());
+    when(doiToBibTexService.resolveToBibTex("10.9999/nonexistent", 1, null))
+        .thenThrow(new DoiNotFoundException("10.9999/nonexistent"));
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                post("/api/bibtexentries/postByDoi?projectId=1")
+                    .content("10.9999/nonexistent")
+                    .with(csrf()))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+    Map<String, Object> json = responseToJson(response);
+    assertEquals("Could not find a citation for DOI: 10.9999/nonexistent", json.get("message"));
+    verify(bibTexEntryRepository, times(0)).saveAll(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void posting_a_doi_that_already_has_an_entry_links_to_it_instead_of_creating_a_duplicate()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existingEntry =
+        BibTexEntry.builder()
+            .id("existing-id")
+            .projectId(1)
+            .citeKey("smith2020")
+            .keyValuePairs(Map.of("doi", "10.1038/s41586-020-2649-2"))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(doiToBibTexService.findExistingEntryForDoi("10.1038/s41586-020-2649-2", 1))
+        .thenReturn(Optional.of(existingEntry));
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                post("/api/bibtexentries/postByDoi?projectId=1&relatedCiteKey=paper2021"
+                        + "&relationship=citation")
+                    .content("10.1038/s41586-020-2649-2")
+                    .with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> body =
+        mapper.readValue(response.getResponse().getContentAsString(), List.class);
+    assertEquals(1, body.size());
+    assertEquals("smith2020", body.get(0).get("citeKey"));
+
+    verify(doiToBibTexService, never()).resolveToBibTex(anyString(), anyInt(), any());
+    verify(bibTexEntryRepository, never()).saveAll(any());
+    org.mockito.ArgumentCaptor<CitationEdge> edgeCaptor =
+        org.mockito.ArgumentCaptor.forClass(CitationEdge.class);
+    verify(citationEdgeRepository, times(1)).save(edgeCaptor.capture());
+    assertEquals("smith2020", edgeCaptor.getValue().getCitingCiteKey());
+    assertEquals("paper2021", edgeCaptor.getValue().getCitedCiteKey());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void
+      posting_a_doi_that_already_has_an_entry_with_no_relationship_just_returns_it_and_saves_no_edge()
+          throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existingEntry =
+        BibTexEntry.builder()
+            .id("existing-id")
+            .projectId(1)
+            .citeKey("smith2020")
+            .keyValuePairs(Map.of("doi", "10.1038/s41586-020-2649-2"))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(doiToBibTexService.findExistingEntryForDoi("10.1038/s41586-020-2649-2", 1))
+        .thenReturn(Optional.of(existingEntry));
+
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/postByDoi?projectId=1")
+                .content("10.1038/s41586-020-2649-2")
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    verify(doiToBibTexService, never()).resolveToBibTex(anyString(), anyInt(), any());
+    verify(citationEdgeRepository, never()).save(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void
+      posting_a_doi_that_already_has_an_entry_with_only_a_relatedCiteKey_and_no_relationship_saves_no_edge()
+          throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existingEntry =
+        BibTexEntry.builder()
+            .id("existing-id")
+            .projectId(1)
+            .citeKey("smith2020")
+            .keyValuePairs(Map.of("doi", "10.1038/s41586-020-2649-2"))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(doiToBibTexService.findExistingEntryForDoi("10.1038/s41586-020-2649-2", 1))
+        .thenReturn(Optional.of(existingEntry));
+
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/postByDoi?projectId=1&relatedCiteKey=paper2021")
+                .content("10.1038/s41586-020-2649-2")
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    verify(citationEdgeRepository, never()).save(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void posting_by_doi_with_an_invalid_relationship_returns_a_bad_request() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/postByDoi?projectId=1&relatedCiteKey=paper2021"
+                    + "&relationship=bogus")
+                .content("10.1038/s41586-020-2649-2")
+                .with(csrf()))
+        .andExpect(status().isBadRequest());
+
+    verify(doiToBibTexService, never()).findExistingEntryForDoi(anyString(), anyInt());
+    verify(citationEdgeRepository, never()).save(any());
   }
 }
