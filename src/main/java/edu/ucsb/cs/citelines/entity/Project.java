@@ -21,4 +21,11 @@ public class Project {
   private LocalDateTime dateCreated;
 
   private String owner;
+
+  /**
+   * The chosen citation format/style for this project's references, one of the keys of {@link
+   * edu.ucsb.cs.citelines.services.CitationFormattingService#COMMON_ALIASES}. Defaults to {@code
+   * "ACM"}.
+   */
+  @Builder.Default private String citationFormat = "ACM";
 }

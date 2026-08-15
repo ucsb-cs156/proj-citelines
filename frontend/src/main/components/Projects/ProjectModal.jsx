@@ -2,6 +2,11 @@ import Modal from "react-bootstrap/Modal";
 import { Form } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { useEffect } from "react";
+import {
+  CITATION_FORMAT_OPTIONS,
+  getLastCitationFormat,
+  setLastCitationFormat,
+} from "main/utils/citationFormats";
 
 export default function ProjectModal({
   onSubmitAction,
@@ -18,13 +23,22 @@ export default function ProjectModal({
     reset,
   } = useForm({});
 
-  // Reset form when initialContents changes (e.g., when editing)
+  // Reset form when initialContents changes (e.g., when editing). When creating a new project
+  // (no initialContents), default citationFormat to the last one the user chose.
   useEffect(() => {
-    reset(initialContents);
+    reset({
+      citationFormat: getLastCitationFormat(),
+      ...initialContents,
+    });
   }, [initialContents, reset]);
 
   const closeModal = () => {
     toggleShowModal(false);
+  };
+
+  const onSubmit = (data) => {
+    setLastCitationFormat(data.citationFormat);
+    onSubmitAction(data);
   };
 
   return (
@@ -44,7 +58,7 @@ export default function ProjectModal({
           onClick={closeModal}
         ></button>
       </Modal.Header>
-      <Form onSubmit={handleSubmit(onSubmitAction)}>
+      <Form onSubmit={handleSubmit(onSubmit)}>
         <Modal.Body>
           <Form.Group className="mb-3">
             <Form.Label htmlFor="name">Project Name</Form.Label>
@@ -61,7 +75,7 @@ export default function ProjectModal({
               {errors.name?.message}
             </Form.Control.Feedback>
           </Form.Group>
-          <Form.Group>
+          <Form.Group className="mb-3">
             <Form.Label htmlFor="description">Description</Form.Label>
             <Form.Control
               data-testid={"ProjectModal-description"}
@@ -76,6 +90,20 @@ export default function ProjectModal({
             <Form.Control.Feedback type="invalid">
               {errors.description?.message}
             </Form.Control.Feedback>
+          </Form.Group>
+          <Form.Group>
+            <Form.Label htmlFor="citationFormat">Citation Format</Form.Label>
+            <Form.Select
+              data-testid={"ProjectModal-citationFormat"}
+              id="citationFormat"
+              {...register("citationFormat")}
+            >
+              {CITATION_FORMAT_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </Form.Select>
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>

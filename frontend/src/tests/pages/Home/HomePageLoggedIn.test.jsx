@@ -157,6 +157,7 @@ describe("HomePageLoggedIn tests", () => {
     expect(axiosMock.history.post[0].params).toEqual({
       name: "Citation Graphs",
       description: "A project about citation graphs",
+      citationFormat: "ACM",
     });
     await waitFor(() =>
       expect(mockToast).toHaveBeenCalledWith("Project Citation Graphs created"),

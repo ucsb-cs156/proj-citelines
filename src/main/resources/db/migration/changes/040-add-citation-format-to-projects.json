@@ -1,0 +1,43 @@
+{
+  "databaseChangeLog": [
+    {
+      "changeSet": {
+        "id": "040-add-citation-format-to-projects",
+        "author": "pc",
+        "preConditions": [
+          { "onFail": "MARK_RAN" },
+          {
+            "and": [
+              { "tableExists": { "tableName": "project" } },
+              { "not": { "columnExists": { "tableName": "project", "columnName": "citation_format" } } }
+            ]
+          }
+        ],
+        "changes": [
+          {
+            "addColumn": {
+              "tableName": "project",
+              "columns": [
+                {
+                  "column": {
+                    "name": "citation_format",
+                    "type": "VARCHAR(50)",
+                    "defaultValue": "ACM",
+                    "constraints": { "nullable": false }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "addCheckConstraint": {
+              "tableName": "project",
+              "constraintName": "citation_format_valid",
+              "checkCondition": "citation_format IN ('APA', 'MLA', 'ACM', 'IEEE', 'CHICAGO-AUTHOR-DATE', 'CHICAGO-FULLNOTE', 'HARVARD', 'VANCOUVER', 'NATURE', 'SCIENCE')"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

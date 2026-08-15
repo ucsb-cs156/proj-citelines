@@ -49,6 +49,7 @@ export default function HomePageLoggedIn() {
     params: {
       name: project.name,
       description: project.description,
+      citationFormat: project.citationFormat,
     },
   });
 
