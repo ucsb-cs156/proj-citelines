@@ -9,6 +9,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
 import org.jbibtex.BibTeXDatabase;
 import org.jbibtex.Key;
@@ -23,9 +24,9 @@ import org.springframework.stereotype.Service;
  * Rendering happens entirely offline (no network calls), using CSL styles bundled with the {@code
  * org.citationstyles:styles} dependency. See {@code docs/design/citation-apis.md}.
  */
-<span class="fc" id="L26">@Slf4j</span>
+<span class="fc" id="L27">@Slf4j</span>
 @Service
-<span class="fc" id="L28">public class CitationFormattingService {</span>
+<span class="fc" id="L29">public class CitationFormattingService {</span>
 
   @Autowired BibTexConverterService bibTexConverterService;
 
@@ -34,6 +35,16 @@ import org.springframework.stereotype.Service;
 
   /** Default CSL style, used when {@code styleFormat} is not recognized. */
   public static final String DEFAULT_STYLE = &quot;apa&quot;;
+
+  /**
+   * Matches a leading citation-number label that some CSL styles (e.g. ACM, IEEE, Vancouver,
+   * Nature, Science) prepend to each bibliography entry, either as {@code &quot;[1]&quot;} or {@code &quot;1.&quot;}
+   * followed by whitespace. That label is meant for print bibliographies with numbered in-text
+   * citations, but is not wanted when displaying a single formatted reference in this app, so it
+   * is stripped from every rendered entry regardless of style; see {@link #formatBibTex}.
+   */
+<span class="fc" id="L46">  private static final Pattern LEADING_CITATION_NUMBER =</span>
+<span class="fc" id="L47">      Pattern.compile(&quot;^(\\[\\d+\\]|\\d+\\.)\\s*&quot;);</span>
 
   /**
    * Friendly, all-caps aliases for some commonly requested citation styles, mapped to the CSL style
@@ -46,18 +57,18 @@ import org.springframework.stereotype.Service;
    * frontend/src/main/utils/citationFormats.js}; if you add/remove/rename a format here, update
    * that file to match.
    */
-<span class="fc" id="L49">  public static final Map&lt;String, String&gt; COMMON_ALIASES =</span>
-<span class="fc" id="L50">      Map.ofEntries(</span>
-<span class="fc" id="L51">          Map.entry(&quot;APA&quot;, &quot;apa&quot;),</span>
-<span class="fc" id="L52">          Map.entry(&quot;MLA&quot;, &quot;modern-language-association&quot;),</span>
-<span class="fc" id="L53">          Map.entry(&quot;ACM&quot;, &quot;association-for-computing-machinery&quot;),</span>
-<span class="fc" id="L54">          Map.entry(&quot;IEEE&quot;, &quot;ieee&quot;),</span>
-<span class="fc" id="L55">          Map.entry(&quot;CHICAGO-AUTHOR-DATE&quot;, &quot;chicago-author-date&quot;),</span>
-<span class="fc" id="L56">          Map.entry(&quot;CHICAGO-FULLNOTE&quot;, &quot;chicago-notes-bibliography&quot;),</span>
-<span class="fc" id="L57">          Map.entry(&quot;HARVARD&quot;, &quot;harvard-cite-them-right&quot;),</span>
-<span class="fc" id="L58">          Map.entry(&quot;VANCOUVER&quot;, &quot;dependent/vancouver-nlm&quot;),</span>
-<span class="fc" id="L59">          Map.entry(&quot;NATURE&quot;, &quot;nature&quot;),</span>
-<span class="fc" id="L60">          Map.entry(&quot;SCIENCE&quot;, &quot;science&quot;));</span>
+<span class="fc" id="L60">  public static final Map&lt;String, String&gt; COMMON_ALIASES =</span>
+<span class="fc" id="L61">      Map.ofEntries(</span>
+<span class="fc" id="L62">          Map.entry(&quot;APA&quot;, &quot;apa&quot;),</span>
+<span class="fc" id="L63">          Map.entry(&quot;MLA&quot;, &quot;modern-language-association&quot;),</span>
+<span class="fc" id="L64">          Map.entry(&quot;ACM&quot;, &quot;association-for-computing-machinery&quot;),</span>
+<span class="fc" id="L65">          Map.entry(&quot;IEEE&quot;, &quot;ieee&quot;),</span>
+<span class="fc" id="L66">          Map.entry(&quot;CHICAGO-AUTHOR-DATE&quot;, &quot;chicago-author-date&quot;),</span>
+<span class="fc" id="L67">          Map.entry(&quot;CHICAGO-FULLNOTE&quot;, &quot;chicago-notes-bibliography&quot;),</span>
+<span class="fc" id="L68">          Map.entry(&quot;HARVARD&quot;, &quot;harvard-cite-them-right&quot;),</span>
+<span class="fc" id="L69">          Map.entry(&quot;VANCOUVER&quot;, &quot;dependent/vancouver-nlm&quot;),</span>
+<span class="fc" id="L70">          Map.entry(&quot;NATURE&quot;, &quot;nature&quot;),</span>
+<span class="fc" id="L71">          Map.entry(&quot;SCIENCE&quot;, &quot;science&quot;));</span>
 
   /**
    * Resolves a friendly style alias (see {@link #COMMON_ALIASES}, case-insensitive) to a CSL style
@@ -66,10 +77,10 @@ import org.springframework.stereotype.Service;
    * #DEFAULT_STYLE} is used.
    */
   public String resolveStyle(String styleFormat) {
-<span class="fc bfc" id="L69" title="All 4 branches covered.">    if (styleFormat == null || styleFormat.isBlank()) {</span>
-<span class="fc" id="L70">      return DEFAULT_STYLE;</span>
+<span class="fc bfc" id="L80" title="All 4 branches covered.">    if (styleFormat == null || styleFormat.isBlank()) {</span>
+<span class="fc" id="L81">      return DEFAULT_STYLE;</span>
     }
-<span class="fc" id="L72">    return COMMON_ALIASES.getOrDefault(styleFormat.toUpperCase(), styleFormat);</span>
+<span class="fc" id="L83">    return COMMON_ALIASES.getOrDefault(styleFormat.toUpperCase(), styleFormat);</span>
   }
 
   /**
@@ -86,61 +97,56 @@ import org.springframework.stereotype.Service;
    *     {@code styleFormat}/{@code outputFormat} do not resolve to a style/format known to CSL
    */
   public String formatBibTex(String rawBibTex, String styleFormat, String outputFormat) {
-<span class="fc bfc" id="L89" title="All 4 branches covered.">    if (rawBibTex == null || rawBibTex.isBlank()) {</span>
-<span class="fc" id="L90">      throw new IllegalArgumentException(&quot;BibTeX text must not be empty.&quot;);</span>
+<span class="fc bfc" id="L100" title="All 4 branches covered.">    if (rawBibTex == null || rawBibTex.isBlank()) {</span>
+<span class="fc" id="L101">      throw new IllegalArgumentException(&quot;BibTeX text must not be empty.&quot;);</span>
     }
 
-<span class="fc" id="L93">    String cslStyle = resolveStyle(styleFormat);</span>
+<span class="fc" id="L104">    String cslStyle = resolveStyle(styleFormat);</span>
     String cslOutputFormat =
-<span class="fc bfc" id="L95" title="All 4 branches covered.">        outputFormat == null || outputFormat.isBlank() ? DEFAULT_OUTPUT_FORMAT : outputFormat;</span>
+<span class="fc bfc" id="L106" title="All 4 branches covered.">        outputFormat == null || outputFormat.isBlank() ? DEFAULT_OUTPUT_FORMAT : outputFormat;</span>
 
     BibTeXDatabase database;
     try {
-<span class="fc" id="L99">      database =</span>
+<span class="fc" id="L110">      database =</span>
           new BibTeXConverter()
-<span class="fc" id="L101">              .loadDatabase(new ByteArrayInputStream(rawBibTex.getBytes(StandardCharsets.UTF_8)));</span>
-<span class="fc" id="L102">    } catch (ParseException | TokenMgrException e) {</span>
-<span class="fc" id="L103">      throw new IllegalArgumentException(&quot;Could not parse BibTeX: &quot; + e.getMessage(), e);</span>
-<span class="fc" id="L104">    }</span>
+<span class="fc" id="L112">              .loadDatabase(new ByteArrayInputStream(rawBibTex.getBytes(StandardCharsets.UTF_8)));</span>
+<span class="fc" id="L113">    } catch (ParseException | TokenMgrException e) {</span>
+<span class="fc" id="L114">      throw new IllegalArgumentException(&quot;Could not parse BibTeX: &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L115">    }</span>
 
-<span class="fc bfc" id="L106" title="All 2 branches covered.">    if (database.getEntries().isEmpty()) {</span>
-<span class="fc" id="L107">      throw new IllegalArgumentException(&quot;No BibTeX entries were found in the pasted text.&quot;);</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">    if (database.getEntries().isEmpty()) {</span>
+<span class="fc" id="L118">      throw new IllegalArgumentException(&quot;No BibTeX entries were found in the pasted text.&quot;);</span>
     }
 
-<span class="fc" id="L110">    BibTeXItemDataProvider provider = new BibTeXItemDataProvider();</span>
-<span class="fc" id="L111">    provider.addDatabase(database);</span>
+<span class="fc" id="L121">    BibTeXItemDataProvider provider = new BibTeXItemDataProvider();</span>
+<span class="fc" id="L122">    provider.addDatabase(database);</span>
 
     CSL csl;
     try {
-<span class="fc" id="L115">      csl = new CSL(provider, cslStyle);</span>
-<span class="fc" id="L116">      csl.setOutputFormat(cslOutputFormat);</span>
-<span class="fc" id="L117">    } catch (IOException e) {</span>
-<span class="fc" id="L118">      throw new IllegalArgumentException(</span>
-<span class="fc" id="L119">          &quot;Could not load CSL style '&quot; + cslStyle + &quot;': &quot; + e.getMessage(), e);</span>
-<span class="fc" id="L120">    }</span>
+<span class="fc" id="L126">      csl = new CSL(provider, cslStyle);</span>
+<span class="fc" id="L127">      csl.setOutputFormat(cslOutputFormat);</span>
+<span class="fc" id="L128">    } catch (IOException e) {</span>
+<span class="fc" id="L129">      throw new IllegalArgumentException(</span>
+<span class="fc" id="L130">          &quot;Could not load CSL style '&quot; + cslStyle + &quot;': &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L131">    }</span>
 
-<span class="fc" id="L122">    csl.registerCitationItems(</span>
-<span class="fc" id="L123">        database.getEntries().keySet().stream().map(Key::getValue).toArray(String[]::new));</span>
+<span class="fc" id="L133">    csl.registerCitationItems(</span>
+<span class="fc" id="L134">        database.getEntries().keySet().stream().map(Key::getValue).toArray(String[]::new));</span>
 
-<span class="fc" id="L125">    Bibliography bibliography = csl.makeBibliography();</span>
-<span class="fc" id="L126">    StringBuilder result = new StringBuilder();</span>
-<span class="fc bfc" id="L127" title="All 2 branches covered.">    for (String entry : bibliography.getEntries()) {</span>
-<span class="fc" id="L128">      result.append(stripLeadingCitationNumber(entry.trim(), cslStyle)).append(&quot;\n&quot;);</span>
+<span class="fc" id="L136">    Bibliography bibliography = csl.makeBibliography();</span>
+<span class="fc" id="L137">    StringBuilder result = new StringBuilder();</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">    for (String entry : bibliography.getEntries()) {</span>
+<span class="fc" id="L139">      result.append(stripLeadingCitationNumber(entry.trim())).append(&quot;\n&quot;);</span>
     }
-<span class="fc" id="L130">    return result.toString().trim();</span>
+<span class="fc" id="L141">    return result.toString().trim();</span>
   }
 
   /**
-   * The ACM CSL style renders each bibliography entry with a leading {@code [n]} citation-number
-   * label (e.g. {@code &quot;[1]Smith, J. ...&quot;}). That label is meant for print bibliographies with
-   * numbered in-text citations, but is not wanted when displaying a single formatted reference in
-   * this app, so it is stripped here at the source for the ACM style.
+   * Strips the leading citation-number label (see {@link #LEADING_CITATION_NUMBER}) from a
+   * rendered bibliography entry. Package-private for direct unit testing.
    */
-  private String stripLeadingCitationNumber(String entry, String cslStyle) {
-<span class="fc bfc" id="L140" title="All 2 branches covered.">    if (!&quot;association-for-computing-machinery&quot;.equals(cslStyle)) {</span>
-<span class="fc" id="L141">      return entry;</span>
-    }
-<span class="fc" id="L143">    return entry.replaceFirst(&quot;^\\[\\d+\\]\\s*&quot;, &quot;&quot;);</span>
+  String stripLeadingCitationNumber(String entry) {
+<span class="fc" id="L149">    return LEADING_CITATION_NUMBER.matcher(entry).replaceFirst(&quot;&quot;);</span>
   }
 
   /**
@@ -152,8 +158,8 @@ import org.springframework.stereotype.Service;
    */
   public String formatEntry(BibTexEntry entry, String styleFormat, String outputFormat)
       throws IOException {
-<span class="fc" id="L155">    String rawBibTex = bibTexConverterService.convertEntryToBibTexString(entry);</span>
-<span class="fc" id="L156">    return formatBibTex(rawBibTex, styleFormat, outputFormat);</span>
+<span class="fc" id="L161">    String rawBibTex = bibTexConverterService.convertEntryToBibTexString(entry);</span>
+<span class="fc" id="L162">    return formatBibTex(rawBibTex, styleFormat, outputFormat);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
