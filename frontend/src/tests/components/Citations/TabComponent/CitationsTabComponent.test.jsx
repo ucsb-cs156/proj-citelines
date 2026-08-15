@@ -39,11 +39,14 @@ describe("CitationsTabComponent tests", () => {
       .reply(200, bibTexEntriesFixtures.threeEntries);
   });
 
-  test("renders the Add Citation button and the citation table", async () => {
+  test("renders the Add Citation via BibTex and Add Citation via DOI buttons, and the citation table", async () => {
     renderTab();
 
     expect(
       screen.getByTestId("CitationsTabComponent-post-button"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("CitationsTabComponent-doi-button"),
     ).toBeInTheDocument();
 
     await waitFor(() => {
@@ -55,7 +58,7 @@ describe("CitationsTabComponent tests", () => {
     });
   });
 
-  test("clicking Add Citation opens a create modal and posting adds a citation", async () => {
+  test("clicking Add Citation via BibTex opens a create modal and posting adds a citation", async () => {
     axiosMock
       .onPost("/api/bibtexentries/post")
       .reply(200, [bibTexEntriesFixtures.oneEntry]);
@@ -74,6 +77,34 @@ describe("CitationsTabComponent tests", () => {
 
     await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
     expect(axiosMock.history.post[0].params).toEqual({ projectId: 1 });
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith("Citation added successfully"),
+    );
+  });
+
+  test("clicking Add Citation via DOI opens a create modal and posting adds a citation", async () => {
+    axiosMock
+      .onPost("/api/bibtexentries/postByDoi")
+      .reply(200, [bibTexEntriesFixtures.oneEntry]);
+
+    renderTab();
+
+    fireEvent.click(screen.getByTestId("CitationsTabComponent-doi-button"));
+
+    await screen.findByTestId("DoiEntryModal-doi");
+    expect(screen.getByTestId("DoiEntryModal-base")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("DoiEntryModal-doi"), {
+      target: { value: "10.1038/s41586-020-2649-2" },
+    });
+    fireEvent.click(screen.getByTestId("DoiEntryModal-submit"));
+
+    await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+    expect(axiosMock.history.post[0].params).toEqual({
+      projectId: 1,
+      relevance: "Unreviewed",
+    });
+    expect(axiosMock.history.post[0].data).toBe("10.1038/s41586-020-2649-2");
     await waitFor(() =>
       expect(mockToast).toHaveBeenCalledWith("Citation added successfully"),
     );

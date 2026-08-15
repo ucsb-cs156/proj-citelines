@@ -7,6 +7,7 @@ import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
 import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
 import edu.ucsb.cs.citelines.services.BibTexConverterService;
 import edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService;
+import edu.ucsb.cs.citelines.services.DoiToBibTexService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -47,6 +48,8 @@ public class BibTexEntriesController extends ApiController {
   @Autowired private CitationEdgeRepository citationEdgeRepository;
 
   @Autowired private BibTexEntryCoalescingService bibTexEntryCoalescingService;
+
+  @Autowired private DoiToBibTexService doiToBibTexService;
 
   /**
    * Parses pasted BibTeX text (which may contain more than one entry) and saves the resulting
@@ -95,6 +98,30 @@ public class BibTexEntriesController extends ApiController {
     }
 
     return saved;
+  }
+
+  /**
+   * Resolves a DOI to a BibTeX entry (via {@link DoiToBibTexService}) and saves it, exactly as
+   * {@link #postBibTexEntries} would for the equivalent pasted BibTeX text — see issue #63.
+   *
+   * @param projectId the project the entry belongs to
+   * @param relatedCiteKey the citeKey of the entry to link the new entry to, if any
+   * @param relationship {@code "reference"} or {@code "citation"}, if linking to a related entry
+   * @param relevance the CITELINES_relevance value to attach to the new entry, if any
+   * @param rawDoi the DOI to resolve
+   * @return the saved entry, as a single-element list (matching {@link #postBibTexEntries}'s shape)
+   */
+  @Operation(summary = "Resolve a DOI to a BibTeX entry and save it")
+  @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
+  @PostMapping("/postByDoi")
+  public List<BibTexEntry> postBibTexEntryByDoi(
+      @Parameter(name = "projectId") @RequestParam Long projectId,
+      @Parameter(name = "relatedCiteKey") @RequestParam(required = false) String relatedCiteKey,
+      @Parameter(name = "relationship") @RequestParam(required = false) String relationship,
+      @Parameter(name = "relevance") @RequestParam(required = false) String relevance,
+      @RequestBody String rawDoi) {
+    String rawBibTex = doiToBibTexService.resolveToBibTex(rawDoi, projectId.intValue(), relevance);
+    return postBibTexEntries(projectId, relatedCiteKey, relationship, rawBibTex);
   }
 
   // A pasted entry may share a citeKey with one already stored for this project (e.g. a paper
