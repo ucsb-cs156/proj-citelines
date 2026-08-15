@@ -40,8 +40,8 @@ public class CitationFormattingService {
    * Matches a leading citation-number label that some CSL styles (e.g. ACM, IEEE, Vancouver,
    * Nature, Science) prepend to each bibliography entry, either as {@code "[1]"} or {@code "1."}
    * followed by whitespace. That label is meant for print bibliographies with numbered in-text
-   * citations, but is not wanted when displaying a single formatted reference in this app, so it
-   * is stripped from every rendered entry regardless of style; see {@link #formatBibTex}.
+   * citations, but is not wanted when displaying a single formatted reference in this app, so it is
+   * stripped from every rendered entry regardless of style; see {@link #formatBibTex}.
    */
   private static final Pattern LEADING_CITATION_NUMBER =
       Pattern.compile("^(\\[\\d+\\]|\\d+\\.)\\s*");
@@ -142,8 +142,8 @@ public class CitationFormattingService {
   }
 
   /**
-   * Strips the leading citation-number label (see {@link #LEADING_CITATION_NUMBER}) from a
-   * rendered bibliography entry. Package-private for direct unit testing.
+   * Strips the leading citation-number label (see {@link #LEADING_CITATION_NUMBER}) from a rendered
+   * bibliography entry. Package-private for direct unit testing.
    */
   String stripLeadingCitationNumber(String entry) {
     return LEADING_CITATION_NUMBER.matcher(entry).replaceFirst("");
