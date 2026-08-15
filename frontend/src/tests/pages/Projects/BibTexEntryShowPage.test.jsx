@@ -506,7 +506,7 @@ describe("BibTexEntryShowPage tests", () => {
     expect(editButton).toHaveClass("btn-sm");
 
     const deleteButton = screen.getByTestId(
-      "BibTexEntryShowPage-delete-row2-button",
+      "BibTexEntryShowPage-delete-button-sm",
     );
     expect(deleteButton).toHaveTextContent("Delete");
     expect(deleteButton).toHaveClass("btn-danger");
@@ -549,11 +549,9 @@ describe("BibTexEntryShowPage tests", () => {
 
   test("clicking the second-row Delete button opens the same confirmation modal as Delete Entry", async () => {
     renderAtSmith2020();
-    await screen.findByTestId("BibTexEntryShowPage-delete-row2-button");
+    await screen.findByTestId("BibTexEntryShowPage-delete-button-sm");
 
-    fireEvent.click(
-      screen.getByTestId("BibTexEntryShowPage-delete-row2-button"),
-    );
+    fireEvent.click(screen.getByTestId("BibTexEntryShowPage-delete-button-sm"));
 
     expect(
       screen.getByText("Permanently delete this entry?"),

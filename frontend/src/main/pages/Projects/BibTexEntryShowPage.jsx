@@ -72,8 +72,9 @@ export default function BibTexEntryShowPage({
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+  const entryQueryKey = `/api/bibtexentries/entry?projectId=${projectId}&id=${entryId}`;
   const { data: entry, failureCount: entryBackendFailureCount } = useBackend(
-    [`/api/bibtexentries/entry?projectId=${projectId}&id=${entryId}`],
+    [entryQueryKey],
     {
       method: "GET",
       url: "/api/bibtexentries/entry",
@@ -300,7 +301,7 @@ export default function BibTexEntryShowPage({
             toggleShowModal={setShowEditModal}
             projectId={projectId}
             entryToEdit={entry}
-            mutationQueryKeys={[exportQueryKey]}
+            mutationQueryKeys={[exportQueryKey, entryQueryKey]}
           />
           <h1 data-testid={`${testId}-title`} className="h3 mb-3 fw-semibold">
             {entry.citeKey}
@@ -407,7 +408,7 @@ export default function BibTexEntryShowPage({
                 variant="danger"
                 size="sm"
                 onClick={() => setShowDeleteModal(true)}
-                data-testid={`${testId}-delete-row2-button`}
+                data-testid={`${testId}-delete-button-sm`}
               >
                 Delete
               </Button>
