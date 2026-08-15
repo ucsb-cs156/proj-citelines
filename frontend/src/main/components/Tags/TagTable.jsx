@@ -101,6 +101,7 @@ export default function TagTable({
         return (
           <Badge
             pill
+            bg={null}
             style={{
               backgroundColor: color,
               color: getContrastTextColor(color),

@@ -58,6 +58,10 @@ describe("TagTable tests", () => {
     expect(badge).toHaveStyle(
       `background-color: ${tagsFixtures.threeTags[0].color}`,
     );
+    // Ensure no Bootstrap `bg-*` class is applied, since Bootstrap's
+    // background utility classes use `!important` and would override the
+    // inline style color set above.
+    expect(badge.className).not.toMatch(/\bbg-\S+/);
   });
 
   test("shows edit/delete buttons when canEdit is true", () => {
