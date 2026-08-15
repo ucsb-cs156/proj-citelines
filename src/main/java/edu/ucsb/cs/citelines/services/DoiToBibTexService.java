@@ -94,8 +94,14 @@ public class DoiToBibTexService {
     int lastBrace = rawBibtex.lastIndexOf('}');
     return rawBibtex.substring(0, lastBrace)
         + "  CITELINES_relevance = {"
-        + relevance
+        + escapeBraces(relevance)
         + "},\n"
         + rawBibtex.substring(lastBrace);
+  }
+
+  // Escapes brace characters so a caller-supplied relevance value can never prematurely close (or
+  // otherwise corrupt) the synthesized BibTeX entry's field value.
+  private static String escapeBraces(String value) {
+    return value.replace("{", "\\{").replace("}", "\\}");
   }
 }

@@ -93,7 +93,6 @@ export default function DoiEntryModal({
       show={showModal}
       onHide={closeModal}
       centered={true}
-      dialogClassName="doi-entry-modal"
       data-testid={"DoiEntryModal-base"}
     >
       <Modal.Header>

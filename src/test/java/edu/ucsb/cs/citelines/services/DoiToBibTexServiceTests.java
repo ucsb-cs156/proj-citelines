@@ -100,6 +100,20 @@ public class DoiToBibTexServiceTests {
   }
 
   @Test
+  void escapes_brace_characters_in_a_provided_relevance_value() {
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2"))
+        .thenReturn(Optional.of(resolvedWork()));
+
+    String bibtex =
+        doiToBibTexService.resolveToBibTex(
+            "10.1038/s41586-020-2649-2", 1, "High},bogus_field={injected");
+
+    assertTrue(
+        bibtex.contains("CITELINES_relevance = {High\\},bogus_field=\\{injected},"),
+        () -> "unexpected bibtex: " + bibtex);
+  }
+
+  @Test
   void generates_a_citeKey_that_does_not_collide_with_an_existing_one() {
     when(bibTexEntryRepository.findByProjectId(1))
         .thenReturn(List.of(BibTexEntry.builder().projectId(1).citeKey("harris2020").build()));
