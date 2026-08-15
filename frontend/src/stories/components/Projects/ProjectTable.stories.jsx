@@ -45,6 +45,11 @@ ThreeProjectsAsUser.args = {
   projects: projectsFixtures.threeProjects,
   currentUser: currentUserFixtures.userOnly,
 };
+ThreeProjectsAsUser.parameters = {
+  msw: {
+    handlers: [putHandler, deleteHandler],
+  },
+};
 
 export const ThreeProjectsAsOwningResearcher = Template.bind({});
 ThreeProjectsAsOwningResearcher.args = {
