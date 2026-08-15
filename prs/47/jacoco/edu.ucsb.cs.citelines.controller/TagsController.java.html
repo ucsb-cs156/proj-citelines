@@ -42,19 +42,21 @@ import org.springframework.web.bind.annotation.RestController;
   public Tag postTag(
       @Parameter(name = &quot;tag&quot;) @RequestParam String tag,
       @Parameter(name = &quot;explanation&quot;) @RequestParam String explanation,
+      @Parameter(name = &quot;color&quot;) @RequestParam(required = false) String color,
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId)
       throws EntityNotFoundException {
 
-<span class="fc" id="L48">    Project project =</span>
+<span class="fc" id="L49">    Project project =</span>
         projectRepository
-<span class="fc" id="L50">            .findById(projectId)</span>
-<span class="fc" id="L51">            .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L51">            .findById(projectId)</span>
+<span class="fc" id="L52">            .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
 
-<span class="fc" id="L53">    ensureTagIsUnique(projectId, tag, null);</span>
+<span class="fc" id="L54">    ensureTagIsUnique(projectId, tag, null);</span>
 
-<span class="fc" id="L55">    Tag newTag = Tag.builder().tag(tag).explanation(explanation).project(project).build();</span>
+    Tag newTag =
+<span class="fc" id="L57">        Tag.builder().tag(tag).explanation(explanation).color(color).project(project).build();</span>
 
-<span class="fc" id="L57">    return tagRepository.save(newTag);</span>
+<span class="fc" id="L59">    return tagRepository.save(newTag);</span>
   }
 
   /**
@@ -67,10 +69,10 @@ import org.springframework.web.bind.annotation.RestController;
   @GetMapping(&quot;/project&quot;)
   public Iterable&lt;Tag&gt; tagsForProject(@Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId)
       throws EntityNotFoundException {
-<span class="fc" id="L70">    projectRepository</span>
-<span class="fc" id="L71">        .findById(projectId)</span>
-<span class="fc" id="L72">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
-<span class="fc" id="L73">    return tagRepository.findByProjectId(projectId);</span>
+<span class="fc" id="L72">    projectRepository</span>
+<span class="fc" id="L73">        .findById(projectId)</span>
+<span class="fc" id="L74">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L75">    return tagRepository.findByProjectId(projectId);</span>
   }
 
   /**
@@ -85,17 +87,19 @@ import org.springframework.web.bind.annotation.RestController;
       @Parameter(name = &quot;id&quot;) @RequestParam Long id,
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;tag&quot;) @RequestParam String tag,
-      @Parameter(name = &quot;explanation&quot;) @RequestParam String explanation)
+      @Parameter(name = &quot;explanation&quot;) @RequestParam String explanation,
+      @Parameter(name = &quot;color&quot;) @RequestParam(required = false) String color)
       throws EntityNotFoundException {
-<span class="fc" id="L90">    Tag existingTag =</span>
-<span class="fc" id="L91">        tagRepository.findById(id).orElseThrow(() -&gt; new EntityNotFoundException(Tag.class, id));</span>
+<span class="fc" id="L93">    Tag existingTag =</span>
+<span class="fc" id="L94">        tagRepository.findById(id).orElseThrow(() -&gt; new EntityNotFoundException(Tag.class, id));</span>
 
-<span class="fc" id="L93">    ensureTagIsUnique(projectId, tag, id);</span>
+<span class="fc" id="L96">    ensureTagIsUnique(projectId, tag, id);</span>
 
-<span class="fc" id="L95">    existingTag.setTag(tag);</span>
-<span class="fc" id="L96">    existingTag.setExplanation(explanation);</span>
+<span class="fc" id="L98">    existingTag.setTag(tag);</span>
+<span class="fc" id="L99">    existingTag.setExplanation(explanation);</span>
+<span class="fc" id="L100">    existingTag.setColor(color);</span>
 
-<span class="fc" id="L98">    return tagRepository.save(existingTag);</span>
+<span class="fc" id="L102">    return tagRepository.save(existingTag);</span>
   }
 
   @Operation(summary = &quot;Delete a tag&quot;)
@@ -106,20 +110,20 @@ import org.springframework.web.bind.annotation.RestController;
       @Parameter(name = &quot;id&quot;) @RequestParam Long id,
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId)
       throws EntityNotFoundException {
-<span class="fc" id="L109">    Tag tag =</span>
-<span class="fc" id="L110">        tagRepository.findById(id).orElseThrow(() -&gt; new EntityNotFoundException(Tag.class, id));</span>
+<span class="fc" id="L113">    Tag tag =</span>
+<span class="fc" id="L114">        tagRepository.findById(id).orElseThrow(() -&gt; new EntityNotFoundException(Tag.class, id));</span>
 
-<span class="fc" id="L112">    tagRepository.delete(tag);</span>
+<span class="fc" id="L116">    tagRepository.delete(tag);</span>
 
-<span class="fc" id="L114">    return ResponseEntity.ok(&quot;Successfully deleted tag.&quot;);</span>
+<span class="fc" id="L118">    return ResponseEntity.ok(&quot;Successfully deleted tag.&quot;);</span>
   }
 
   private void ensureTagIsUnique(Long projectId, String tag, Long idToIgnore) {
-<span class="fc" id="L118">    Optional&lt;Tag&gt; existing = tagRepository.findByProjectIdAndTag(projectId, tag);</span>
-<span class="fc bfc" id="L119" title="All 4 branches covered.">    if (existing.isPresent() &amp;&amp; !existing.get().getId().equals(idToIgnore)) {</span>
-<span class="fc" id="L120">      throw new IllegalArgumentException(</span>
-<span class="fc" id="L121">          &quot;A tag named \&quot;%s\&quot; already exists for this project.&quot;.formatted(tag));</span>
+<span class="fc" id="L122">    Optional&lt;Tag&gt; existing = tagRepository.findByProjectIdAndTag(projectId, tag);</span>
+<span class="fc bfc" id="L123" title="All 4 branches covered.">    if (existing.isPresent() &amp;&amp; !existing.get().getId().equals(idToIgnore)) {</span>
+<span class="fc" id="L124">      throw new IllegalArgumentException(</span>
+<span class="fc" id="L125">          &quot;A tag named \&quot;%s\&quot; already exists for this project.&quot;.formatted(tag));</span>
     }
-<span class="fc" id="L123">  }</span>
+<span class="fc" id="L127">  }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
