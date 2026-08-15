@@ -472,7 +472,7 @@ export default function BibTexEntryShowPage({
                 className="fw-semibold mb-2"
                 data-testid={`${testId}-formatted-citation-label`}
               >
-                Formatted Citation ({project?.citationFormat})
+                Formatted Citation ({project?.citationFormat ?? "Loading..."})
               </div>
               <div data-testid={`${testId}-formatted-citation`}>
                 {formattedCitation}
