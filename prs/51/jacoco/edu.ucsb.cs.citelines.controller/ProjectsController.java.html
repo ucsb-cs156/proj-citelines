@@ -129,7 +129,8 @@ import org.springframework.web.bind.annotation.RestController;
    * @param name the new name of the project
    * @param description the new description of the project
    * @param citationFormat the new citation format for the project's references, one of the keys of
-   *     {@link CitationFormattingService#COMMON_ALIASES} (defaults to {@code &quot;ACM&quot;})
+   *     {@link CitationFormattingService#COMMON_ALIASES}; if omitted, the project's existing
+   *     citation format is left unchanged
    * @return the updated project
    */
   @Operation(summary = &quot;Update an existing project&quot;)
@@ -139,19 +140,20 @@ import org.springframework.web.bind.annotation.RestController;
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;name&quot;) @RequestParam String name,
       @Parameter(name = &quot;description&quot;) @RequestParam String description,
-      @Parameter(name = &quot;citationFormat&quot;) @RequestParam(defaultValue = &quot;ACM&quot;)
-          String citationFormat) {
-<span class="fc" id="L144">    validateCitationFormat(citationFormat);</span>
-<span class="fc" id="L145">    Project project =</span>
+      @Parameter(name = &quot;citationFormat&quot;) @RequestParam(required = false) String citationFormat) {
+<span class="fc" id="L144">    Project project =</span>
         projectRepository
-<span class="fc" id="L147">            .findById(projectId)</span>
-<span class="fc" id="L148">            .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L146">            .findById(projectId)</span>
+<span class="fc" id="L147">            .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
 
-<span class="fc" id="L150">    project.setName(name);</span>
-<span class="fc" id="L151">    project.setDescription(description);</span>
-<span class="fc" id="L152">    project.setCitationFormat(citationFormat);</span>
+<span class="fc" id="L149">    project.setName(name);</span>
+<span class="fc" id="L150">    project.setDescription(description);</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">    if (citationFormat != null) {</span>
+<span class="fc" id="L152">      validateCitationFormat(citationFormat);</span>
+<span class="fc" id="L153">      project.setCitationFormat(citationFormat);</span>
+    }
 
-<span class="fc" id="L154">    return projectRepository.save(project);</span>
+<span class="fc" id="L156">    return projectRepository.save(project);</span>
   }
 
   /**
@@ -165,16 +167,16 @@ import org.springframework.web.bind.annotation.RestController;
   @DeleteMapping(&quot;&quot;)
   @Transactional
   public Object deleteProject(@RequestParam Long projectId) {
-<span class="fc" id="L168">    Project project =</span>
+<span class="fc" id="L170">    Project project =</span>
         projectRepository
-<span class="fc" id="L170">            .findById(projectId)</span>
-<span class="fc" id="L171">            .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L172">            .findById(projectId)</span>
+<span class="fc" id="L173">            .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
 
-<span class="fc" id="L173">    projectCollaboratorRepository.deleteAll(</span>
-<span class="fc" id="L174">        projectCollaboratorRepository.findByProjectId(projectId));</span>
-<span class="fc" id="L175">    projectRepository.delete(project);</span>
+<span class="fc" id="L175">    projectCollaboratorRepository.deleteAll(</span>
+<span class="fc" id="L176">        projectCollaboratorRepository.findByProjectId(projectId));</span>
+<span class="fc" id="L177">    projectRepository.delete(project);</span>
 
-<span class="fc" id="L177">    return genericMessage(&quot;Project with id %s deleted&quot;.formatted(project.getId()));</span>
+<span class="fc" id="L179">    return genericMessage(&quot;Project with id %s deleted&quot;.formatted(project.getId()));</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
