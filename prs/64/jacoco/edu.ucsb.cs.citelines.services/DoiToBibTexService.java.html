@@ -94,9 +94,15 @@ public class DoiToBibTexService {
 <span class="fc" id="L94">    int lastBrace = rawBibtex.lastIndexOf('}');</span>
 <span class="fc" id="L95">    return rawBibtex.substring(0, lastBrace)</span>
         + &quot;  CITELINES_relevance = {&quot;
-        + relevance
+<span class="fc" id="L97">        + escapeBraces(relevance)</span>
         + &quot;},\n&quot;
 <span class="fc" id="L99">        + rawBibtex.substring(lastBrace);</span>
+  }
+
+  // Escapes brace characters so a caller-supplied relevance value can never prematurely close (or
+  // otherwise corrupt) the synthesized BibTeX entry's field value.
+  private static String escapeBraces(String value) {
+<span class="fc" id="L105">    return value.replace(&quot;{&quot;, &quot;\\{&quot;).replace(&quot;}&quot;, &quot;\\}&quot;);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
