@@ -6,7 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs156.jobs.services.JobContext;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -44,8 +47,20 @@ import org.springframework.web.client.RestTemplate;
  *       this sidesteps the publisher's own WAF entirely (ACM DL, IEEE Xplore, etc. are commonly
  *       behind Cloudflare and block automated requests with a 403 regardless of how browser-like
  *       the request headers are) and gets an authoritative exists/doesn't-exist answer straight
- *       from the identifier registry. Only when no such identifier is found, or the Handle API's
- *       answer is inconclusive, does this fall back to requesting the URL directly: a {@code HEAD}
+ *       from the identifier registry. If the Handle API reports the identifier as unregistered,
+ *       that's not always the final word: some catalog entries predate DOI registration and were
+ *       never assigned a real, Handle-System-registered DOI (ACM informally reuses {@code 10.5555},
+ *       the DOI Handbook's reserved example/placeholder prefix, for this), so two further sources
+ *       are tried, in order, each requiring the entry to have a title to sanity-check against:
+ *       OpenAlex's {@code works?filter=locations.landing_page_url:<url>} (an exact match on the URL
+ *       itself, not just handle-shaped ones — works for any publisher OpenAlex indexes, and this
+ *       project already trusts OpenAlex as the first tier of its citation-resolution engine),
+ *       confirmed only if the matched work's own title agrees; then, if OpenAlex has no match,
+ *       {@code dblp.org}'s public search API by title, confirmed only if a hit cites the exact
+ *       identifier as its own DOI or electronic-edition link — DBLP independently curates ACM's
+ *       full catalog, including this pre-DOI content, so it can confirm entries OpenAlex hasn't
+ *       indexed. Only when no identifier is embedded in the URL at all, or every one of these
+ *       checks is inconclusive, does this fall back to requesting the URL directly: a {@code HEAD}
  *       request first (falling back to {@code GET} only if the server rejects {@code HEAD} with a
  *       405) and browser-like request headers, to look as little like a bot as possible.
  * </ul>
@@ -71,6 +86,7 @@ public class CheckLinksService {
 
   static final String DOI_KEY = "doi";
   static final String URL_KEY = "url";
+  static final String TITLE_KEY = "title";
   static final String INVALID_DOI_KEY = "CITELINES_invalid_doi";
   static final String INVALID_URL_KEY = "CITELINES_invalid_url";
   static final String TRUE_VALUE = "True";
@@ -96,23 +112,35 @@ public class CheckLinksService {
   // isn't swept in.
   static final Pattern HANDLE_PATTERN = Pattern.compile("10\\.\\d{4,9}/[^\\s?#\"'<>()\\[\\]{}]+");
 
+  // DBLP's public search API, queried by title as a fallback for identifiers the Handle System
+  // doesn't recognize (see the class Javadoc).
+  static final String DBLP_SEARCH_URL = "https://dblp.org/search/publ/api";
+
+  // OpenAlex's works endpoint, filtered by exact landing-page URL as the first fallback tier for
+  // identifiers the Handle System doesn't recognize (see the class Javadoc).
+  static final String OPENALEX_WORKS_URL = "https://api.openalex.org/works";
+
   private final BibTexEntryRepository bibTexEntryRepository;
   private final RestTemplate restTemplate;
   private final RestTemplate noRedirectRestTemplate;
+  private final LaTeXNormalizationService laTeXNormalizationService;
   private final ApiRetryHelper retryHelper;
   private final String doiUserAgent;
+  private final String mailto;
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   public CheckLinksService(
       BibTexEntryRepository bibTexEntryRepository,
       RestTemplate restTemplate,
       RestTemplate noRedirectRestTemplate,
+      LaTeXNormalizationService laTeXNormalizationService,
       @Value("${citelines.api.delay-ms:100}") int citelinesApiDelayMs,
       @Value("${app.sourceRepo:}") String sourceRepo,
       @Value("${citelines.api.checklinks.mailto:}") String mailto) {
     this.bibTexEntryRepository = bibTexEntryRepository;
     this.restTemplate = restTemplate;
     this.noRedirectRestTemplate = noRedirectRestTemplate;
+    this.laTeXNormalizationService = laTeXNormalizationService;
     this.retryHelper =
         new ApiRetryHelper(
             "CheckLinks",
@@ -122,6 +150,7 @@ public class CheckLinksService {
             citelinesApiDelayMs,
             /* treatAnyForbiddenAsRateLimit= */ true);
     this.doiUserAgent = buildDoiUserAgent(sourceRepo, mailto);
+    this.mailto = mailto;
   }
 
   // sourceRepo/mailto are always non-null here: the constructor's @Value defaults resolve to ""
@@ -163,7 +192,7 @@ public class CheckLinksService {
         invalid = isInvalidDoi(doi, entry.getCiteKey(), ctx);
         flagKey = INVALID_DOI_KEY;
       } else if (url != null && !url.isBlank()) {
-        invalid = isInvalidUrl(url, entry.getCiteKey(), ctx);
+        invalid = isInvalidUrl(url, keyValuePairs.get(TITLE_KEY), entry.getCiteKey(), ctx);
         flagKey = INVALID_URL_KEY;
       } else {
         continue;
@@ -213,10 +242,10 @@ public class CheckLinksService {
     }
   }
 
-  private boolean isInvalidUrl(String url, String citeKey, JobContext ctx) {
+  private boolean isInvalidUrl(String url, String title, String citeKey, JobContext ctx) {
     String handle = extractHandle(url);
     if (handle != null) {
-      Boolean handleExists = checkHandleExists(handle, citeKey, ctx);
+      Boolean handleExists = checkHandleExists(handle, url, title, citeKey, ctx);
       if (handleExists != null) {
         if (!handleExists) {
           ctx.log("Invalid URL (no such handle %s) for %s: %s".formatted(handle, citeKey, url));
@@ -251,16 +280,19 @@ public class CheckLinksService {
   // as a 200, but responseCode 100 ("not found") comes back as a 404 — which RestTemplate turns
   // into a thrown HttpClientErrorException.NotFound rather than a normal response, so that case is
   // handled in its own catch clause below rather than by inspecting the body of a 2xx response.
-  private Boolean checkHandleExists(String handle, String citeKey, JobContext ctx) {
-    String url = "https://doi.org/api/handles/" + handle;
+  private Boolean checkHandleExists(
+      String handle, String url, String title, String citeKey, JobContext ctx) {
+    String handleUrl = "https://doi.org/api/handles/" + handle;
     HttpHeaders headers = new HttpHeaders();
     headers.set(HttpHeaders.USER_AGENT, doiUserAgent);
     HttpEntity<Void> request = new HttpEntity<>(headers);
     try {
       ResponseEntity<String> response =
           retryHelper.execute(
-              "GET " + url,
-              () -> noRedirectRestTemplate.exchange(url, HttpMethod.GET, request, String.class));
+              "GET " + handleUrl,
+              () ->
+                  noRedirectRestTemplate.exchange(
+                      handleUrl, HttpMethod.GET, request, String.class));
       int responseCode = readResponseCode(response.getBody());
       if (responseCode == 1) {
         return Boolean.TRUE;
@@ -270,7 +302,7 @@ public class CheckLinksService {
               .formatted(handle, citeKey, responseCode));
       return null;
     } catch (HttpClientErrorException.NotFound e) {
-      return Boolean.FALSE;
+      return confirmLegacyHandle(handle, url, title, citeKey, ctx);
     } catch (JsonProcessingException e) {
       ctx.log(
           "Could not verify handle %s for %s: malformed Handle API response"
@@ -285,6 +317,143 @@ public class CheckLinksService {
   private int readResponseCode(String body) throws JsonProcessingException {
     JsonNode node = objectMapper.readTree(body);
     return node.path("responseCode").asInt(-1);
+  }
+
+  // A handle the Handle System doesn't recognize isn't necessarily fake: some catalog entries
+  // predate DOI registration and were never assigned a real, Handle-System-registered DOI, but are
+  // still cataloged (and reachable) at a handle-shaped URL. OpenAlex and DBLP each independently
+  // index that kind of pre-DOI content, so both are tried, in order, before giving up — but only
+  // when there's a title to sanity-check a match against; with no title, there's nothing to
+  // confirm with, so this falls straight through to "not confirmed" (definitively invalid, same as
+  // if the Handle System's "not found" had gone unchallenged) rather than leaving the result
+  // indeterminate — these fallbacks exist only to overturn that verdict with positive evidence, not
+  // to make the outcome fuzzier when they can't find any.
+  private boolean confirmLegacyHandle(
+      String handle, String url, String title, String citeKey, JobContext ctx) {
+    if (title == null || title.isBlank()) {
+      return false;
+    }
+    if (confirmHandleViaOpenAlex(handle, url, title, citeKey, ctx)) {
+      return true;
+    }
+    return confirmHandleViaDblp(handle, title, citeKey, ctx);
+  }
+
+  // OpenAlex's works endpoint accepts an exact-match filter on a work's landing-page URL, so this
+  // asks it whether any indexed work was seen at exactly this URL — general-purpose (unlike DBLP's
+  // title search below, it isn't limited to identifiers shaped like a DOI, or to CS-adjacent
+  // venues), and this project already trusts OpenAlex as the first tier of its citation-resolution
+  // engine (see OpenAlexService). A URL match alone isn't accepted as confirmation, though: the
+  // matched work's own title must also agree with this entry's, as a sanity check against a
+  // same-URL coincidence.
+  private boolean confirmHandleViaOpenAlex(
+      String handle, String landingPageUrl, String title, String citeKey, JobContext ctx) {
+    String url =
+        OPENALEX_WORKS_URL
+            + "?filter=locations.landing_page_url:"
+            + URLEncoder.encode(landingPageUrl, StandardCharsets.UTF_8)
+            + mailtoSuffix();
+    HttpHeaders headers = new HttpHeaders();
+    headers.set(HttpHeaders.USER_AGENT, doiUserAgent);
+    HttpEntity<Void> request = new HttpEntity<>(headers);
+    try {
+      ResponseEntity<String> response =
+          retryHelper.execute(
+              "GET " + url,
+              () -> restTemplate.exchange(url, HttpMethod.GET, request, String.class));
+      JsonNode root = objectMapper.readTree(response.getBody());
+      if (root.path("meta").path("count").asInt(0) <= 0) {
+        return false;
+      }
+      String matchedTitle = root.path("results").path(0).path("title").asText("");
+      boolean confirmed = titlesMatch(title, matchedTitle);
+      if (confirmed) {
+        ctx.log(
+            "Confirmed handle %s for %s via OpenAlex (landing page URL match; not registered in the Handle System)"
+                .formatted(handle, citeKey));
+      }
+      return confirmed;
+    } catch (JsonProcessingException e) {
+      ctx.log(
+          "Could not corroborate handle %s for %s via OpenAlex: malformed OpenAlex response"
+              .formatted(handle, citeKey));
+      return false;
+    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {
+      ctx.log(
+          "Could not corroborate handle %s for %s via OpenAlex: %s"
+              .formatted(handle, citeKey, e.getMessage()));
+      return false;
+    }
+  }
+
+  private String mailtoSuffix() {
+    return mailto.isBlank() ? "" : "&mailto=" + URLEncoder.encode(mailto, StandardCharsets.UTF_8);
+  }
+
+  // Normalizes both titles (LaTeX-escape-aware, then case/whitespace/punctuation-insensitive)
+  // before comparing, so a BibTeX title's brace-protected acronyms or accent escapes (e.g. {HTML},
+  // Schr{\"{o}}der) don't defeat a match against the plain-Unicode title an API returns.
+  private boolean titlesMatch(String bibTexTitle, String otherTitle) {
+    String normalizedBibTexTitle =
+        normalizeTitleForComparison(laTeXNormalizationService.normalize(bibTexTitle));
+    return !normalizedBibTexTitle.isBlank()
+        && normalizedBibTexTitle.equals(normalizeTitleForComparison(otherTitle));
+  }
+
+  // Both call sites always pass a non-null string: bibTexTitle is already known non-blank (see
+  // confirmLegacyHandle's guard) before it reaches here, and otherTitle comes from a Jackson
+  // asText("") default.
+  private static String normalizeTitleForComparison(String title) {
+    return title.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", " ").trim();
+  }
+
+  // DBLP independently curates ACM's full catalog, including pre-DOI content, and publishes each
+  // entry's own identifier directly — so this searches DBLP by title and accepts the handle as
+  // confirmed only if some hit cites that exact identifier as its own DOI or electronic-edition
+  // link, tried after OpenAlex since DBLP's coverage is narrower (CS-adjacent venues only) and its
+  // title search is a fuzzier match than OpenAlex's exact URL filter.
+  private boolean confirmHandleViaDblp(
+      String handle, String title, String citeKey, JobContext ctx) {
+    String url =
+        DBLP_SEARCH_URL + "?format=json&q=" + URLEncoder.encode(title, StandardCharsets.UTF_8);
+    HttpHeaders headers = new HttpHeaders();
+    headers.set(HttpHeaders.USER_AGENT, doiUserAgent);
+    HttpEntity<Void> request = new HttpEntity<>(headers);
+    try {
+      ResponseEntity<String> response =
+          retryHelper.execute(
+              "GET " + url,
+              () -> restTemplate.exchange(url, HttpMethod.GET, request, String.class));
+      boolean confirmed = dblpHitsCiteHandle(response.getBody(), handle);
+      if (confirmed) {
+        ctx.log(
+            "Confirmed handle %s for %s via DBLP (not registered in the Handle System, but DBLP catalogs it)"
+                .formatted(handle, citeKey));
+      }
+      return confirmed;
+    } catch (JsonProcessingException e) {
+      ctx.log(
+          "Could not corroborate handle %s for %s via DBLP: malformed DBLP response"
+              .formatted(handle, citeKey));
+      return false;
+    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {
+      ctx.log(
+          "Could not corroborate handle %s for %s via DBLP: %s"
+              .formatted(handle, citeKey, e.getMessage()));
+      return false;
+    }
+  }
+
+  private boolean dblpHitsCiteHandle(String body, String handle) throws JsonProcessingException {
+    JsonNode hits = objectMapper.readTree(body).path("result").path("hits").path("hit");
+    for (JsonNode hit : hits) {
+      JsonNode info = hit.path("info");
+      if (handle.equalsIgnoreCase(info.path("doi").asText(""))
+          || info.path("ee").asText("").contains(handle)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private boolean isInvalidUrlDirectly(String url, String citeKey, JobContext ctx) {

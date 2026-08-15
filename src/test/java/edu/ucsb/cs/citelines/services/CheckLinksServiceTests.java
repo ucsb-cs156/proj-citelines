@@ -36,6 +36,7 @@ public class CheckLinksServiceTests {
 
   private static final String HANDLE = "10.1145/3411764.3445601";
   private static final String ACM_URL = "https://dl.acm.org/doi/" + HANDLE;
+  private static final String TITLE = "Listening to early career software developers";
 
   private CheckLinksService checkLinksService;
   private BibTexEntryRepository bibTexEntryRepository;
@@ -46,7 +47,13 @@ public class CheckLinksServiceTests {
 
   private CheckLinksService serviceWith(String sourceRepo, String mailto) {
     return new CheckLinksService(
-        bibTexEntryRepository, restTemplate, noRedirectRestTemplate, 0, sourceRepo, mailto);
+        bibTexEntryRepository,
+        restTemplate,
+        noRedirectRestTemplate,
+        new LaTeXNormalizationService(),
+        0,
+        sourceRepo,
+        mailto);
   }
 
   @BeforeEach
@@ -102,6 +109,54 @@ public class CheckLinksServiceTests {
             any(HttpEntity.class),
             eq(String.class)))
         .thenThrow(exception);
+  }
+
+  private static String dblpUrl(String title) {
+    return CheckLinksService.DBLP_SEARCH_URL
+        + "?format=json&q="
+        + java.net.URLEncoder.encode(title, java.nio.charset.StandardCharsets.UTF_8);
+  }
+
+  private void mockDblp(String title, ResponseEntity<String> response) {
+    when(restTemplate.exchange(
+            eq(dblpUrl(title)), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+        .thenReturn(response);
+  }
+
+  private void mockDblpThrows(String title, RuntimeException exception) {
+    when(restTemplate.exchange(
+            eq(dblpUrl(title)), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+        .thenThrow(exception);
+  }
+
+  private static final String OPENALEX_NO_MATCH = "{\"meta\":{\"count\":0}}";
+
+  private static String openAlexUrl(String landingPageUrl) {
+    return CheckLinksService.OPENALEX_WORKS_URL
+        + "?filter=locations.landing_page_url:"
+        + java.net.URLEncoder.encode(landingPageUrl, java.nio.charset.StandardCharsets.UTF_8);
+  }
+
+  private void mockOpenAlex(String landingPageUrl, ResponseEntity<String> response) {
+    when(restTemplate.exchange(
+            eq(openAlexUrl(landingPageUrl)),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(String.class)))
+        .thenReturn(response);
+  }
+
+  private void mockOpenAlexThrows(String landingPageUrl, RuntimeException exception) {
+    when(restTemplate.exchange(
+            eq(openAlexUrl(landingPageUrl)),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(String.class)))
+        .thenThrow(exception);
+  }
+
+  private static String openAlexMatch(String title) {
+    return "{\"meta\":{\"count\":1},\"results\":[{\"title\":\"" + title + "\"}]}";
   }
 
   private void mockUrlHead(String url, ResponseEntity<Void> response) {
@@ -650,6 +705,344 @@ public class CheckLinksServiceTests {
     assertTrue(
         job.getLog()
             .contains("Invalid URL (no such handle " + HANDLE + ") for acm2020: " + ACM_URL));
+  }
+
+  @Test
+  void confirms_a_legacy_handle_via_open_alex_when_the_matched_title_agrees() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL, "title", TITLE));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    mockOpenAlex(ACM_URL, new ResponseEntity<>(openAlexMatch(TITLE), HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(restTemplate, never())
+        .exchange(eq(ACM_URL), eq(HttpMethod.HEAD), any(HttpEntity.class), eq(Void.class));
+    verify(restTemplate, never())
+        .exchange(
+            eq(dblpUrl(TITLE)), any(HttpMethod.class), any(HttpEntity.class), eq(String.class));
+    ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+    verify(restTemplate)
+        .exchange(eq(openAlexUrl(ACM_URL)), eq(HttpMethod.GET), captor.capture(), eq(String.class));
+    assertTrue(
+        captor.getValue().getHeaders().getFirst(HttpHeaders.USER_AGENT).contains("proj-citelines"));
+    assertTrue(
+        job.getLog()
+            .contains(
+                "Confirmed handle "
+                    + HANDLE
+                    + " for acm2020 via OpenAlex (landing page URL match; not registered in the Handle System)"));
+  }
+
+  @Test
+  void confirms_a_legacy_handle_via_open_alex_even_with_differing_title_punctuation_and_case() {
+    Map<String, String> kvp =
+        new HashMap<>(Map.of("url", ACM_URL, "title", "{Listening} to Early-Career Developers."));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    mockOpenAlex(
+        ACM_URL,
+        new ResponseEntity<>(openAlexMatch("listening to early career developers"), HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+  }
+
+  @Test
+  void does_not_confirm_via_open_alex_when_the_title_normalizes_to_nothing() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL, "title", "???"));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    mockOpenAlex(ACM_URL, new ResponseEntity<>(openAlexMatch("???"), HttpStatus.OK));
+    mockDblp(
+        "???", new ResponseEntity<>("{\"result\":{\"hits\":{\"@total\":\"0\"}}}", HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertEquals("True", kvp.get("CITELINES_invalid_url"));
+  }
+
+  @Test
+  void does_not_confirm_via_open_alex_when_the_reported_count_is_zero_even_with_a_stray_result() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL, "title", TITLE));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    mockOpenAlex(
+        ACM_URL,
+        new ResponseEntity<>(
+            "{\"meta\":{\"count\":0},\"results\":[{\"title\":\"" + TITLE + "\"}]}", HttpStatus.OK));
+    mockDblp(
+        TITLE, new ResponseEntity<>("{\"result\":{\"hits\":{\"@total\":\"0\"}}}", HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertEquals("True", kvp.get("CITELINES_invalid_url"));
+  }
+
+  @Test
+  void falls_back_to_dblp_when_open_alex_matches_the_url_but_not_the_title() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL, "title", TITLE));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    mockOpenAlex(
+        ACM_URL,
+        new ResponseEntity<>(openAlexMatch("A Completely Different Paper"), HttpStatus.OK));
+    mockDblp(
+        TITLE,
+        new ResponseEntity<>(
+            "{\"result\":{\"hits\":{\"hit\":[{\"info\":{\"doi\":\"" + HANDLE + "\"}}]}}}",
+            HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(restTemplate).exchange(eq(dblpUrl(TITLE)), eq(HttpMethod.GET), any(), eq(String.class));
+  }
+
+  @Test
+  void falls_back_to_dblp_when_the_open_alex_lookup_fails() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL, "title", TITLE));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    mockOpenAlexThrows(ACM_URL, new RestClientException("connection refused"));
+    mockDblp(
+        TITLE,
+        new ResponseEntity<>(
+            "{\"result\":{\"hits\":{\"hit\":[{\"info\":{\"doi\":\"" + HANDLE + "\"}}]}}}",
+            HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(restTemplate)
+        .exchange(eq(dblpUrl(TITLE)), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
+    assertTrue(
+        job.getLog()
+            .contains(
+                "Could not corroborate handle "
+                    + HANDLE
+                    + " for acm2020 via OpenAlex: connection refused"));
+  }
+
+  @Test
+  void falls_back_to_dblp_when_the_open_alex_response_is_malformed() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL, "title", TITLE));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    mockOpenAlex(ACM_URL, new ResponseEntity<>("not json", HttpStatus.OK));
+    mockDblp(
+        TITLE,
+        new ResponseEntity<>(
+            "{\"result\":{\"hits\":{\"hit\":[{\"info\":{\"doi\":\"" + HANDLE + "\"}}]}}}",
+            HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(restTemplate)
+        .exchange(eq(dblpUrl(TITLE)), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class));
+    assertTrue(
+        job.getLog()
+            .contains(
+                "Could not corroborate handle "
+                    + HANDLE
+                    + " for acm2020 via OpenAlex: malformed OpenAlex response"));
+  }
+
+  @Test
+  void sends_the_mailto_parameter_for_the_open_alex_lookup_when_configured() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL, "title", TITLE));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    String urlWithMailto = openAlexUrl(ACM_URL) + "&mailto=you%40example.com";
+    when(restTemplate.exchange(
+            eq(urlWithMailto), eq(HttpMethod.GET), any(HttpEntity.class), eq(String.class)))
+        .thenReturn(new ResponseEntity<>(openAlexMatch(TITLE), HttpStatus.OK));
+
+    serviceWith("", "you@example.com").checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+  }
+
+  @Test
+  void confirms_a_legacy_handle_via_dblp_when_a_hit_cites_the_same_doi() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL, "title", TITLE));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    mockOpenAlex(ACM_URL, new ResponseEntity<>(OPENALEX_NO_MATCH, HttpStatus.OK));
+    mockDblp(
+        TITLE,
+        new ResponseEntity<>(
+            "{\"result\":{\"hits\":{\"hit\":[{\"info\":{\"doi\":\"" + HANDLE + "\"}}]}}}",
+            HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(restTemplate, never())
+        .exchange(eq(ACM_URL), eq(HttpMethod.HEAD), any(HttpEntity.class), eq(Void.class));
+    verify(restTemplate, never())
+        .exchange(eq(ACM_URL), any(HttpMethod.class), any(HttpEntity.class), eq(String.class));
+    ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+    verify(restTemplate)
+        .exchange(eq(dblpUrl(TITLE)), eq(HttpMethod.GET), captor.capture(), eq(String.class));
+    assertTrue(
+        captor.getValue().getHeaders().getFirst(HttpHeaders.USER_AGENT).contains("proj-citelines"));
+    assertTrue(
+        job.getLog()
+            .contains(
+                "Confirmed handle "
+                    + HANDLE
+                    + " for acm2020 via DBLP (not registered in the Handle System, but DBLP catalogs it)"));
+  }
+
+  @Test
+  void confirms_a_legacy_handle_via_dblp_when_a_hit_cites_the_same_electronic_edition_link() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL, "title", TITLE));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    mockOpenAlex(ACM_URL, new ResponseEntity<>(OPENALEX_NO_MATCH, HttpStatus.OK));
+    mockDblp(
+        TITLE,
+        new ResponseEntity<>(
+            "{\"result\":{\"hits\":{\"hit\":[{\"info\":{\"doi\":\"10.9999/other\",\"ee\":\""
+                + ACM_URL
+                + "\"}}]}}}",
+            HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+  }
+
+  @Test
+  void flags_a_url_when_no_dblp_hit_matches_the_handle() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL, "title", TITLE));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    mockOpenAlex(ACM_URL, new ResponseEntity<>(OPENALEX_NO_MATCH, HttpStatus.OK));
+    mockDblp(
+        TITLE,
+        new ResponseEntity<>(
+            "{\"result\":{\"hits\":{\"hit\":[{\"info\":{\"doi\":\"10.9999/other\",\"ee\":\"https://example.org/other\"}}]}}}",
+            HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertEquals("True", kvp.get("CITELINES_invalid_url"));
+  }
+
+  @Test
+  void flags_a_url_when_dblp_returns_no_hits_at_all() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL, "title", TITLE));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    mockOpenAlex(ACM_URL, new ResponseEntity<>(OPENALEX_NO_MATCH, HttpStatus.OK));
+    mockDblp(
+        TITLE, new ResponseEntity<>("{\"result\":{\"hits\":{\"@total\":\"0\"}}}", HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertEquals("True", kvp.get("CITELINES_invalid_url"));
+  }
+
+  @Test
+  void does_not_query_open_alex_or_dblp_when_the_title_is_blank() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL, "title", ""));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertEquals("True", kvp.get("CITELINES_invalid_url"));
+    verify(restTemplate, never())
+        .exchange(
+            any(String.class), any(HttpMethod.class), any(HttpEntity.class), eq(String.class));
+  }
+
+  @Test
+  void flags_a_url_when_the_dblp_lookup_fails() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL, "title", TITLE));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    mockOpenAlex(ACM_URL, new ResponseEntity<>(OPENALEX_NO_MATCH, HttpStatus.OK));
+    mockDblpThrows(TITLE, new RestClientException("connection refused"));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertEquals("True", kvp.get("CITELINES_invalid_url"));
+    assertTrue(
+        job.getLog()
+            .contains(
+                "Could not corroborate handle "
+                    + HANDLE
+                    + " for acm2020 via DBLP: connection refused"));
+  }
+
+  @Test
+  void flags_a_url_when_the_dblp_response_is_malformed() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", ACM_URL, "title", TITLE));
+    BibTexEntry entry = entry("acm2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockHandleThrows(
+        HANDLE,
+        HttpClientErrorException.create(HttpStatus.NOT_FOUND, "Not Found", null, null, null));
+    mockOpenAlex(ACM_URL, new ResponseEntity<>(OPENALEX_NO_MATCH, HttpStatus.OK));
+    mockDblp(TITLE, new ResponseEntity<>("not json", HttpStatus.OK));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertEquals("True", kvp.get("CITELINES_invalid_url"));
+    assertTrue(
+        job.getLog()
+            .contains(
+                "Could not corroborate handle "
+                    + HANDLE
+                    + " for acm2020 via DBLP: malformed DBLP response"));
   }
 
   @Test
