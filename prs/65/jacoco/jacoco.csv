@@ -22,7 +22,7 @@ citelines,edu.ucsb.cs.citelines.controller,CitationEdgesController,0,104,0,8,0,2
 citelines,edu.ucsb.cs.citelines.services,SystemInfoServiceImpl,0,58,0,4,0,15,0,5,0,3
 citelines,edu.ucsb.cs.citelines.services,CitationGraphService.ExistingEntries,0,9,0,0,0,1,0,1,0,1
 citelines,edu.ucsb.cs.citelines.services,BulkCitationUploadFromACMDLViewAllService.ParsedEntry,0,9,0,0,0,1,0,1,0,1
-citelines,edu.ucsb.cs.citelines.services,BulkCitationUploadFromACMDLViewAllService,0,496,1,51,0,107,1,36,0,11
+citelines,edu.ucsb.cs.citelines.services,BulkCitationUploadFromACMDLViewAllService,0,493,0,50,0,106,0,36,0,11
 citelines,edu.ucsb.cs.citelines.services,BibTexConverterService,0,182,0,10,0,47,0,14,0,9
 citelines,edu.ucsb.cs.citelines.services,DOIService,0,47,0,6,0,14,0,6,0,3
 citelines,edu.ucsb.cs.citelines.services,ApiRetryHelper.ApiUnavailableException,0,4,0,0,0,2,0,1,0,1
