@@ -6,6 +6,7 @@ import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
 import edu.ucsb.cs.citelines.model.CurrentUser;
 import edu.ucsb.cs.citelines.repository.ProjectCollaboratorRepository;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
+import edu.ucsb.cs.citelines.services.CitationFormattingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,18 +28,34 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = &quot;Projects&quot;)
 @RequestMapping(&quot;/api/projects&quot;)
 @RestController
-<span class="fc" id="L30">@Slf4j</span>
-<span class="fc" id="L31">public class ProjectsController extends ApiController {</span>
+<span class="fc" id="L31">@Slf4j</span>
+<span class="fc" id="L32">public class ProjectsController extends ApiController {</span>
 
   @Autowired private ProjectRepository projectRepository;
 
   @Autowired private ProjectCollaboratorRepository projectCollaboratorRepository;
 
   /**
+   * Validates that {@code citationFormat} is one of the keys of {@link
+   * CitationFormattingService#COMMON_ALIASES}.
+   *
+   * @throws IllegalArgumentException if {@code citationFormat} is not a recognized format
+   */
+  private void validateCitationFormat(String citationFormat) {
+<span class="fc bfc" id="L45" title="All 2 branches covered.">    if (!CitationFormattingService.COMMON_ALIASES.containsKey(citationFormat)) {</span>
+<span class="fc" id="L46">      throw new IllegalArgumentException(</span>
+          &quot;citationFormat must be one of %s&quot;
+<span class="fc" id="L48">              .formatted(CitationFormattingService.COMMON_ALIASES.keySet()));</span>
+    }
+<span class="fc" id="L50">  }</span>
+
+  /**
    * This method creates a new Project, owned by the current user.
    *
    * @param name the name of the project
    * @param description the description of the project
+   * @param citationFormat the citation format for the project's references, one of the keys of
+   *     {@link CitationFormattingService#COMMON_ALIASES} (defaults to {@code &quot;ACM&quot;})
    * @return the created project
    */
   @Operation(summary = &quot;Create a new project&quot;)
@@ -46,16 +63,20 @@ import org.springframework.web.bind.annotation.RestController;
   @PostMapping(&quot;/post&quot;)
   public Project postProject(
       @Parameter(name = &quot;name&quot;) @RequestParam String name,
-      @Parameter(name = &quot;description&quot;) @RequestParam String description) {
-<span class="fc" id="L50">    CurrentUser currentUser = getCurrentUser();</span>
+      @Parameter(name = &quot;description&quot;) @RequestParam String description,
+      @Parameter(name = &quot;citationFormat&quot;) @RequestParam(defaultValue = &quot;ACM&quot;)
+          String citationFormat) {
+<span class="fc" id="L69">    validateCitationFormat(citationFormat);</span>
+<span class="fc" id="L70">    CurrentUser currentUser = getCurrentUser();</span>
     Project project =
-<span class="fc" id="L52">        Project.builder()</span>
-<span class="fc" id="L53">            .name(name)</span>
-<span class="fc" id="L54">            .description(description)</span>
-<span class="fc" id="L55">            .owner(currentUser.getUser().getEmail())</span>
-<span class="fc" id="L56">            .dateCreated(LocalDateTime.now())</span>
-<span class="fc" id="L57">            .build();</span>
-<span class="fc" id="L58">    return projectRepository.save(project);</span>
+<span class="fc" id="L72">        Project.builder()</span>
+<span class="fc" id="L73">            .name(name)</span>
+<span class="fc" id="L74">            .description(description)</span>
+<span class="fc" id="L75">            .owner(currentUser.getUser().getEmail())</span>
+<span class="fc" id="L76">            .dateCreated(LocalDateTime.now())</span>
+<span class="fc" id="L77">            .citationFormat(citationFormat)</span>
+<span class="fc" id="L78">            .build();</span>
+<span class="fc" id="L79">    return projectRepository.save(project);</span>
   }
 
   /**
@@ -67,8 +88,8 @@ import org.springframework.web.bind.annotation.RestController;
   @PreAuthorize(&quot;hasRole('ROLE_RESEARCHER')&quot;)
   @GetMapping(&quot;/list/owner&quot;)
   public Iterable&lt;Project&gt; listForOwner() {
-<span class="fc" id="L70">    String email = getCurrentUser().getUser().getEmail();</span>
-<span class="fc" id="L71">    return projectRepository.findByOwner(email);</span>
+<span class="fc" id="L91">    String email = getCurrentUser().getUser().getEmail();</span>
+<span class="fc" id="L92">    return projectRepository.findByOwner(email);</span>
   }
 
   /**
@@ -80,11 +101,11 @@ import org.springframework.web.bind.annotation.RestController;
   @PreAuthorize(&quot;hasRole('ROLE_USER')&quot;)
   @GetMapping(&quot;/list/collaborator&quot;)
   public List&lt;Project&gt; listForCollaborator() {
-<span class="fc" id="L83">    String email = getCurrentUser().getUser().getEmail();</span>
-<span class="fc" id="L84">    return projectCollaboratorRepository.findAllByEmail(email).stream()</span>
-<span class="fc" id="L85">        .map(ProjectCollaborator::getProject)</span>
-<span class="fc" id="L86">        .distinct()</span>
-<span class="fc" id="L87">        .toList();</span>
+<span class="fc" id="L104">    String email = getCurrentUser().getUser().getEmail();</span>
+<span class="fc" id="L105">    return projectCollaboratorRepository.findAllByEmail(email).stream()</span>
+<span class="fc" id="L106">        .map(ProjectCollaborator::getProject)</span>
+<span class="fc" id="L107">        .distinct()</span>
+<span class="fc" id="L108">        .toList();</span>
   }
 
   /**
@@ -96,17 +117,20 @@ import org.springframework.web.bind.annotation.RestController;
   @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #id)&quot;)
   @GetMapping(&quot;/{id}&quot;)
   public Project getProjectById(@Parameter(name = &quot;id&quot;) @PathVariable Long id) {
-<span class="fc" id="L99">    return projectRepository</span>
-<span class="fc" id="L100">        .findById(id)</span>
-<span class="fc" id="L101">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, id));</span>
+<span class="fc" id="L120">    return projectRepository</span>
+<span class="fc" id="L121">        .findById(id)</span>
+<span class="fc" id="L122">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, id));</span>
   }
 
   /**
-   * This method updates the name and description of an existing project.
+   * This method updates the name, description, and citation format of an existing project.
    *
    * @param projectId the id of the project to update
    * @param name the new name of the project
    * @param description the new description of the project
+   * @param citationFormat the new citation format for the project's references, one of the keys of
+   *     {@link CitationFormattingService#COMMON_ALIASES}; if omitted, the project's existing
+   *     citation format is left unchanged
    * @return the updated project
    */
   @Operation(summary = &quot;Update an existing project&quot;)
@@ -115,16 +139,21 @@ import org.springframework.web.bind.annotation.RestController;
   public Project updateProject(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;name&quot;) @RequestParam String name,
-      @Parameter(name = &quot;description&quot;) @RequestParam String description) {
-<span class="fc" id="L119">    Project project =</span>
+      @Parameter(name = &quot;description&quot;) @RequestParam String description,
+      @Parameter(name = &quot;citationFormat&quot;) @RequestParam(required = false) String citationFormat) {
+<span class="fc" id="L144">    Project project =</span>
         projectRepository
-<span class="fc" id="L121">            .findById(projectId)</span>
-<span class="fc" id="L122">            .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L146">            .findById(projectId)</span>
+<span class="fc" id="L147">            .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
 
-<span class="fc" id="L124">    project.setName(name);</span>
-<span class="fc" id="L125">    project.setDescription(description);</span>
+<span class="fc" id="L149">    project.setName(name);</span>
+<span class="fc" id="L150">    project.setDescription(description);</span>
+<span class="fc bfc" id="L151" title="All 2 branches covered.">    if (citationFormat != null) {</span>
+<span class="fc" id="L152">      validateCitationFormat(citationFormat);</span>
+<span class="fc" id="L153">      project.setCitationFormat(citationFormat);</span>
+    }
 
-<span class="fc" id="L127">    return projectRepository.save(project);</span>
+<span class="fc" id="L156">    return projectRepository.save(project);</span>
   }
 
   /**
@@ -138,16 +167,16 @@ import org.springframework.web.bind.annotation.RestController;
   @DeleteMapping(&quot;&quot;)
   @Transactional
   public Object deleteProject(@RequestParam Long projectId) {
-<span class="fc" id="L141">    Project project =</span>
+<span class="fc" id="L170">    Project project =</span>
         projectRepository
-<span class="fc" id="L143">            .findById(projectId)</span>
-<span class="fc" id="L144">            .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L172">            .findById(projectId)</span>
+<span class="fc" id="L173">            .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
 
-<span class="fc" id="L146">    projectCollaboratorRepository.deleteAll(</span>
-<span class="fc" id="L147">        projectCollaboratorRepository.findByProjectId(projectId));</span>
-<span class="fc" id="L148">    projectRepository.delete(project);</span>
+<span class="fc" id="L175">    projectCollaboratorRepository.deleteAll(</span>
+<span class="fc" id="L176">        projectCollaboratorRepository.findByProjectId(projectId));</span>
+<span class="fc" id="L177">    projectRepository.delete(project);</span>
 
-<span class="fc" id="L150">    return genericMessage(&quot;Project with id %s deleted&quot;.formatted(project.getId()));</span>
+<span class="fc" id="L179">    return genericMessage(&quot;Project with id %s deleted&quot;.formatted(project.getId()));</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
