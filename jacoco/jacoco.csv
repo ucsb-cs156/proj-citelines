@@ -8,6 +8,7 @@ citelines,edu.ucsb.cs.citelines.startup,ScaffoldStartup,0,34,0,0,0,11,0,4,0,4
 citelines,edu.ucsb.cs.citelines.controller,AdminsController.AdminDTO,0,18,0,0,0,3,0,2,0,2
 citelines,edu.ucsb.cs.citelines.controller,UserInfoController,0,6,0,0,0,2,0,2,0,2
 citelines,edu.ucsb.cs.citelines.controller,BibTexEntriesController,0,415,0,32,0,89,0,38,0,22
+citelines,edu.ucsb.cs.citelines.controller,CitationFormatController,0,5,0,0,0,2,0,2,0,2
 citelines,edu.ucsb.cs.citelines.controller,ProjectsController,0,134,0,0,0,33,0,11,0,11
 citelines,edu.ucsb.cs.citelines.controller,HealthController,0,7,0,0,0,2,0,2,0,2
 citelines,edu.ucsb.cs.citelines.controller,ApiController,0,50,0,0,0,14,0,8,0,8
