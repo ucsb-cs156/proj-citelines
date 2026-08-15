@@ -1,6 +1,7 @@
 package edu.ucsb.cs.citelines.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -18,6 +19,8 @@ import edu.ucsb.cs.citelines.collections.UnresolvedCitationRepository;
 import edu.ucsb.cs156.jobs.entities.Job;
 import edu.ucsb.cs156.jobs.services.JobContext;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -742,5 +745,37 @@ public class CitationGraphServiceTests {
     assertTrue(
         job.getLog()
             .contains("Done: 0 new entries added, 0 linked to existing entries, 0 unresolved."));
+  }
+
+  @Test
+  void
+      resolveOrCreateEntry_indexes_a_new_entry_by_doi_so_a_later_call_with_the_same_doi_links_to_it() {
+    CitationGraphService.ExistingEntries existing =
+        new CitationGraphService.ExistingEntries(new HashMap<>(), new HashSet<>());
+    ResolvedWork work =
+        resolvedWork(
+            "W1", "10.1/x", "A Paper", 2020, "article", List.of("Jane Doe"), null, List.of());
+
+    CitationGraphService.ResolveOrCreateResult first =
+        citationGraphService.resolveOrCreateEntry(work, 42, existing);
+    CitationGraphService.ResolveOrCreateResult second =
+        citationGraphService.resolveOrCreateEntry(work, 42, existing);
+
+    assertTrue(first.created());
+    assertFalse(second.created());
+    assertEquals(first.citeKey(), second.citeKey());
+    verify(bibTexEntryRepository, times(1)).save(any());
+  }
+
+  @Test
+  void saveCitationEdge_saves_a_direct_citing_cited_edge() {
+    citationGraphService.saveCitationEdge(42, "reimer2025", "harris2020");
+
+    ArgumentCaptor<CitationEdge> savedEdge = ArgumentCaptor.forClass(CitationEdge.class);
+    verify(citationEdgeRepository).save(savedEdge.capture());
+    assertEquals(CitationEdge.makeId(42, "reimer2025", "harris2020"), savedEdge.getValue().getId());
+    assertEquals(42, savedEdge.getValue().getProjectId());
+    assertEquals("reimer2025", savedEdge.getValue().getCitingCiteKey());
+    assertEquals("harris2020", savedEdge.getValue().getCitedCiteKey());
   }
 }

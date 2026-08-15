@@ -4,10 +4,12 @@ import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
+import edu.ucsb.cs.citelines.jobs.BulkCitationUploadFromACMDLViewAllJob;
 import edu.ucsb.cs.citelines.jobs.CheckLinksJob;
 import edu.ucsb.cs.citelines.jobs.GetCitationsJob;
 import edu.ucsb.cs.citelines.jobs.GetReferencesJob;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
+import edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllService;
 import edu.ucsb.cs.citelines.services.CheckLinksService;
 import edu.ucsb.cs.citelines.services.CitationGraphService;
 import edu.ucsb.cs156.jobs.entities.Job;
@@ -21,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -43,6 +46,9 @@ public class JobsController extends ApiController {
   @Autowired private BibTexEntryRepository bibTexEntryRepository;
   @Autowired private CitationGraphService citationGraphService;
   @Autowired private CheckLinksService checkLinksService;
+
+  @Autowired
+  private BulkCitationUploadFromACMDLViewAllService bulkCitationUploadFromACMDLViewAllService;
 
   @Operation(summary = "List jobs scoped to a project")
   @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
@@ -95,6 +101,26 @@ public class JobsController extends ApiController {
         CheckLinksJob.builder()
             .projectId(projectId.intValue())
             .checkLinksService(checkLinksService)
+            .build());
+  }
+
+  @Operation(
+      summary =
+          "Launch a job to parse a pasted ACM DL \"Cited By > View All\" page and add each citing"
+              + " paper as a new citation of a BibTeX entry")
+  @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
+  @PostMapping("/launch/bulkCitationUploadFromAcmDlViewAll")
+  public Job launchBulkCitationUploadFromAcmDlViewAll(
+      @Parameter(name = "projectId") @RequestParam Long projectId,
+      @Parameter(name = "citeKey") @RequestParam String citeKey,
+      @RequestBody String rawText) {
+    requireEntry(projectId, citeKey);
+    return jobService.runAsJob(
+        BulkCitationUploadFromACMDLViewAllJob.builder()
+            .projectId(projectId.intValue())
+            .citeKey(citeKey)
+            .rawText(rawText)
+            .bulkCitationUploadFromACMDLViewAllService(bulkCitationUploadFromACMDLViewAllService)
             .build());
   }
 
