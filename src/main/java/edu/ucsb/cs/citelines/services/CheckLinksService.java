@@ -7,6 +7,7 @@ import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs156.jobs.services.JobContext;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
@@ -21,6 +22,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -66,9 +68,13 @@ import org.springframework.web.client.RestTemplate;
  * </ul>
  *
  * In both cases, a 403 or 429 — likely bot protection rather than a genuinely broken link — is
- * logged but never flags the entry as invalid; only a definitive "not found" response does. Any
- * other error (5xx, network failure, or a persistent 403/429 after {@link ApiRetryHelper}'s retries
- * are exhausted) is treated the same way: logged, not flagged.
+ * logged but never flags the entry as invalid; only a definitive "not found" response does. Most
+ * other errors (5xx, timeouts/connection failures, or a persistent 403/429 after {@link
+ * ApiRetryHelper}'s retries are exhausted) are treated the same way: logged, not flagged, since
+ * they could just as easily be transient or bot-protection-related as a genuinely broken link. One
+ * exception, for the direct URL check only: a DNS resolution failure ({@link UnknownHostException},
+ * e.g. {@code https://not.a.real.domain}) means the hostname itself doesn't exist, which is as
+ * definitive a signal of a broken link as an HTTP 404 — so that specific failure is flagged.
  *
  * <p>Entries with neither a DOI nor a URL are skipped. A previously-set flag is cleared once the
  * link resolves cleanly.
@@ -475,6 +481,8 @@ public class CheckLinksService {
       return true;
     } catch (HttpClientErrorException.MethodNotAllowed e) {
       return isInvalidUrlViaGet(url, request, citeKey, ctx);
+    } catch (ResourceAccessException e) {
+      return isInvalidDueToUnknownHost(e, citeKey, url, ctx);
     } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {
       ctx.log("Could not check URL for %s (%s): %s".formatted(citeKey, url, e.getMessage()));
       return false;
@@ -494,9 +502,34 @@ public class CheckLinksService {
     } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {
       ctx.log("Invalid URL (%d) for %s: %s".formatted(e.getStatusCode().value(), citeKey, url));
       return true;
+    } catch (ResourceAccessException e) {
+      return isInvalidDueToUnknownHost(e, citeKey, url, ctx);
     } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {
       ctx.log("Could not check URL for %s (%s): %s".formatted(citeKey, url, e.getMessage()));
       return false;
     }
+  }
+
+  // A DNS resolution failure means the hostname itself doesn't exist — as definitive a signal of a
+  // broken link as an HTTP 404, unlike every other RestClientException this class treats as
+  // inconclusive (timeouts, connection resets, TLS failures — any of which could be transient or
+  // bot-protection-related rather than proof the link is broken).
+  private boolean isInvalidDueToUnknownHost(
+      ResourceAccessException e, String citeKey, String url, JobContext ctx) {
+    if (!isUnknownHostFailure(e)) {
+      ctx.log("Could not check URL for %s (%s): %s".formatted(citeKey, url, e.getMessage()));
+      return false;
+    }
+    ctx.log("Invalid URL (unknown host) for %s: %s".formatted(citeKey, url));
+    return true;
+  }
+
+  private static boolean isUnknownHostFailure(Throwable e) {
+    for (Throwable cause = e; cause != null; cause = cause.getCause()) {
+      if (cause instanceof UnknownHostException) {
+        return true;
+      }
+    }
+    return false;
   }
 }

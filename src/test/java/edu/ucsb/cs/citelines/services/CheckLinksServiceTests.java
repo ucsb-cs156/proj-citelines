@@ -16,6 +16,8 @@ import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs156.jobs.entities.Job;
 import edu.ucsb.cs156.jobs.services.JobContext;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -464,6 +467,45 @@ public class CheckLinksServiceTests {
   }
 
   @Test
+  void flags_a_url_when_the_head_request_fails_with_a_dns_resolution_failure() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", "https://not.a.real.domain"));
+    BibTexEntry entry = entry("badhost2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockUrlHeadThrows(
+        "https://not.a.real.domain",
+        new ResourceAccessException(
+            "I/O error on HEAD request for \"https://not.a.real.domain\": not.a.real.domain",
+            new UnknownHostException("not.a.real.domain")));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertEquals("True", kvp.get("CITELINES_invalid_url"));
+    assertTrue(
+        job.getLog()
+            .contains("Invalid URL (unknown host) for badhost2020: https://not.a.real.domain"));
+  }
+
+  @Test
+  void does_not_flag_a_url_when_the_head_request_fails_with_a_non_dns_io_error() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", "https://example.org/timeout"));
+    BibTexEntry entry = entry("timeout2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockUrlHeadThrows(
+        "https://example.org/timeout",
+        new ResourceAccessException(
+            "I/O error on HEAD request for \"https://example.org/timeout\": Connect timed out",
+            new SocketTimeoutException("Connect timed out")));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(bibTexEntryRepository, never()).save(any());
+    assertTrue(
+        job.getLog()
+            .contains("Could not check URL for timeout2020 (https://example.org/timeout):"));
+  }
+
+  @Test
   void prefers_doi_over_url_when_both_present() {
     Map<String, String> kvp =
         new HashMap<>(Map.of("doi", "10.1234/good", "url", "https://example.org/unused"));
@@ -628,6 +670,62 @@ public class CheckLinksServiceTests {
         .thenThrow(
             HttpServerErrorException.create(
                 HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", null, null, null));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertNull(kvp.get("CITELINES_invalid_url"));
+    verify(bibTexEntryRepository, never()).save(any());
+    assertTrue(
+        job.getLog()
+            .contains(
+                "Could not check URL for nohead2020 (https://example.org/head-not-allowed):"));
+  }
+
+  @Test
+  void flags_a_url_via_get_fallback_when_the_get_request_fails_with_a_dns_resolution_failure() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", "https://not.a.real.domain"));
+    BibTexEntry entry = entry("badhost2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockUrlHeadThrows(
+        "https://not.a.real.domain",
+        HttpClientErrorException.create(
+            HttpStatus.METHOD_NOT_ALLOWED, "Method Not Allowed", null, null, null));
+    when(restTemplate.exchange(
+            eq("https://not.a.real.domain"),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(String.class)))
+        .thenThrow(
+            new ResourceAccessException(
+                "I/O error on GET request for \"https://not.a.real.domain\": not.a.real.domain",
+                new UnknownHostException("not.a.real.domain")));
+
+    checkLinksService.checkLinks(1, ctx);
+
+    assertEquals("True", kvp.get("CITELINES_invalid_url"));
+    assertTrue(
+        job.getLog()
+            .contains("Invalid URL (unknown host) for badhost2020: https://not.a.real.domain"));
+  }
+
+  @Test
+  void does_not_flag_a_url_via_get_fallback_when_the_get_request_fails_with_a_non_dns_io_error() {
+    Map<String, String> kvp = new HashMap<>(Map.of("url", "https://example.org/head-not-allowed"));
+    BibTexEntry entry = entry("nohead2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+    mockUrlHeadThrows(
+        "https://example.org/head-not-allowed",
+        HttpClientErrorException.create(
+            HttpStatus.METHOD_NOT_ALLOWED, "Method Not Allowed", null, null, null));
+    when(restTemplate.exchange(
+            eq("https://example.org/head-not-allowed"),
+            eq(HttpMethod.GET),
+            any(HttpEntity.class),
+            eq(String.class)))
+        .thenThrow(
+            new ResourceAccessException(
+                "I/O error on GET request for \"https://example.org/head-not-allowed\": Connect timed out",
+                new SocketTimeoutException("Connect timed out")));
 
     checkLinksService.checkLinks(1, ctx);
 
