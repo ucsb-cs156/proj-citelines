@@ -90,6 +90,16 @@ public class DoiToBibTexServiceTests {
   }
 
   @Test
+  void omits_the_CITELINES_relevance_field_when_relevance_is_an_empty_string() {
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2"))
+        .thenReturn(Optional.of(resolvedWork()));
+
+    String bibtex = doiToBibTexService.resolveToBibTex("10.1038/s41586-020-2649-2", 1, "");
+
+    assertTrue(!bibtex.contains("CITELINES_relevance"));
+  }
+
+  @Test
   void generates_a_citeKey_that_does_not_collide_with_an_existing_one() {
     when(bibTexEntryRepository.findByProjectId(1))
         .thenReturn(List.of(BibTexEntry.builder().projectId(1).citeKey("harris2020").build()));
@@ -123,12 +133,12 @@ public class DoiToBibTexServiceTests {
   }
 
   @Test
-  void throws_DoiNotFoundException_when_a_resolver_returns_a_work_with_no_title() {
+  void throws_DoiNotFoundException_when_a_resolver_returns_a_work_with_a_blank_title() {
     ResolvedWork blankTitleWork =
         new ResolvedWork(
             "id",
             "10.1038/s41586-020-2649-2",
-            null,
+            "",
             null,
             null,
             List.of(),
