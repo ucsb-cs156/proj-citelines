@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SemanticScholarResolver.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">SemanticScholarResolver.java</span></div><h1>SemanticScholarResolver.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
+
+/**
+ * Client for the Semantic Scholar Graph API (https://api.semanticscholar.org/graph/v1, an optional
+ * API key raises the rate limit — see {@code docs/README_API_CONFIG.md}), tried after OpenAlex in
+ * the resolver chain — see {@code docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md}.
+ *
+ * &lt;p&gt;Unlike OpenAlex, a single call returns both {@code references} and {@code citations} inline
+ * (requested via the {@code fields} query parameter), so {@link #getReferences}/{@link
+ * #getCitations} need no extra network call beyond the one that resolved the source work — they
+ * just return what {@link #resolveByDoi} already parsed. Both fields come back as JSON {@code null}
+ * (not an empty array) for a publisher-restricted paper — confirmed against the live API — so
+ * parsing must null-check, not just empty-check.
+ */
+<span class="fc" id="L31">@Slf4j</span>
+@Service
+public class SemanticScholarResolver implements CitationMetadataResolver {
+
+  private static final String BASE_URL = &quot;https://api.semanticscholar.org/graph/v1/paper&quot;;
+  private static final String FIELDS =
+      &quot;title,year,venue,externalIds,publicationTypes,authors,&quot;
+          + &quot;references.title,references.year,references.externalIds,references.authors,references.venue,&quot;
+          + &quot;citations.title,citations.year,citations.externalIds,citations.authors,citations.venue&quot;;
+
+  private final RestTemplate restTemplate;
+  private final DOIService doiService;
+  private final String apiKey;
+  private final ApiRetryHelper retryHelper;
+<span class="fc" id="L45">  private final ObjectMapper objectMapper = new ObjectMapper();</span>
+
+  public SemanticScholarResolver(
+      RestTemplate restTemplate,
+      DOIService doiService,
+      @Value(&quot;${citelines.api.semanticscholar.delay-ms:100}&quot;) int delayMs,
+<span class="fc" id="L51">      @Value(&quot;${citelines.api.semanticscholar.api-key:}&quot;) String apiKey) {</span>
+<span class="fc" id="L52">    this.restTemplate = restTemplate;</span>
+<span class="fc" id="L53">    this.doiService = doiService;</span>
+<span class="fc" id="L54">    this.apiKey = apiKey;</span>
+<span class="fc" id="L55">    this.retryHelper =</span>
+        new ApiRetryHelper(&quot;SemanticScholar&quot;, &quot;SEMANTIC_SCHOLAR_API_DELAY_MS&quot;, delayMs, 5, delayMs);
+<span class="fc" id="L57">  }</span>
+
+  @Override
+  public String name() {
+<span class="fc" id="L61">    return &quot;SemanticScholar&quot;;</span>
+  }
+
+  @Override
+  public Optional&lt;ResolvedWork&gt; resolveByDoi(String doi) {
+<span class="fc" id="L66">    String url = BASE_URL + &quot;/DOI:&quot; + doi + &quot;?fields=&quot; + FIELDS;</span>
+<span class="fc" id="L67">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers());</span>
+    try {
+<span class="fc" id="L69">      String body =</span>
+<span class="fc" id="L70">          retryHelper.execute(</span>
+              &quot;GET /paper/DOI:&quot; + doi,
+              () -&gt; {
+<span class="fc" id="L73">                ResponseEntity&lt;String&gt; response =</span>
+<span class="fc" id="L74">                    restTemplate.exchange(url, HttpMethod.GET, request, String.class);</span>
+<span class="fc" id="L75">                return response.getBody();</span>
+              });
+<span class="fc" id="L77">      return Optional.of(parseWork(readTree(body)));</span>
+<span class="fc" id="L78">    } catch (HttpClientErrorException.NotFound e) {</span>
+<span class="fc" id="L79">      return Optional.empty();</span>
+    }
+  }
+
+  @Override
+  public List&lt;ResolvedWork&gt; getReferences(ResolvedWork sourceWork, int maxResults) {
+<span class="fc" id="L85">    return cap(sourceWork.embeddedReferences(), maxResults);</span>
+  }
+
+  @Override
+  public List&lt;ResolvedWork&gt; getCitations(ResolvedWork sourceWork, int maxResults) {
+<span class="fc" id="L90">    return cap(sourceWork.embeddedCitations(), maxResults);</span>
+  }
+
+  private static List&lt;ResolvedWork&gt; cap(List&lt;ResolvedWork&gt; works, int maxResults) {
+<span class="fc" id="L94">    return works.subList(0, Math.min(works.size(), maxResults));</span>
+  }
+
+  private HttpHeaders headers() {
+<span class="fc" id="L98">    HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc bfc" id="L99" title="All 4 branches covered.">    if (apiKey != null &amp;&amp; !apiKey.isBlank()) {</span>
+<span class="fc" id="L100">      headers.set(&quot;x-api-key&quot;, apiKey);</span>
+    }
+<span class="fc" id="L102">    return headers;</span>
+  }
+
+  private ResolvedWork parseWork(JsonNode node) {
+<span class="fc" id="L106">    List&lt;String&gt; authorNames = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">    for (JsonNode author : node.path(&quot;authors&quot;)) {</span>
+<span class="fc" id="L108">      String name = textOrNull(author, &quot;name&quot;);</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">      if (name != null) {</span>
+<span class="fc" id="L110">        authorNames.add(name);</span>
+      }
+<span class="fc" id="L112">    }</span>
+
+<span class="fc" id="L114">    return new ResolvedWork(</span>
+<span class="fc" id="L115">        textOrNull(node, &quot;paperId&quot;),</span>
+<span class="fc" id="L116">        normalizeDoiOrNull(textOrNull(node.path(&quot;externalIds&quot;), &quot;DOI&quot;)),</span>
+<span class="fc" id="L117">        textOrNull(node, &quot;title&quot;),</span>
+<span class="fc bfc" id="L118" title="All 2 branches covered.">        node.path(&quot;year&quot;).isInt() ? node.path(&quot;year&quot;).asInt() : null,</span>
+<span class="fc" id="L119">        translateType(node.path(&quot;publicationTypes&quot;)),</span>
+        authorNames,
+<span class="fc" id="L121">        textOrNull(node, &quot;venue&quot;),</span>
+<span class="fc" id="L122">        List.of(),</span>
+<span class="fc" id="L123">        parseEmbeddedList(node.path(&quot;references&quot;)),</span>
+<span class="fc" id="L124">        parseEmbeddedList(node.path(&quot;citations&quot;)));</span>
+  }
+
+  // A reference/citation item shares its parent's shape, minus publicationTypes (never requested
+  // for embedded items) and referenced/citing lists of its own (this project only needs one hop).
+  private ResolvedWork parseEmbeddedItem(JsonNode node) {
+<span class="fc" id="L130">    List&lt;String&gt; authorNames = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">    for (JsonNode author : node.path(&quot;authors&quot;)) {</span>
+<span class="fc" id="L132">      String name = textOrNull(author, &quot;name&quot;);</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">      if (name != null) {</span>
+<span class="fc" id="L134">        authorNames.add(name);</span>
+      }
+<span class="fc" id="L136">    }</span>
+<span class="fc" id="L137">    return new ResolvedWork(</span>
+<span class="fc" id="L138">        textOrNull(node, &quot;paperId&quot;),</span>
+<span class="fc" id="L139">        normalizeDoiOrNull(textOrNull(node.path(&quot;externalIds&quot;), &quot;DOI&quot;)),</span>
+<span class="fc" id="L140">        textOrNull(node, &quot;title&quot;),</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">        node.path(&quot;year&quot;).isInt() ? node.path(&quot;year&quot;).asInt() : null,</span>
+        null,
+        authorNames,
+<span class="fc" id="L144">        textOrNull(node, &quot;venue&quot;),</span>
+<span class="fc" id="L145">        List.of(),</span>
+<span class="fc" id="L146">        List.of(),</span>
+<span class="fc" id="L147">        List.of());</span>
+  }
+
+  // `references`/`citations` are JSON null (not []) when the publisher has restricted them.
+  private List&lt;ResolvedWork&gt; parseEmbeddedList(JsonNode arrayNode) {
+<span class="fc bfc" id="L152" title="All 4 branches covered.">    if (arrayNode.isMissingNode() || arrayNode.isNull()) {</span>
+<span class="fc" id="L153">      return List.of();</span>
+    }
+<span class="fc" id="L155">    List&lt;ResolvedWork&gt; works = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">    for (JsonNode item : arrayNode) {</span>
+<span class="fc" id="L157">      works.add(parseEmbeddedItem(item));</span>
+<span class="fc" id="L158">    }</span>
+<span class="fc" id="L159">    return works;</span>
+  }
+
+  // publicationTypes is a list (e.g. [&quot;JournalArticle&quot;,&quot;Conference&quot;]); translated to the single
+  // OpenAlex-style vocabulary string BibTexSynthesisService's ENTRY_TYPE_MAP understands, in
+  // priority order. An unmapped/absent set of types falls back to &quot;misc&quot; there, same as Crossref.
+  private static String translateType(JsonNode publicationTypes) {
+<span class="fc" id="L166">    List&lt;String&gt; types = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">    for (JsonNode t : publicationTypes) {</span>
+<span class="fc" id="L168">      types.add(t.asText());</span>
+<span class="fc" id="L169">    }</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">    if (types.contains(&quot;Conference&quot;)) {</span>
+<span class="fc" id="L171">      return &quot;proceedings-article&quot;;</span>
+    }
+<span class="fc bfc" id="L173" title="All 2 branches covered.">    if (types.contains(&quot;JournalArticle&quot;)) {</span>
+<span class="fc" id="L174">      return &quot;article&quot;;</span>
+    }
+<span class="fc bfc" id="L176" title="All 2 branches covered.">    if (types.contains(&quot;Book&quot;)) {</span>
+<span class="fc" id="L177">      return &quot;book&quot;;</span>
+    }
+<span class="fc" id="L179">    return null;</span>
+  }
+
+  private String normalizeDoiOrNull(String rawDoi) {
+<span class="fc bfc" id="L183" title="All 2 branches covered.">    if (rawDoi == null) {</span>
+<span class="fc" id="L184">      return null;</span>
+    }
+    try {
+<span class="fc" id="L187">      return doiService.normalizeRawDOI(rawDoi);</span>
+<span class="fc" id="L188">    } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L189">      log.debug(&quot;Could not normalize DOI from Semantic Scholar: {}&quot;, rawDoi);</span>
+<span class="fc" id="L190">      return null;</span>
+    }
+  }
+
+  private static String textOrNull(JsonNode node, String field) {
+<span class="fc" id="L195">    JsonNode child = node.path(field);</span>
+<span class="fc bfc" id="L196" title="All 4 branches covered.">    return child.isMissingNode() || child.isNull() ? null : child.asText();</span>
+  }
+
+  private JsonNode readTree(String json) {
+    try {
+<span class="fc" id="L201">      return objectMapper.readTree(json);</span>
+<span class="fc" id="L202">    } catch (JsonProcessingException e) {</span>
+<span class="fc" id="L203">      throw new IllegalStateException(&quot;Could not parse Semantic Scholar API response as JSON&quot;, e);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
