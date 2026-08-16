@@ -22,6 +22,12 @@ import java.util.List;
  * referencedWorkIds} or {@code embeddedReferences}, never both. All three list fields are always
  * non-null (an empty {@link java.util.List#of()} when not applicable) — every {@link
  * CitationMetadataResolver} implementation is expected to uphold this, since callers rely on it.
+ *
+ * <p>{@code abstractText}, {@code publisher}, {@code pages}, {@code isbn}, {@code series}, {@code
+ * address}, {@code volume}, and {@code number} are best-effort: not every resolver's API exposes
+ * all of them (see each resolver's own parsing for which it populates), so {@link
+ * BibTexSynthesisService} treats every one of these as optional. ({@code abstractText}, not {@code
+ * abstract}, since the latter is a Java reserved word.)
  */
 public record ResolvedWork(
     String id,
@@ -33,4 +39,52 @@ public record ResolvedWork(
     String venue,
     List<String> referencedWorkIds,
     List<ResolvedWork> embeddedReferences,
-    List<ResolvedWork> embeddedCitations) {}
+    List<ResolvedWork> embeddedCitations,
+    String abstractText,
+    String publisher,
+    String pages,
+    String isbn,
+    String series,
+    String address,
+    String volume,
+    String number) {
+
+  /**
+   * Legacy constructor for the many call sites (embedded-reference/citation stubs, most existing
+   * tests) that only ever populated the original ten fields — avoids an unrelated, purely
+   * mechanical diff across every resolver's reference/citation-stub parsing and every existing test
+   * that constructs a {@link ResolvedWork}. The new fields default to {@code null}, same as if a
+   * resolver simply had nothing to report for them.
+   */
+  public ResolvedWork(
+      String id,
+      String doi,
+      String title,
+      Integer year,
+      String type,
+      List<String> authorNames,
+      String venue,
+      List<String> referencedWorkIds,
+      List<ResolvedWork> embeddedReferences,
+      List<ResolvedWork> embeddedCitations) {
+    this(
+        id,
+        doi,
+        title,
+        year,
+        type,
+        authorNames,
+        venue,
+        referencedWorkIds,
+        embeddedReferences,
+        embeddedCitations,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null);
+  }
+}

@@ -27,6 +27,7 @@ public class DoiToBibTexServiceTests {
   private OpenAlexService openAlexService;
   private SemanticScholarResolver semanticScholarResolver;
   private CrossrefResolver crossrefResolver;
+  private DblpResolver dblpResolver;
 
   @BeforeEach
   void setup() {
@@ -35,6 +36,7 @@ public class DoiToBibTexServiceTests {
     openAlexService = mock(OpenAlexService.class);
     semanticScholarResolver = mock(SemanticScholarResolver.class);
     crossrefResolver = mock(CrossrefResolver.class);
+    dblpResolver = mock(DblpResolver.class);
     when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of());
 
     doiToBibTexService =
@@ -45,7 +47,8 @@ public class DoiToBibTexServiceTests {
             citationGraphService,
             openAlexService,
             semanticScholarResolver,
-            crossrefResolver);
+            crossrefResolver,
+            dblpResolver);
   }
 
   private static ResolvedWork resolvedWork() {
@@ -80,6 +83,20 @@ public class DoiToBibTexServiceTests {
     when(semanticScholarResolver.resolveByDoi("10.1038/s41586-020-2649-2"))
         .thenReturn(Optional.empty());
     when(crossrefResolver.resolveByDoi("10.1038/s41586-020-2649-2"))
+        .thenReturn(Optional.of(resolvedWork()));
+
+    String bibtex = doiToBibTexService.resolveToBibTex("10.1038/s41586-020-2649-2", 1, null);
+
+    assertTrue(bibtex.contains("harris2020"));
+  }
+
+  @Test
+  void falls_back_to_dblp_when_the_other_three_have_no_record() {
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.empty());
+    when(semanticScholarResolver.resolveByDoi("10.1038/s41586-020-2649-2"))
+        .thenReturn(Optional.empty());
+    when(crossrefResolver.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.empty());
+    when(dblpResolver.resolveByDoi("10.1038/s41586-020-2649-2"))
         .thenReturn(Optional.of(resolvedWork()));
 
     String bibtex = doiToBibTexService.resolveToBibTex("10.1038/s41586-020-2649-2", 1, null);

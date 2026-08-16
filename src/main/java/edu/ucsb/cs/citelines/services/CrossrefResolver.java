@@ -116,7 +116,22 @@ public class CrossrefResolver implements CitationMetadataResolver {
         firstOrNull(node.path("container-title")),
         List.of(),
         embeddedReferences,
-        List.of());
+        List.of(),
+        stripJatsTags(textOrNull(node, "abstract")),
+        textOrNull(node, "publisher"),
+        textOrNull(node, "page"),
+        firstOrNull(node.path("ISBN")),
+        textOrNull(node.path("event"), "name"),
+        textOrNull(node.path("event"), "location"),
+        textOrNull(node, "volume"),
+        textOrNull(node, "issue"));
+  }
+
+  // Crossref's `abstract` field, when present, is deposited as a JATS XML fragment (e.g. wrapped
+  // in <jats:p> tags) even though the surrounding response is JSON — left as literal markup would
+  // look broken inside a BibTeX field, so any tag is stripped down to its plain text content.
+  private static String stripJatsTags(String value) {
+    return value == null ? null : value.replaceAll("<[^>]+>", "").trim();
   }
 
   // A Crossref `reference` array item is one of three shapes: DOI-only (most common — the

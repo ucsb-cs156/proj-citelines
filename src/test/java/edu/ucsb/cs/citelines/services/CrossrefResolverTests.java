@@ -39,6 +39,13 @@ public class CrossrefResolverTests {
           ],
           "container-title": ["Proceedings of the 2021 CHI Conference on Human Factors in Computing Systems"],
           "published-print": {"date-parts": [[2021, 5, 6]]},
+          "abstract": "<jats:p>A study of <jats:italic>improvisational</jats:italic> quilting.</jats:p>",
+          "publisher": "Association for Computing Machinery",
+          "page": "1-14",
+          "ISBN": ["9781450380966"],
+          "event": {"name": "CHI '21", "location": "Yokohama, Japan"},
+          "volume": "12",
+          "issue": "3",
           "reference": [
             {"key": "e_1", "doi-asserted-by": "publisher", "DOI": "10.1145/3313831.3376305"},
             {
@@ -92,6 +99,40 @@ public class CrossrefResolverTests {
     assertEquals(3, work.embeddedReferences().size());
     assertEquals(List.of(), work.embeddedCitations());
     assertEquals(List.of(), work.referencedWorkIds());
+    assertEquals("A study of improvisational quilting.", work.abstractText());
+    assertEquals("Association for Computing Machinery", work.publisher());
+    assertEquals("1-14", work.pages());
+    assertEquals("9781450380966", work.isbn());
+    assertEquals("CHI '21", work.series());
+    assertEquals("Yokohama, Japan", work.address());
+    assertEquals("12", work.volume());
+    assertEquals("3", work.number());
+  }
+
+  @Test
+  void fields_with_no_data_in_the_response_parse_as_null() {
+    String json = "{\"message\": {\"DOI\": \"10.1/x\", \"title\": [\"T\"]}}";
+    when(restTemplate.getForObject(contains("/works/"), eq(String.class))).thenReturn(json);
+
+    ResolvedWork work = crossrefResolver.resolveByDoi("10.1/x").get();
+
+    assertEquals(null, work.abstractText());
+    assertEquals(null, work.publisher());
+    assertEquals(null, work.pages());
+    assertEquals(null, work.isbn());
+    assertEquals(null, work.series());
+    assertEquals(null, work.address());
+    assertEquals(null, work.volume());
+    assertEquals(null, work.number());
+  }
+
+  @Test
+  void an_abstract_with_no_xml_tags_at_all_is_left_unchanged() {
+    String json =
+        "{\"message\": {\"DOI\": \"10.1/x\", \"title\": [\"T\"], \"abstract\": \"Plain text.\"}}";
+    when(restTemplate.getForObject(contains("/works/"), eq(String.class))).thenReturn(json);
+
+    assertEquals("Plain text.", crossrefResolver.resolveByDoi("10.1/x").get().abstractText());
   }
 
   @Test

@@ -45,6 +45,28 @@ public class BibTexSynthesisServiceTests {
         "Nature");
   }
 
+  private static ResolvedWork fullWork(String type) {
+    return new ResolvedWork(
+        "W1",
+        null,
+        "A Full Work",
+        2021,
+        type,
+        List.of("Ann Author"),
+        "Some Venue",
+        List.of(),
+        List.of(),
+        List.of(),
+        "An abstract.",
+        "Some Publisher",
+        "1-10",
+        "978-0-00-000000-0",
+        "Some Series",
+        "Some City",
+        "12",
+        "3");
+  }
+
   @Test
   void synthesizes_a_bibtex_string_that_the_real_converter_can_parse_back() {
     String bibtex = synthesisService.synthesizeRawBibTex(article(), "harris2020");
@@ -221,6 +243,134 @@ public class BibTexSynthesisServiceTests {
   void generateUniqueCiteKey_falls_back_to_entry_when_the_first_authors_name_has_no_letters() {
     ResolvedWork w = work("W1", null, "Title", 2020, "article", List.of("."), null);
     assertEquals("entry2020", synthesisService.generateUniqueCiteKey(w, Set.of()));
+  }
+
+  @Test
+  void inproceedings_emits_publisher_address_pages_isbn_and_series() {
+    BibTexEntry entry =
+        converterService
+            .parseToEntries(
+                synthesisService.synthesizeRawBibTex(fullWork("proceedings-article"), "x"), 1)
+            .get(0);
+
+    assertEquals("Some Publisher", entry.getKeyValuePairs().get("publisher"));
+    assertEquals("Some City", entry.getKeyValuePairs().get("address"));
+    assertEquals("1-10", entry.getKeyValuePairs().get("pages"));
+    assertEquals("978-0-00-000000-0", entry.getKeyValuePairs().get("isbn"));
+    assertEquals("Some Series", entry.getKeyValuePairs().get("series"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("volume"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("number"));
+  }
+
+  @Test
+  void article_emits_pages_volume_and_number_but_not_publisher_address_isbn_or_series() {
+    BibTexEntry entry =
+        converterService
+            .parseToEntries(synthesisService.synthesizeRawBibTex(fullWork("article"), "x"), 1)
+            .get(0);
+
+    assertEquals("1-10", entry.getKeyValuePairs().get("pages"));
+    assertEquals("12", entry.getKeyValuePairs().get("volume"));
+    assertEquals("3", entry.getKeyValuePairs().get("number"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("publisher"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("address"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("isbn"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("series"));
+  }
+
+  @Test
+  void book_emits_publisher_address_isbn_series_and_volume_but_not_pages_or_number() {
+    BibTexEntry entry =
+        converterService
+            .parseToEntries(synthesisService.synthesizeRawBibTex(fullWork("book"), "x"), 1)
+            .get(0);
+
+    assertEquals("Some Publisher", entry.getKeyValuePairs().get("publisher"));
+    assertEquals("12", entry.getKeyValuePairs().get("volume"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("pages"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("number"));
+  }
+
+  @Test
+  void techreport_emits_publisher_address_and_number_but_not_pages_isbn_series_or_volume() {
+    BibTexEntry entry =
+        converterService
+            .parseToEntries(synthesisService.synthesizeRawBibTex(fullWork("report"), "x"), 1)
+            .get(0);
+
+    assertEquals("Some Publisher", entry.getKeyValuePairs().get("publisher"));
+    assertEquals("Some City", entry.getKeyValuePairs().get("address"));
+    assertEquals("3", entry.getKeyValuePairs().get("number"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("pages"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("isbn"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("series"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("volume"));
+  }
+
+  @Test
+  void an_unrecognized_type_emits_none_of_the_type_scoped_fields() {
+    BibTexEntry entry =
+        converterService
+            .parseToEntries(synthesisService.synthesizeRawBibTex(fullWork("dataset"), "x"), 1)
+            .get(0);
+
+    assertTrue(!entry.getKeyValuePairs().containsKey("pages"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("publisher"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("isbn"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("series"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("address"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("volume"));
+    assertTrue(!entry.getKeyValuePairs().containsKey("number"));
+  }
+
+  @Test
+  void abstract_is_emitted_regardless_of_entry_type() {
+    BibTexEntry entry =
+        converterService
+            .parseToEntries(synthesisService.synthesizeRawBibTex(fullWork("dataset"), "x"), 1)
+            .get(0);
+
+    assertEquals("An abstract.", entry.getKeyValuePairs().get("abstract"));
+  }
+
+  @Test
+  void a_blank_abstract_is_omitted() {
+    ResolvedWork w =
+        new ResolvedWork(
+            "W1", null, "Title", null, "article", List.of(), null, List.of(), List.of(), List.of(),
+            "   ", null, null, null, null, null, null, null);
+
+    String bibtex = synthesisService.synthesizeRawBibTex(w, "x");
+    assertTrue(!bibtex.contains("abstract"));
+  }
+
+  @Test
+  void free_text_type_scoped_fields_are_latex_normalized_and_stripped_of_stray_braces() {
+    ResolvedWork w =
+        new ResolvedWork(
+            "W1",
+            null,
+            "Title",
+            null,
+            "book",
+            List.of(),
+            null,
+            List.of(),
+            List.of(),
+            List.of(),
+            null,
+            "A {Weird} Publisher",
+            null,
+            null,
+            null,
+            "A {Weird} City",
+            null,
+            null);
+
+    BibTexEntry entry =
+        converterService.parseToEntries(synthesisService.synthesizeRawBibTex(w, "x"), 1).get(0);
+    assertEquals("A Weird Publisher", entry.getKeyValuePairs().get("publisher"));
+    assertEquals("A Weird City", entry.getKeyValuePairs().get("address"));
   }
 
   @Test

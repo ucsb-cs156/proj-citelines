@@ -37,6 +37,7 @@ public class CitationGraphServiceTests {
   private OpenAlexService openAlexService;
   private SemanticScholarResolver semanticScholarResolver;
   private CrossrefResolver crossrefResolver;
+  private DblpResolver dblpResolver;
 
   @BeforeEach
   void setup() {
@@ -46,9 +47,11 @@ public class CitationGraphServiceTests {
     openAlexService = mock(OpenAlexService.class);
     semanticScholarResolver = mock(SemanticScholarResolver.class);
     crossrefResolver = mock(CrossrefResolver.class);
+    dblpResolver = mock(DblpResolver.class);
     when(openAlexService.name()).thenReturn("OpenAlex");
     when(semanticScholarResolver.name()).thenReturn("SemanticScholar");
     when(crossrefResolver.name()).thenReturn("Crossref");
+    when(dblpResolver.name()).thenReturn("DBLP");
     // Simulates real Spring Data MongoDB behavior: save() assigns a generated id back onto the
     // entity when it doesn't already have one, which resolveOrCreateEntry relies on immediately
     // after saving a newly created entry.
@@ -72,6 +75,7 @@ public class CitationGraphServiceTests {
             openAlexService,
             semanticScholarResolver,
             crossrefResolver,
+            dblpResolver,
             new BibTexSynthesisService(new LaTeXNormalizationService()),
             converterService);
   }
@@ -570,6 +574,41 @@ public class CitationGraphServiceTests {
   }
 
   @Test
+  void fetchReferences_falls_back_to_dblp_when_the_other_three_have_no_record() {
+    when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
+        .thenReturn(Optional.of(sourceEntry()));
+    when(bibTexEntryRepository.findByProjectId(42)).thenReturn(List.of(sourceEntry()));
+    when(openAlexService.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.empty());
+    when(semanticScholarResolver.resolveByDoi("10.1038/s41586-020-2649-2"))
+        .thenReturn(Optional.empty());
+    when(crossrefResolver.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.empty());
+    ResolvedWork dblpSource = sourceWork(List.of());
+    when(dblpResolver.resolveByDoi("10.1038/s41586-020-2649-2"))
+        .thenReturn(Optional.of(dblpSource));
+    ResolvedWork referencedWork =
+        resolvedWork(
+            "dblp_1",
+            "10.1000/ref1",
+            "A Referenced Paper",
+            2015,
+            "article",
+            List.of("Ann Author"),
+            null,
+            List.of());
+    when(dblpResolver.getReferences(dblpSource, CitationGraphService.MAX_RESULTS))
+        .thenReturn(List.of(referencedWork));
+
+    Job job = newJob();
+    JobContext ctx = new JobContext(null, job);
+    citationGraphService.fetchReferences(42, "harris2020", ctx);
+
+    assertTrue(job.getLog().contains("Found source work on DBLP: Array programming with NumPy"));
+    ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository).save(savedEntry.capture());
+    assertEquals("author2015", savedEntry.getValue().getCiteKey());
+  }
+
+  @Test
   void fetchCitations_logs_instead_of_erroring_when_the_discovery_resolver_is_crossref() {
     when(bibTexEntryRepository.findByProjectIdAndCiteKey(42, "harris2020"))
         .thenReturn(Optional.of(sourceEntry()));
@@ -602,6 +641,7 @@ public class CitationGraphServiceTests {
     when(semanticScholarResolver.resolveByDoi("10.1038/s41586-020-2649-2"))
         .thenReturn(Optional.empty());
     when(crossrefResolver.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.empty());
+    when(dblpResolver.resolveByDoi("10.1038/s41586-020-2649-2")).thenReturn(Optional.empty());
 
     Job job = newJob();
     JobContext ctx = new JobContext(null, job);
@@ -612,7 +652,7 @@ public class CitationGraphServiceTests {
         job.getLog()
             .contains(
                 "No record found for DOI 10.1038/s41586-020-2649-2 in any of: OpenAlex,"
-                    + " SemanticScholar, Crossref"));
+                    + " SemanticScholar, Crossref, DBLP"));
   }
 
   @Test

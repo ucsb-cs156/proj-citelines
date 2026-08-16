@@ -34,7 +34,7 @@ public class SemanticScholarResolver implements CitationMetadataResolver {
 
   private static final String BASE_URL = "https://api.semanticscholar.org/graph/v1/paper";
   private static final String FIELDS =
-      "title,year,venue,externalIds,publicationTypes,authors,"
+      "title,year,venue,externalIds,publicationTypes,authors,abstract,"
           + "references.title,references.year,references.externalIds,references.authors,references.venue,"
           + "citations.title,citations.year,citations.externalIds,citations.authors,citations.venue";
 
@@ -121,7 +121,15 @@ public class SemanticScholarResolver implements CitationMetadataResolver {
         textOrNull(node, "venue"),
         List.of(),
         parseEmbeddedList(node.path("references")),
-        parseEmbeddedList(node.path("citations")));
+        parseEmbeddedList(node.path("citations")),
+        textOrNull(node, "abstract"),
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null);
   }
 
   // A reference/citation item shares its parent's shape, minus publicationTypes (never requested
