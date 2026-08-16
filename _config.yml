@@ -20,4 +20,4 @@ repo_name: "TBD"
 repo: ucsb-cs156/proj-citelines
 owner: ucsb-cs156
 repo_name: proj-citelines
-pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue66-richer-bibtex-metadata","number":74,"title":"Improve DOI → BibTeX metadata (richer fields) + a job to upgrade existing entries","url":"https://github.com/ucsb-cs156/proj-citelines/pull/74"}]
+pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue68-duplicate-detection","number":76,"title":"Prevent and detect duplicate BibTeX entries (#68)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/76"},{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue66-richer-bibtex-metadata","number":74,"title":"Improve DOI → BibTeX metadata (richer fields) + a job to upgrade existing entries","url":"https://github.com/ucsb-cs156/proj-citelines/pull/74"}]
