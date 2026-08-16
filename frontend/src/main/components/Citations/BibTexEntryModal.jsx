@@ -18,7 +18,7 @@ export default function BibTexEntryModal({
   projectId,
   entryToEdit = null,
   mutationQueryKeys = [],
-  relatedCiteKey = null,
+  relatedEntryId = null,
   relationship = null,
 }) {
   const {
@@ -85,8 +85,8 @@ export default function BibTexEntryModal({
       url: "/api/bibtexentries/post",
       method: "POST",
       params:
-        relatedCiteKey && relationship
-          ? { projectId: projectId, relatedCiteKey, relationship }
+        relatedEntryId && relationship
+          ? { projectId: projectId, relatedEntryId, relationship }
           : { projectId: projectId },
       data: formData.bibtex,
       headers: { "Content-Type": "text/plain" },

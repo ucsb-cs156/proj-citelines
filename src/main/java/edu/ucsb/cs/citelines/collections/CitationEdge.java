@@ -9,10 +9,13 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * A MongoDB document representing a directed "cites" relationship between two {@link BibTexEntry}s
- * in the same project, identified by their citeKeys.
+ * in the same project, identified by their (immutable) Mongo {@code _id}s — not their citeKeys,
+ * which a user can freely rename via the "Edit Citation" flow. Identifying entries by id keeps an
+ * edge valid across a rename; the same reasoning that led {@code BibTexEntriesController} to look
+ * entries up by id rather than citeKey elsewhere (see its {@code bibTexEntryById} Javadoc).
  *
- * <p>{@code id} is a deterministic composite of {@code projectId}/{@code citingCiteKey}/{@code
- * citedCiteKey} so that saving the same edge twice (e.g. on a repeated Get References/Get Citations
+ * <p>{@code id} is a deterministic composite of {@code projectId}/{@code citingEntryId}/{@code
+ * citedEntryId} so that saving the same edge twice (e.g. on a repeated Get References/Get Citations
  * job run) overwrites rather than duplicates it.
  */
 @Data
@@ -26,10 +29,10 @@ public class CitationEdge {
 
   private int projectId;
 
-  private String citingCiteKey;
-  private String citedCiteKey;
+  private String citingEntryId;
+  private String citedEntryId;
 
-  public static String makeId(int projectId, String citingCiteKey, String citedCiteKey) {
-    return "%d:%s:%s".formatted(projectId, citingCiteKey, citedCiteKey);
+  public static String makeId(int projectId, String citingEntryId, String citedEntryId) {
+    return "%d:%s:%s".formatted(projectId, citingEntryId, citedEntryId);
   }
 }

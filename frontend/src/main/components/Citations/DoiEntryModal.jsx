@@ -14,7 +14,7 @@ export default function DoiEntryModal({
   toggleShowModal,
   projectId,
   mutationQueryKeys = [],
-  relatedCiteKey = null,
+  relatedEntryId = null,
   relationship = null,
 }) {
   const {
@@ -44,10 +44,10 @@ export default function DoiEntryModal({
       url: "/api/bibtexentries/postByDoi",
       method: "POST",
       params:
-        relatedCiteKey && relationship
+        relatedEntryId && relationship
           ? {
               projectId: projectId,
-              relatedCiteKey,
+              relatedEntryId,
               relationship,
               relevance: formData.relevance,
             }

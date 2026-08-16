@@ -9,5 +9,5 @@ import org.springframework.stereotype.Repository;
 public interface UnresolvedCitationRepository extends MongoRepository<UnresolvedCitation, String> {
   List<UnresolvedCitation> findByProjectId(int projectId);
 
-  List<UnresolvedCitation> findByProjectIdAndSourceCiteKey(int projectId, String sourceCiteKey);
+  List<UnresolvedCitation> findByProjectIdAndSourceEntryId(int projectId, String sourceEntryId);
 }

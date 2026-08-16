@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 /** Mongo repository ("collection") for {@link CitationEdge} documents. */
 @Repository
 public interface CitationEdgeRepository extends MongoRepository<CitationEdge, String> {
-  List<CitationEdge> findByProjectIdAndCitingCiteKey(int projectId, String citingCiteKey);
+  List<CitationEdge> findByProjectIdAndCitingEntryId(int projectId, String citingEntryId);
 
-  List<CitationEdge> findByProjectIdAndCitedCiteKey(int projectId, String citedCiteKey);
+  List<CitationEdge> findByProjectIdAndCitedEntryId(int projectId, String citedEntryId);
 }

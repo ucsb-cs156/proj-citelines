@@ -102,12 +102,12 @@ describe("BibTexEntryModal tests", () => {
     expect(toggleShowModal).toHaveBeenCalledWith(false);
   });
 
-  test("when relationship is 'reference', shows the Add Reference title and includes relatedCiteKey/relationship in the POST", async () => {
+  test("when relationship is 'reference', shows the Add Reference title and includes relatedEntryId/relationship in the POST", async () => {
     axiosMock
       .onPost("/api/bibtexentries/post")
       .reply(200, [bibTexEntriesFixtures.oneEntry]);
 
-    renderModal({ relatedCiteKey: "smith2020", relationship: "reference" });
+    renderModal({ relatedEntryId: "id-smith2020", relationship: "reference" });
 
     expect(screen.getByText("Add Reference")).toBeInTheDocument();
 
@@ -119,7 +119,7 @@ describe("BibTexEntryModal tests", () => {
     await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
     expect(axiosMock.history.post[0].params).toEqual({
       projectId: 1,
-      relatedCiteKey: "smith2020",
+      relatedEntryId: "id-smith2020",
       relationship: "reference",
     });
     await waitFor(() =>
@@ -127,12 +127,12 @@ describe("BibTexEntryModal tests", () => {
     );
   });
 
-  test("when relationship is 'citation', shows the Add Citation title and includes relatedCiteKey/relationship in the POST", async () => {
+  test("when relationship is 'citation', shows the Add Citation title and includes relatedEntryId/relationship in the POST", async () => {
     axiosMock
       .onPost("/api/bibtexentries/post")
       .reply(200, [bibTexEntriesFixtures.oneEntry]);
 
-    renderModal({ relatedCiteKey: "smith2020", relationship: "citation" });
+    renderModal({ relatedEntryId: "id-smith2020", relationship: "citation" });
 
     expect(screen.getByText("Add Citation")).toBeInTheDocument();
 
@@ -144,7 +144,7 @@ describe("BibTexEntryModal tests", () => {
     await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
     expect(axiosMock.history.post[0].params).toEqual({
       projectId: 1,
-      relatedCiteKey: "smith2020",
+      relatedEntryId: "id-smith2020",
       relationship: "citation",
     });
     await waitFor(() =>

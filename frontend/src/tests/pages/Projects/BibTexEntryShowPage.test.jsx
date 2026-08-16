@@ -297,6 +297,17 @@ describe("BibTexEntryShowPage tests", () => {
     ).toHaveTextContent("Citations (1)");
 
     expect(
+      axiosMock.history.get.find(
+        (r) => r.url === "/api/citationedges/references",
+      ).params,
+    ).toEqual({ projectId: "1", id: ENTRY_ID });
+    expect(
+      axiosMock.history.get.find(
+        (r) => r.url === "/api/citationedges/citations",
+      ).params,
+    ).toEqual({ projectId: "1", id: ENTRY_ID });
+
+    expect(
       screen.queryByTestId(
         "BibTexEntryShowPage-ReferencesTable-cell-row-0-col-edit-button",
       ),
@@ -346,7 +357,10 @@ describe("BibTexEntryShowPage tests", () => {
       axiosMock.history.get.find(
         (r) => r.url === "/api/citationedges/unresolved",
       ).params,
-    ).toEqual({ projectId: "1", sourceCiteKey: "smith2020" });
+    ).toEqual({
+      projectId: "1",
+      sourceEntryId: ENTRY_ID,
+    });
   });
 
   test("shows an error modal and returns to the project page when the entry cannot be fetched", async () => {
@@ -381,7 +395,7 @@ describe("BibTexEntryShowPage tests", () => {
     await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
     expect(axiosMock.history.post[0].params).toEqual({
       projectId: "1",
-      relatedCiteKey: "smith2020",
+      relatedEntryId: ENTRY_ID,
       relationship: "reference",
     });
   });
@@ -408,7 +422,7 @@ describe("BibTexEntryShowPage tests", () => {
     await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
     expect(axiosMock.history.post[0].params).toEqual({
       projectId: "1",
-      relatedCiteKey: "smith2020",
+      relatedEntryId: ENTRY_ID,
       relationship: "citation",
     });
   });

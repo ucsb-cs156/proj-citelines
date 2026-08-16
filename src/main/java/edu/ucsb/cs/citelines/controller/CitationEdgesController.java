@@ -6,7 +6,6 @@ import edu.ucsb.cs.citelines.collections.CitationEdge;
 import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
 import edu.ucsb.cs.citelines.collections.UnresolvedCitation;
 import edu.ucsb.cs.citelines.collections.UnresolvedCitationRepository;
-import edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,72 +35,56 @@ public class CitationEdgesController extends ApiController {
   @Autowired private CitationEdgeRepository citationEdgeRepository;
   @Autowired private BibTexEntryRepository bibTexEntryRepository;
   @Autowired private UnresolvedCitationRepository unresolvedCitationRepository;
-  @Autowired private BibTexEntryCoalescingService bibTexEntryCoalescingService;
 
+  /**
+   * @param id the Mongo {@code _id} of the entry to list references for — not its citeKey, which a
+   *     user can freely rename (see {@code CitationEdge}'s Javadoc)
+   */
   @Operation(summary = "List the BibTeX entries that a given entry cites")
   @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
   @GetMapping("/references")
   public List<BibTexEntry> references(
       @Parameter(name = "projectId") @RequestParam Long projectId,
-      @Parameter(name = "citeKey") @RequestParam String citeKey) {
+      @Parameter(name = "id") @RequestParam String id) {
     return relatedEntries(
-        projectId,
-        citationEdgeRepository
-            .findByProjectIdAndCitingCiteKey(projectId.intValue(), citeKey)
-            .stream()
-            .map(CitationEdge::getCitedCiteKey));
+        citationEdgeRepository.findByProjectIdAndCitingEntryId(projectId.intValue(), id).stream()
+            .map(CitationEdge::getCitedEntryId));
   }
 
+  /**
+   * @param id the Mongo {@code _id} of the entry to list citations for — not its citeKey, which a
+   *     user can freely rename (see {@code CitationEdge}'s Javadoc)
+   */
   @Operation(summary = "List the BibTeX entries that cite a given entry")
   @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
   @GetMapping("/citations")
   public List<BibTexEntry> citations(
       @Parameter(name = "projectId") @RequestParam Long projectId,
-      @Parameter(name = "citeKey") @RequestParam String citeKey) {
+      @Parameter(name = "id") @RequestParam String id) {
     return relatedEntries(
-        projectId,
-        citationEdgeRepository
-            .findByProjectIdAndCitedCiteKey(projectId.intValue(), citeKey)
-            .stream()
-            .map(CitationEdge::getCitingCiteKey));
+        citationEdgeRepository.findByProjectIdAndCitedEntryId(projectId.intValue(), id).stream()
+            .map(CitationEdge::getCitingEntryId));
   }
 
   @Operation(
       summary =
           "List references/citations no configured resolver could fully resolve, for a project"
-              + " or (if sourceCiteKey is given) for a single entry")
+              + " or (if sourceEntryId is given) for a single entry")
   @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
   @GetMapping("/unresolved")
   public List<UnresolvedCitation> unresolved(
       @Parameter(name = "projectId") @RequestParam Long projectId,
-      @Parameter(name = "sourceCiteKey") @RequestParam(required = false) String sourceCiteKey) {
-    return sourceCiteKey == null
+      @Parameter(name = "sourceEntryId") @RequestParam(required = false) String sourceEntryId) {
+    return sourceEntryId == null
         ? unresolvedCitationRepository.findByProjectId(projectId.intValue())
-        : unresolvedCitationRepository.findByProjectIdAndSourceCiteKey(
-            projectId.intValue(), sourceCiteKey);
+        : unresolvedCitationRepository.findByProjectIdAndSourceEntryId(
+            projectId.intValue(), sourceEntryId);
   }
 
-  private List<BibTexEntry> relatedEntries(Long projectId, Stream<String> citeKeys) {
-    return citeKeys
-        .map(key -> findOneByProjectIdAndCiteKey(projectId.intValue(), key))
-        .flatMap(Optional::stream)
-        .toList();
-  }
-
-  // Same duplicate-tolerant lookup as BibTexEntriesController#reuseExistingIdIfPresent: if more
-  // than one entry is (incorrectly) stored for a citeKey, coalesce them into one instead of
-  // letting the ambiguity surface as an IncorrectResultSizeDataAccessException.
-  private Optional<BibTexEntry> findOneByProjectIdAndCiteKey(int projectId, String citeKey) {
-    List<BibTexEntry> matches =
-        bibTexEntryRepository.findAllByProjectIdAndCiteKey(projectId, citeKey);
-    if (matches.isEmpty()) {
-      return Optional.empty();
-    }
-    BibTexEntry coalesced = bibTexEntryCoalescingService.coalesce(matches);
-    if (matches.size() > 1) {
-      List<BibTexEntry> duplicates = matches.stream().filter(e -> e != coalesced).toList();
-      bibTexEntryRepository.deleteAll(duplicates);
-    }
-    return Optional.of(coalesced);
+  // A Mongo _id is unique by construction, so (unlike a lookup by citeKey) this can never match
+  // more than one entry — no coalescing needed, just a plain lookup that silently skips an edge
+  // whose related entry no longer exists (e.g. deleted since the edge was recorded).
+  private List<BibTexEntry> relatedEntries(Stream<String> entryIds) {
+    return entryIds.map(bibTexEntryRepository::findById).flatMap(Optional::stream).toList();
   }
 }
