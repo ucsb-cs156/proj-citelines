@@ -28,6 +28,19 @@ public class BibTexSynthesisService {
           "dissertation", "phdthesis",
           "report", "techreport");
 
+  // Which of the newly-synthesizable fields make sense for which entry type — e.g. an ISBN
+  // belongs to the book/proceedings volume an inproceedings paper appeared in, not to the paper
+  // itself, so it's never emitted for a plain article. An entry type not covered by one of these
+  // sets (including the "misc" fallback for anything ENTRY_TYPE_MAP doesn't recognize) simply
+  // never gets that field.
+  private static final Set<String> HAS_PAGES = Set.of("article", "inproceedings", "incollection");
+  private static final Set<String> HAS_PUBLISHER_OR_ADDRESS =
+      Set.of("inproceedings", "book", "incollection", "techreport", "phdthesis");
+  private static final Set<String> HAS_ISBN_OR_SERIES =
+      Set.of("inproceedings", "book", "incollection");
+  private static final Set<String> HAS_VOLUME = Set.of("article", "book", "incollection");
+  private static final Set<String> HAS_NUMBER = Set.of("article", "techreport");
+
   private final LaTeXNormalizationService laTeXNormalizationService;
 
   public BibTexSynthesisService(LaTeXNormalizationService laTeXNormalizationService) {
@@ -66,8 +79,43 @@ public class BibTexSynthesisService {
     if (work.doi() != null && !work.doi().isBlank()) {
       bibtex.append("  doi = {").append(work.doi()).append("},\n");
     }
+    appendField(bibtex, "abstract", work.abstractText(), true);
+    if (HAS_PUBLISHER_OR_ADDRESS.contains(entryType)) {
+      appendField(bibtex, "publisher", work.publisher(), true);
+      appendField(bibtex, "address", work.address(), true);
+    }
+    if (HAS_PAGES.contains(entryType)) {
+      appendField(bibtex, "pages", work.pages(), false);
+    }
+    if (HAS_ISBN_OR_SERIES.contains(entryType)) {
+      appendField(bibtex, "isbn", work.isbn(), false);
+      appendField(bibtex, "series", work.series(), true);
+    }
+    if (HAS_VOLUME.contains(entryType)) {
+      appendField(bibtex, "volume", work.volume(), false);
+    }
+    if (HAS_NUMBER.contains(entryType)) {
+      appendField(bibtex, "number", work.number(), false);
+    }
     bibtex.append("}\n");
     return bibtex.toString();
+  }
+
+  // Free-text fields (abstract/publisher/address/series) are passed through sanitize() the same
+  // as title/venue/author, since upstream data can carry the same LaTeX-escape/stray-brace issues
+  // those do. Fields that are closer to identifiers than prose (pages/isbn/volume/number) are
+  // written verbatim — sanitize()'s brace-stripping is unnecessary for them and LaTeX-escape
+  // normalization has no meaningful effect on e.g. a page range or an ISBN.
+  private void appendField(StringBuilder bibtex, String name, String value, boolean isFreeText) {
+    if (value == null || value.isBlank()) {
+      return;
+    }
+    bibtex
+        .append("  ")
+        .append(name)
+        .append(" = {")
+        .append(isFreeText ? sanitize(value) : value)
+        .append("},\n");
   }
 
   /**

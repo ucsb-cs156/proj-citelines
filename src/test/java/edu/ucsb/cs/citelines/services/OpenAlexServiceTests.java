@@ -36,8 +36,11 @@ public class OpenAlexServiceTests {
           {"author": {"display_name": "Charles R. Harris"}},
           {"author": {"display_name": "K. Jarrod Millman"}}
         ],
-        "primary_location": {"source": {"display_name": "Nature"}},
-        "referenced_works": ["https://openalex.org/W1", "https://openalex.org/W2"]
+        "primary_location": {"source": {"display_name": "Nature", "host_organization_name": "Springer Nature"}},
+        "referenced_works": ["https://openalex.org/W1", "https://openalex.org/W2"],
+        "abstract_inverted_index": {"Array": [0], "programming": [1], "with": [2], "NumPy.": [3]},
+        "biblio": {"volume": "585", "issue": "7825", "first_page": "357", "last_page": "362"},
+        "ids": {"isbn": ["9780000000002"]}
       }
       """;
 
@@ -101,6 +104,120 @@ public class OpenAlexServiceTests {
     assertEquals(List.of("W1", "W2"), work.referencedWorkIds());
     assertEquals(List.of(), work.embeddedReferences());
     assertEquals(List.of(), work.embeddedCitations());
+    assertEquals("Array programming with NumPy.", work.abstractText());
+    assertEquals("Springer Nature", work.publisher());
+    assertEquals("357-362", work.pages());
+    assertEquals("9780000000002", work.isbn());
+    assertEquals(null, work.series());
+    assertEquals(null, work.address());
+    assertEquals("585", work.volume());
+    assertEquals("7825", work.number());
+  }
+
+  @Test
+  void fields_with_no_data_in_the_response_parse_as_null() {
+    String json = "{\"id\": \"https://openalex.org/W1\", \"title\": \"Title\"}";
+    when(restTemplate.getForObject(contains("/works/doi:"), eq(String.class))).thenReturn(json);
+
+    ResolvedWork work = openAlexService.resolveByDoi("10.1234/x").get();
+
+    assertEquals(null, work.abstractText());
+    assertEquals(null, work.publisher());
+    assertEquals(null, work.pages());
+    assertEquals(null, work.isbn());
+    assertEquals(null, work.volume());
+    assertEquals(null, work.number());
+  }
+
+  @Test
+  void reconstructs_an_abstract_with_a_word_repeated_at_multiple_positions() {
+    String json =
+        """
+        {
+          "id": "https://openalex.org/W1",
+          "title": "Title",
+          "abstract_inverted_index": {"the": [0, 2], "cat": [1], "hat": [3]}
+        }
+        """;
+    when(restTemplate.getForObject(contains("/works/doi:"), eq(String.class))).thenReturn(json);
+
+    ResolvedWork work = openAlexService.resolveByDoi("10.1234/x").get();
+    assertEquals("the cat the hat", work.abstractText());
+  }
+
+  @Test
+  void a_single_word_abstract_at_position_zero_is_not_mistaken_for_an_empty_one() {
+    String json =
+        """
+        {
+          "id": "https://openalex.org/W1",
+          "title": "Title",
+          "abstract_inverted_index": {"Word": [0]}
+        }
+        """;
+    when(restTemplate.getForObject(contains("/works/doi:"), eq(String.class))).thenReturn(json);
+
+    assertEquals("Word", openAlexService.resolveByDoi("10.1234/x").get().abstractText());
+  }
+
+  @Test
+  void an_empty_abstract_inverted_index_parses_as_null() {
+    String json =
+        """
+        {
+          "id": "https://openalex.org/W1",
+          "title": "Title",
+          "abstract_inverted_index": {}
+        }
+        """;
+    when(restTemplate.getForObject(contains("/works/doi:"), eq(String.class))).thenReturn(json);
+
+    assertEquals(null, openAlexService.resolveByDoi("10.1234/x").get().abstractText());
+  }
+
+  @Test
+  void an_explicit_json_null_isbn_array_item_parses_as_null() {
+    String json =
+        """
+        {
+          "id": "https://openalex.org/W1",
+          "title": "Title",
+          "ids": {"isbn": [null]}
+        }
+        """;
+    when(restTemplate.getForObject(contains("/works/doi:"), eq(String.class))).thenReturn(json);
+
+    assertEquals(null, openAlexService.resolveByDoi("10.1234/x").get().isbn());
+  }
+
+  @Test
+  void a_pages_field_with_only_a_first_page_omits_the_dash() {
+    String json =
+        """
+        {
+          "id": "https://openalex.org/W1",
+          "title": "Title",
+          "biblio": {"first_page": "357"}
+        }
+        """;
+    when(restTemplate.getForObject(contains("/works/doi:"), eq(String.class))).thenReturn(json);
+
+    assertEquals("357", openAlexService.resolveByDoi("10.1234/x").get().pages());
+  }
+
+  @Test
+  void a_pages_field_with_only_a_last_page_uses_just_that() {
+    String json =
+        """
+        {
+          "id": "https://openalex.org/W1",
+          "title": "Title",
+          "biblio": {"last_page": "362"}
+        }
+        """;
+    when(restTemplate.getForObject(contains("/works/doi:"), eq(String.class))).thenReturn(json);
+
+    assertEquals("362", openAlexService.resolveByDoi("10.1234/x").get().pages());
   }
 
   @Test

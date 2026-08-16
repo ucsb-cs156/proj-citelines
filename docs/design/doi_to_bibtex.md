@@ -265,3 +265,78 @@ public class DoiToBibtex {
 | **Crossref** | **Yes** | **None** (Native HTTP Client) | Standard HTTP GET + read response body as string. |
 | **Semantic Scholar** | Yes (inside JSON) | Jackson / Gson / `org.json` | Make HTTP GET → Parse JSON → Extract `citationStyles.bibtex`. |
 | **OpenAlex** | No | Jackson / Gson / `org.json` | Make HTTP GET → Parse JSON → Manually build BibTeX string. |
+
+# What this project actually does (see issue #66)
+
+Everything above was written before this feature existed, comparing hypothetical approaches. This
+section describes what was actually built.
+
+## Field-by-field synthesis, not a transform/citationStyles shortcut
+
+Despite Crossref's `/works/{doi}/transform/application/x-bibtex` and Semantic Scholar's
+`citationStyles.bibtex` both being genuine, tempting shortcuts, neither is used. Two reasons:
+
+- **Coverage.** This project resolves a DOI through a waterfall — OpenAlex first, then Semantic
+  Scholar, then Crossref, then DBLP — precisely because no single one of them covers everything
+  (see `OpenAlex-MVP-to-full-tiered-fallback-engine.md`). A transform/citationStyles shortcut only
+  covers whichever DOIs *that specific resolver* has, so it can never replace the waterfall — it
+  could only ever be a special case for the subset of DOIs Crossref (or Semantic Scholar) happens
+  to resolve, while every other DOI still needs field-by-field synthesis regardless. That would
+  make entries visibly *less* consistent depending on which resolver happened to find a given
+  paper, not more.
+- **The output still needs reprocessing anyway.** This project injects its own citeKey (generated
+  from author/year, disambiguated against the project's existing entries — see
+  `BibTexSynthesisService#generateUniqueCiteKey`) and its own `CITELINES_*` fields into every
+  synthesized entry. A transform/citationStyles string would still have to be re-parsed and rebuilt
+  to carry those, so using it instead of field-by-field synthesis wouldn't actually skip any real
+  work.
+
+So every resolver — `OpenAlexService`, `SemanticScholarResolver`, `CrossrefResolver`,
+`DblpResolver` — implements the same `CitationMetadataResolver` interface, parsing its own API's
+JSON into the same resolver-agnostic `ResolvedWork` record, which `BibTexSynthesisService` then
+turns into BibTeX identically regardless of which resolver produced it.
+
+## Fields captured from each resolver
+
+| Field | OpenAlex | Semantic Scholar | Crossref | DBLP |
+|---|---|---|---|---|
+| title, authors, year, venue, doi | yes | yes | yes | yes |
+| abstract | yes (reconstructed from `abstract_inverted_index`) | yes | yes (JATS tags stripped) | no |
+| publisher | yes (`primary_location.source.host_organization_name`) | no | yes | no |
+| pages | yes (`biblio.first_page`/`last_page`) | no | yes | yes |
+| isbn | yes (`ids.isbn`) | no | yes | no |
+| series | no | no | yes (`event.name`) | no |
+| address | no | no | yes (`event.location`) | no |
+| volume, number | yes (`biblio.volume`/`issue`) | no | yes (`volume`/`issue`) | yes |
+
+Author-supplied `keywords` (e.g. what ACM DL shows on its own page) are not available from any of
+these four APIs at all — not a gap in this implementation, just data none of them expose.
+
+`BibTexSynthesisService` only emits each field for entry types where it's a meaningful BibTeX
+field — e.g. `isbn`/`series`/`address` for `inproceedings`/`book`/`incollection`, not `article` —
+rather than unconditionally, per its own `HAS_*` field-scoping sets.
+
+## DBLP as a fourth resolver tier
+
+`DblpResolver` is added after Crossref. DBLP has no by-DOI lookup endpoint, only free-text search
+(`https://dblp.org/search/publ/api`) — it's queried using the DOI itself as the search text, and
+only a hit whose own `info.doi` matches exactly is accepted, the same
+confirm-by-exact-field-match approach `CheckLinksService#confirmHandleViaDblp` already used for
+link-checking, reused here rather than duplicated. DBLP's coverage is narrower (CS-adjacent venues
+only) and it has none of `abstract`/`publisher`/`isbn`/`series`, but its `venue`/`pages`/`volume`/
+`number` are often cleaner than what a very-recently-registered DOI has on the other three.
+
+## Upgrading existing entries
+
+Since these fields didn't exist when earlier entries were resolved, a project-scoped "Upgrade
+BibTeX Entries" job (`BibTexEntryUpgradeService`, launched from the project's Jobs tab) re-resolves
+every entry that has a DOI against the now-richer waterfall and fills in whatever fields the entry
+is currently missing. It never overwrites a field that already has a value, even if a resolver now
+reports something different for it — an existing value may already have been reviewed or
+hand-edited, and the job has no way to tell "reviewed and correct" apart from "just never
+updated."
+
+`entryType` is the one exception: an entry currently typed `misc` (the fallback used whenever a
+resolver's own type couldn't be mapped to something more specific — see `ENTRY_TYPE_MAP` above) is
+upgraded to whatever more specific type the resolver now reports, since `misc` was never a
+deliberate choice to begin with, unlike a hand-set/reviewed field value.

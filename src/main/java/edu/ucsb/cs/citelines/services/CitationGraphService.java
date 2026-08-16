@@ -52,6 +52,7 @@ public class CitationGraphService {
       OpenAlexService openAlexService,
       SemanticScholarResolver semanticScholarResolver,
       CrossrefResolver crossrefResolver,
+      DblpResolver dblpResolver,
       BibTexSynthesisService bibTexSynthesisService,
       BibTexConverterService bibTexConverterService) {
     this.bibTexEntryRepository = bibTexEntryRepository;
@@ -61,7 +62,7 @@ public class CitationGraphService {
     this.bibTexConverterService = bibTexConverterService;
     this.crossrefResolver = crossrefResolver;
     this.resolversInPriorityOrder =
-        List.of(openAlexService, semanticScholarResolver, crossrefResolver);
+        List.of(openAlexService, semanticScholarResolver, crossrefResolver, dblpResolver);
   }
 
   public void fetchReferences(int projectId, String sourceCiteKey, JobContext ctx) {
