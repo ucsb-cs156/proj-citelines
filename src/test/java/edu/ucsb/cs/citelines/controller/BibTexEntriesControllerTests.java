@@ -46,7 +46,8 @@ import org.springframework.test.web.servlet.MvcResult;
   ProjectSecurity.class,
   BibTexConverterService.class,
   DOIService.class,
-  edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService.class
+  edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService.class,
+  edu.ucsb.cs.citelines.services.CitationFormattingService.class
 })
 public class BibTexEntriesControllerTests extends ControllerTestCase {
 
@@ -97,6 +98,13 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
   public void logged_out_users_cannot_export() throws Exception {
     mockMvc
         .perform(get("/api/bibtexentries/export?id=abc&projectId=1"))
+        .andExpect(status().is(403));
+  }
+
+  @Test
+  public void logged_out_users_cannot_get_a_formatted_citation() throws Exception {
+    mockMvc
+        .perform(get("/api/bibtexentries/formatted?id=abc&projectId=1"))
         .andExpect(status().is(403));
   }
 
@@ -540,6 +548,86 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
 
     Map<String, Object> json = responseToJson(response);
     assertEquals("BibTexEntry with id missing not found", json.get("message"));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_get_a_formatted_citation_using_the_projects_citation_format()
+      throws Exception {
+    Project project =
+        Project.builder().id(1L).owner("phtcon@example.org").citationFormat("APA").build();
+    BibTexEntry entry =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .entryType("article")
+            .citeKey("smith2020")
+            .keyValuePairs(
+                Map.of(
+                    "author", "Jane Smith",
+                    "title", "A Great Paper",
+                    "journal", "Journal of Testing",
+                    "year", "2020"))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(entry));
+
+    MvcResult response =
+        mockMvc
+            .perform(get("/api/bibtexentries/formatted?id=abc123&projectId=1"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    assertEquals(
+        "Smith, J. (2020). A Great Paper. Journal of Testing.",
+        response.getResponse().getContentAsString());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void formatted_citation_throws_not_found_for_nonexistent_entry() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("missing")).thenReturn(Optional.empty());
+
+    MvcResult response =
+        mockMvc
+            .perform(get("/api/bibtexentries/formatted?id=missing&projectId=1"))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+    Map<String, Object> json = responseToJson(response);
+    assertEquals("BibTexEntry with id missing not found", json.get("message"));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void formatted_citation_throws_not_found_for_nonexistent_project() throws Exception {
+    BibTexEntry entry =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .entryType("article")
+            .citeKey("smith2020")
+            .keyValuePairs(Map.of("title", "A Great Paper"))
+            .build();
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(entry));
+    when(projectRepository.findById(1L)).thenReturn(Optional.empty());
+
+    MvcResult response =
+        mockMvc
+            .perform(get("/api/bibtexentries/formatted?id=abc123&projectId=1"))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+    Map<String, Object> json = responseToJson(response);
+    assertEquals("Project with id 1 not found", json.get("message"));
   }
 
   @WithMockUser(

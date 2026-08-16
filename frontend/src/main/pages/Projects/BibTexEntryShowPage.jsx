@@ -115,6 +115,27 @@ export default function BibTexEntryShowPage({
     }
   }, [getEntryFailed, navigate, projectId]);
 
+  const { data: project } = useBackend(
+    [`/api/projects/${projectId}`],
+    // Stryker disable next-line StringLiteral : GET and empty string are equivalent
+    { method: "GET", url: `/api/projects/${projectId}` },
+    null,
+    true,
+  );
+
+  const formattedCitationQueryKey = `/api/bibtexentries/formatted?projectId=${projectId}&id=${entry?.id}`;
+  const { data: formattedCitation } = useBackend(
+    [formattedCitationQueryKey],
+    {
+      method: "GET",
+      url: "/api/bibtexentries/formatted",
+      params: { projectId, id: entry?.id },
+    },
+    "",
+    true,
+    { enabled: !!entry },
+  );
+
   const exportQueryKey = `/api/bibtexentries/export?projectId=${projectId}&id=${entry?.id}`;
   const { data: rawBibtex } = useBackend(
     [exportQueryKey],
@@ -463,6 +484,24 @@ export default function BibTexEntryShowPage({
               </Button>
             </Modal.Footer>
           </Modal>
+
+          <Card
+            className="mb-3"
+            data-testid={`${testId}-FormattedReferenceCard`}
+          >
+            <Card.Header>Formatted Reference</Card.Header>
+            <Card.Body>
+              <div
+                className="fw-semibold mb-2"
+                data-testid={`${testId}-formatted-citation-label`}
+              >
+                Formatted Citation ({project?.citationFormat ?? "Loading..."})
+              </div>
+              <div data-testid={`${testId}-formatted-citation`}>
+                {formattedCitation}
+              </div>
+            </Card.Body>
+          </Card>
 
           <CollapsibleCard
             testId={`${testId}-BibtexCard`}

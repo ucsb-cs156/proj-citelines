@@ -1,6 +1,7 @@
 package edu.ucsb.cs.citelines.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -68,6 +69,77 @@ class CitationFormattingServiceTests {
     String result = citationFormattingService.formatBibTex(SINGLE_ENTRY, "nature", null);
 
     assertTrue(result.contains("Smith"));
+  }
+
+  @Test
+  void formats_bibtex_in_acm_style_without_a_leading_citation_number_label() {
+    String result = citationFormattingService.formatBibTex(SINGLE_ENTRY, "ACM", null);
+
+    assertEquals("Jane Smith. 2020. A Great Paper. Journal of Testing (2020).", result);
+  }
+
+  @Test
+  void formats_bibtex_in_ieee_style_without_a_leading_citation_number_label() {
+    String result = citationFormattingService.formatBibTex(SINGLE_ENTRY, "IEEE", null);
+
+    assertFalse(
+        result.matches("^(\\[\\d+\\]|\\d+\\.)\\s.*"),
+        "Expected no leading citation-number label, got: " + result);
+    assertTrue(result.contains("Smith"));
+  }
+
+  @Test
+  void formats_bibtex_in_vancouver_style_without_a_leading_citation_number_label() {
+    String result = citationFormattingService.formatBibTex(SINGLE_ENTRY, "VANCOUVER", null);
+
+    assertFalse(
+        result.matches("^(\\[\\d+\\]|\\d+\\.)\\s.*"),
+        "Expected no leading citation-number label, got: " + result);
+    assertTrue(result.contains("Smith"));
+  }
+
+  @Test
+  void formats_bibtex_in_nature_style_without_a_leading_citation_number_label() {
+    String result = citationFormattingService.formatBibTex(SINGLE_ENTRY, "NATURE", null);
+
+    assertFalse(
+        result.matches("^(\\[\\d+\\]|\\d+\\.)\\s.*"),
+        "Expected no leading citation-number label, got: " + result);
+    assertTrue(result.contains("Smith"));
+  }
+
+  @Test
+  void formats_bibtex_in_science_style_without_a_leading_citation_number_label() {
+    String result = citationFormattingService.formatBibTex(SINGLE_ENTRY, "SCIENCE", null);
+
+    assertFalse(
+        result.matches("^(\\[\\d+\\]|\\d+\\.)\\s.*"),
+        "Expected no leading citation-number label, got: " + result);
+    assertTrue(result.contains("Smith"));
+  }
+
+  @Test
+  void strip_leading_citation_number_removes_bracketed_number_label() {
+    String withLabel = "[1]Smith, J. (2020). A Great Paper.";
+    String result = citationFormattingService.stripLeadingCitationNumber(withLabel);
+
+    assertEquals("Smith, J. (2020). A Great Paper.", result);
+  }
+
+  @Test
+  void strip_leading_citation_number_removes_dotted_number_label() {
+    String withLabel = "1. Smith, J. (2020). A Great Paper.";
+    String result = citationFormattingService.stripLeadingCitationNumber(withLabel);
+
+    assertEquals("Smith, J. (2020). A Great Paper.", result);
+  }
+
+  @Test
+  void strip_leading_citation_number_leaves_entries_without_a_label_unchanged() {
+    String withoutLabel = "Smith, J. (2020). A Great Paper.";
+    String result = citationFormattingService.stripLeadingCitationNumber(withoutLabel);
+
+    assertEquals(withoutLabel, result);
   }
 
   @Test

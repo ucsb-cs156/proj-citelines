@@ -73,6 +73,12 @@ public class BibTexEntryShowPageWebIT extends WebTestCase {
     assertThat(page.getByTestId("BibTexEntryShowPage-citations-heading"))
         .containsText("Citations (0)");
 
+    // The Formatted Reference card, added above the BibTex Entry card, shows a rendered citation
+    // in the project's chosen citation format (defaulting to ACM for a newly created project).
+    assertThat(page.getByTestId("BibTexEntryShowPage-formatted-citation-label"))
+        .containsText("Formatted Citation (ACM)");
+    assertThat(page.getByTestId("BibTexEntryShowPage-formatted-citation")).containsText("Smith");
+
     // The BibTex Entry card starts open, and the other three (independently collapsible, not a
     // single-open-at-a-time accordion) cards start closed.
     assertThat(page.getByTestId("BibTexEntryShowPage-BibtexCard-body")).isVisible();
