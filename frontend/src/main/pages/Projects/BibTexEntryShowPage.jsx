@@ -173,26 +173,26 @@ export default function BibTexEntryShowPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawBibtex]);
 
-  const referencesQueryKey = `/api/citationedges/references?projectId=${projectId}&citeKey=${entry?.citeKey}`;
+  const referencesQueryKey = `/api/citationedges/references?projectId=${projectId}&id=${entry?.id}`;
   const { data: references } = useBackend(
     [referencesQueryKey],
     {
       method: "GET",
       url: "/api/citationedges/references",
-      params: { projectId, citeKey: entry?.citeKey },
+      params: { projectId, id: entry?.id },
     },
     [],
     true,
     { refetchInterval: 5000, enabled: !!entry },
   );
 
-  const citationsQueryKey = `/api/citationedges/citations?projectId=${projectId}&citeKey=${entry?.citeKey}`;
+  const citationsQueryKey = `/api/citationedges/citations?projectId=${projectId}&id=${entry?.id}`;
   const { data: citations } = useBackend(
     [citationsQueryKey],
     {
       method: "GET",
       url: "/api/citationedges/citations",
-      params: { projectId, citeKey: entry?.citeKey },
+      params: { projectId, id: entry?.id },
     },
     [],
     true,
@@ -201,12 +201,12 @@ export default function BibTexEntryShowPage({
 
   const { data: unresolved } = useBackend(
     [
-      `/api/citationedges/unresolved?projectId=${projectId}&sourceCiteKey=${entry?.citeKey}`,
+      `/api/citationedges/unresolved?projectId=${projectId}&sourceEntryId=${entry?.id}`,
     ],
     {
       method: "GET",
       url: "/api/citationedges/unresolved",
-      params: { projectId, sourceCiteKey: entry?.citeKey },
+      params: { projectId, sourceEntryId: entry?.id },
     },
     [],
     true,
@@ -320,7 +320,7 @@ export default function BibTexEntryShowPage({
             showModal={showAddReferenceModal}
             toggleShowModal={setShowAddReferenceModal}
             projectId={projectId}
-            relatedCiteKey={entry.citeKey}
+            relatedEntryId={entry.id}
             relationship="reference"
             mutationQueryKeys={[referencesQueryKey]}
           />
@@ -328,7 +328,7 @@ export default function BibTexEntryShowPage({
             showModal={showAddCitationModal}
             toggleShowModal={setShowAddCitationModal}
             projectId={projectId}
-            relatedCiteKey={entry.citeKey}
+            relatedEntryId={entry.id}
             relationship="citation"
             mutationQueryKeys={[citationsQueryKey]}
           />

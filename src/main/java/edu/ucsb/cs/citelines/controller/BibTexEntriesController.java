@@ -64,15 +64,15 @@ public class BibTexEntriesController extends ApiController {
    * entries. An entry whose citeKey already exists for this project updates that entry rather than
    * creating a duplicate (see {@link #reuseExistingIdIfPresent}).
    *
-   * <p>If {@code relatedCiteKey} and {@code relationship} are both provided, a {@link CitationEdge}
-   * is also recorded between {@code relatedCiteKey} and each newly saved entry, so that a citation
+   * <p>If {@code relatedEntryId} and {@code relationship} are both provided, a {@link CitationEdge}
+   * is also recorded between {@code relatedEntryId} and each newly saved entry, so that a citation
    * the external APIs failed to find can be entered manually from the BibTexEntryShowPage (see
    * issue #24). When {@code relationship} is {@code "reference"} the related entry is treated as
    * citing the new entries; when it is {@code "citation"} the new entries are treated as citing the
    * related entry.
    *
    * @param projectId the project the entries belong to
-   * @param relatedCiteKey the citeKey of the entry to link the new entries to, if any
+   * @param relatedEntryId the (Mongo) id of the entry to link the new entries to, if any
    * @param relationship {@code "reference"} or {@code "citation"}, if linking to a related entry
    * @param rawBibTex the pasted BibTeX text
    * @return the saved entries
@@ -82,20 +82,20 @@ public class BibTexEntriesController extends ApiController {
   @PostMapping("/post")
   public List<BibTexEntry> postBibTexEntries(
       @Parameter(name = "projectId") @RequestParam Long projectId,
-      @Parameter(name = "relatedCiteKey") @RequestParam(required = false) String relatedCiteKey,
+      @Parameter(name = "relatedEntryId") @RequestParam(required = false) String relatedEntryId,
       @Parameter(name = "relationship") @RequestParam(required = false) String relationship,
       @RequestBody String rawBibTex) {
-    validateRelationship(relatedCiteKey, relationship);
+    validateRelationship(relatedEntryId, relationship);
 
     List<BibTexEntry> entries =
         bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());
     entries.forEach(entry -> reuseExistingIdIfPresent(projectId.intValue(), entry));
     List<BibTexEntry> saved = bibTexEntryRepository.saveAll(entries);
 
-    if (relatedCiteKey != null && relationship != null) {
+    if (relatedEntryId != null && relationship != null) {
       for (BibTexEntry entry : saved) {
         citationEdgeRepository.save(
-            makeCitationEdge(projectId.intValue(), relatedCiteKey, relationship, entry));
+            makeCitationEdge(projectId.intValue(), relatedEntryId, relationship, entry));
       }
     }
 
@@ -110,12 +110,12 @@ public class BibTexEntriesController extends ApiController {
    * DoiToBibTexService#findExistingEntryForDoi}), that entry is reused rather than creating a
    * duplicate for the same paper — see issue #67. {@code relevance} is only ever applied to a newly
    * synthesized entry, never to an existing one (which may already have been reviewed/hand-edited);
-   * a {@code relatedCiteKey}/{@code relationship} pair, if provided, still gets linked to the
+   * a {@code relatedEntryId}/{@code relationship} pair, if provided, still gets linked to the
    * existing entry either way, since linking a citation/reference that turns out to already be in
    * the project is the case this fix matters most for.
    *
    * @param projectId the project the entry belongs to
-   * @param relatedCiteKey the citeKey of the entry to link the new entry to, if any
+   * @param relatedEntryId the (Mongo) id of the entry to link the new entry to, if any
    * @param relationship {@code "reference"} or {@code "citation"}, if linking to a related entry
    * @param relevance the CITELINES_relevance value to attach, if a new entry is created
    * @param rawDoi the DOI to resolve
@@ -127,29 +127,29 @@ public class BibTexEntriesController extends ApiController {
   @PostMapping("/postByDoi")
   public List<BibTexEntry> postBibTexEntryByDoi(
       @Parameter(name = "projectId") @RequestParam Long projectId,
-      @Parameter(name = "relatedCiteKey") @RequestParam(required = false) String relatedCiteKey,
+      @Parameter(name = "relatedEntryId") @RequestParam(required = false) String relatedEntryId,
       @Parameter(name = "relationship") @RequestParam(required = false) String relationship,
       @Parameter(name = "relevance") @RequestParam(required = false) String relevance,
       @RequestBody String rawDoi) {
-    validateRelationship(relatedCiteKey, relationship);
+    validateRelationship(relatedEntryId, relationship);
 
     Optional<BibTexEntry> existingEntry =
         doiToBibTexService.findExistingEntryForDoi(rawDoi, projectId.intValue());
     if (existingEntry.isPresent()) {
       BibTexEntry entry = existingEntry.get();
-      if (relatedCiteKey != null && relationship != null) {
+      if (relatedEntryId != null && relationship != null) {
         citationEdgeRepository.save(
-            makeCitationEdge(projectId.intValue(), relatedCiteKey, relationship, entry));
+            makeCitationEdge(projectId.intValue(), relatedEntryId, relationship, entry));
       }
       return List.of(entry);
     }
 
     String rawBibTex = doiToBibTexService.resolveToBibTex(rawDoi, projectId.intValue(), relevance);
-    return postBibTexEntries(projectId, relatedCiteKey, relationship, rawBibTex);
+    return postBibTexEntries(projectId, relatedEntryId, relationship, rawBibTex);
   }
 
-  private static void validateRelationship(String relatedCiteKey, String relationship) {
-    if (relatedCiteKey != null
+  private static void validateRelationship(String relatedEntryId, String relationship) {
+    if (relatedEntryId != null
         && relationship != null
         && !"reference".equals(relationship)
         && !"citation".equals(relationship)) {
@@ -182,15 +182,15 @@ public class BibTexEntriesController extends ApiController {
   }
 
   private static CitationEdge makeCitationEdge(
-      int projectId, String relatedCiteKey, String relationship, BibTexEntry entry) {
+      int projectId, String relatedEntryId, String relationship, BibTexEntry entry) {
     boolean isReference = "reference".equals(relationship);
-    String citingCiteKey = isReference ? relatedCiteKey : entry.getCiteKey();
-    String citedCiteKey = isReference ? entry.getCiteKey() : relatedCiteKey;
+    String citingEntryId = isReference ? relatedEntryId : entry.getId();
+    String citedEntryId = isReference ? entry.getId() : relatedEntryId;
     return CitationEdge.builder()
-        .id(CitationEdge.makeId(projectId, citingCiteKey, citedCiteKey))
+        .id(CitationEdge.makeId(projectId, citingEntryId, citedEntryId))
         .projectId(projectId)
-        .citingCiteKey(citingCiteKey)
-        .citedCiteKey(citedCiteKey)
+        .citingEntryId(citingEntryId)
+        .citedEntryId(citedEntryId)
         .build();
   }
 

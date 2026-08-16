@@ -30,7 +30,7 @@ class UnresolvedCitationRepositoryTests {
                 UnresolvedCitation.makeId(
                     42, "smith2020", "reference", "not_found_by_any_resolver", "W123"))
             .projectId(42)
-            .sourceCiteKey("smith2020")
+            .sourceEntryId("smith2020")
             .direction("reference")
             .resolverName("OpenAlex")
             .resolverWorkId("https://openalex.org/W123")
@@ -41,7 +41,7 @@ class UnresolvedCitationRepositoryTests {
         UnresolvedCitation.builder()
             .id(UnresolvedCitation.makeId(99, "jones2019", "citation", "missing_title", "W456"))
             .projectId(99)
-            .sourceCiteKey("jones2019")
+            .sourceEntryId("jones2019")
             .direction("citation")
             .reason("missing_title")
             .discoveredAt(Instant.now())
@@ -52,7 +52,7 @@ class UnresolvedCitationRepositoryTests {
 
     List<UnresolvedCitation> results = unresolvedCitationRepository.findByProjectId(42);
     assertEquals(1, results.size());
-    assertEquals("smith2020", results.get(0).getSourceCiteKey());
+    assertEquals("smith2020", results.get(0).getSourceEntryId());
     assertEquals("not_found_by_any_resolver", results.get(0).getReason());
     assertEquals("OpenAlex", results.get(0).getResolverName());
 
@@ -67,7 +67,7 @@ class UnresolvedCitationRepositoryTests {
         UnresolvedCitation.builder()
             .id(UnresolvedCitation.makeId(42, "smith2020", "reference", "missing_title", "W123"))
             .projectId(42)
-            .sourceCiteKey("smith2020")
+            .sourceEntryId("smith2020")
             .direction("reference")
             .resolverWorkId("W123")
             .reason("missing_title")
@@ -77,7 +77,7 @@ class UnresolvedCitationRepositoryTests {
         UnresolvedCitation.builder()
             .id(UnresolvedCitation.makeId(42, "smith2020", "reference", "missing_title", "W123"))
             .projectId(42)
-            .sourceCiteKey("smith2020")
+            .sourceEntryId("smith2020")
             .direction("reference")
             .resolverWorkId("W123")
             .reason("missing_title")
@@ -91,14 +91,14 @@ class UnresolvedCitationRepositoryTests {
   }
 
   @Test
-  void finds_unresolved_citations_by_project_id_and_source_cite_key() {
+  void finds_unresolved_citations_by_project_id_and_source_entry_id() {
     unresolvedCitationRepository.deleteAll();
 
     UnresolvedCitation forSmith =
         UnresolvedCitation.builder()
             .id(UnresolvedCitation.makeId(42, "smith2020", "reference", "missing_title", "W1"))
             .projectId(42)
-            .sourceCiteKey("smith2020")
+            .sourceEntryId("smith2020")
             .direction("reference")
             .resolverWorkId("W1")
             .reason("missing_title")
@@ -108,7 +108,7 @@ class UnresolvedCitationRepositoryTests {
         UnresolvedCitation.builder()
             .id(UnresolvedCitation.makeId(42, "jones2019", "reference", "missing_title", "W2"))
             .projectId(42)
-            .sourceCiteKey("jones2019")
+            .sourceEntryId("jones2019")
             .direction("reference")
             .resolverWorkId("W2")
             .reason("missing_title")
@@ -118,9 +118,9 @@ class UnresolvedCitationRepositoryTests {
     unresolvedCitationRepository.save(forJones);
 
     List<UnresolvedCitation> results =
-        unresolvedCitationRepository.findByProjectIdAndSourceCiteKey(42, "smith2020");
+        unresolvedCitationRepository.findByProjectIdAndSourceEntryId(42, "smith2020");
 
     assertEquals(1, results.size());
-    assertEquals("smith2020", results.get(0).getSourceCiteKey());
+    assertEquals("smith2020", results.get(0).getSourceEntryId());
   }
 }

@@ -123,13 +123,14 @@ public class BulkCitationUploadFromACMDLViewAllService {
     ctx.log(
         "Starting Bulk Citation Upload from ACM DL for %s in project %d"
             .formatted(currentPaperCiteKey, projectId));
-    bibTexEntryRepository
-        .findByProjectIdAndCiteKey(projectId, currentPaperCiteKey)
-        .orElseThrow(
-            () -> {
-              ctx.log("Entry not found: " + currentPaperCiteKey);
-              return new IllegalStateException("Entry not found: " + currentPaperCiteKey);
-            });
+    BibTexEntry currentPaper =
+        bibTexEntryRepository
+            .findByProjectIdAndCiteKey(projectId, currentPaperCiteKey)
+            .orElseThrow(
+                () -> {
+                  ctx.log("Entry not found: " + currentPaperCiteKey);
+                  return new IllegalStateException("Entry not found: " + currentPaperCiteKey);
+                });
 
     List<ParsedEntry> parsedEntries = parse(rawText);
     CitationGraphService.ExistingEntries existing =
@@ -139,7 +140,7 @@ public class BulkCitationUploadFromACMDLViewAllService {
     int linked = 0;
     int errors = 0;
     for (ParsedEntry parsedEntry : parsedEntries) {
-      Outcome outcome = processEntry(parsedEntry, projectId, currentPaperCiteKey, existing, ctx);
+      Outcome outcome = processEntry(parsedEntry, projectId, currentPaper, existing, ctx);
       if (outcome == Outcome.ADDED) {
         added++;
       } else if (outcome == Outcome.LINKED) {
@@ -165,7 +166,7 @@ public class BulkCitationUploadFromACMDLViewAllService {
   Outcome processEntry(
       ParsedEntry parsedEntry,
       int projectId,
-      String currentPaperCiteKey,
+      BibTexEntry currentPaper,
       CitationGraphService.ExistingEntries existing,
       JobContext ctx) {
     String description = describeEntry(parsedEntry);
@@ -219,13 +220,13 @@ public class BulkCitationUploadFromACMDLViewAllService {
 
     CitationGraphService.ResolveOrCreateResult result =
         citationGraphService.resolveOrCreateEntry(work, projectId, existing);
-    if (result.citeKey().equals(currentPaperCiteKey)) {
+    if (result.entryId().equals(currentPaper.getId())) {
       ctx.log(
           "Skipping %s: DOI %s resolves to the current paper itself.".formatted(description, doi));
       return Outcome.ERROR;
     }
 
-    citationGraphService.saveCitationEdge(projectId, result.citeKey(), currentPaperCiteKey);
+    citationGraphService.saveCitationEdge(projectId, result.entryId(), currentPaper.getId());
     if (result.created()) {
       ctx.log("Added new entry %s: %s".formatted(result.citeKey(), work.title()));
       return Outcome.ADDED;

@@ -49,6 +49,18 @@ public class CitationGraphServiceTests {
     when(openAlexService.name()).thenReturn("OpenAlex");
     when(semanticScholarResolver.name()).thenReturn("SemanticScholar");
     when(crossrefResolver.name()).thenReturn("Crossref");
+    // Simulates real Spring Data MongoDB behavior: save() assigns a generated id back onto the
+    // entity when it doesn't already have one, which resolveOrCreateEntry relies on immediately
+    // after saving a newly created entry.
+    when(bibTexEntryRepository.save(any()))
+        .thenAnswer(
+            invocation -> {
+              BibTexEntry entry = invocation.getArgument(0);
+              if (entry.getId() == null) {
+                entry.setId("generated-" + entry.getCiteKey());
+              }
+              return entry;
+            });
 
     BibTexConverterService converterService = new BibTexConverterService();
     converterService.doiService = new DOIService();
@@ -135,8 +147,8 @@ public class CitationGraphServiceTests {
 
     ArgumentCaptor<CitationEdge> savedEdge = ArgumentCaptor.forClass(CitationEdge.class);
     verify(citationEdgeRepository).save(savedEdge.capture());
-    assertEquals("harris2020", savedEdge.getValue().getCitingCiteKey());
-    assertEquals("author2015", savedEdge.getValue().getCitedCiteKey());
+    assertEquals("mongo-id-1", savedEdge.getValue().getCitingEntryId());
+    assertEquals(savedEntry.getValue().getId(), savedEdge.getValue().getCitedEntryId());
 
     assertTrue(job.getLog().contains("Starting Get References for harris2020 in project 42"));
     assertTrue(
@@ -151,6 +163,7 @@ public class CitationGraphServiceTests {
   void fetchReferences_links_to_an_existing_entry_with_the_same_doi_instead_of_duplicating() {
     BibTexEntry existingReferenced =
         BibTexEntry.builder()
+            .id("existing-id-2015")
             .projectId(42)
             .entryType("article")
             .citeKey("existingkey2015")
@@ -183,7 +196,7 @@ public class CitationGraphServiceTests {
     verify(bibTexEntryRepository, times(0)).save(any());
     ArgumentCaptor<CitationEdge> savedEdge = ArgumentCaptor.forClass(CitationEdge.class);
     verify(citationEdgeRepository).save(savedEdge.capture());
-    assertEquals("existingkey2015", savedEdge.getValue().getCitedCiteKey());
+    assertEquals("existing-id-2015", savedEdge.getValue().getCitedEntryId());
     assertTrue(job.getLog().contains("Linking to existing entry existingkey2015"));
     assertTrue(
         job.getLog()
@@ -222,7 +235,7 @@ public class CitationGraphServiceTests {
     assertEquals("W2", unresolvedCaptor.getValue().getResolverWorkId());
     assertEquals("OpenAlex", unresolvedCaptor.getValue().getResolverName());
     assertEquals("reference", unresolvedCaptor.getValue().getDirection());
-    assertEquals("harris2020", unresolvedCaptor.getValue().getSourceCiteKey());
+    assertEquals("mongo-id-1", unresolvedCaptor.getValue().getSourceEntryId());
     assertTrue(job.getLog().contains("Could not resolve reference W2 in OpenAlex."));
   }
 
@@ -478,10 +491,12 @@ public class CitationGraphServiceTests {
     JobContext ctx = new JobContext(null, job);
     citationGraphService.fetchCitations(42, "harris2020", ctx);
 
+    ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository).save(savedEntry.capture());
     ArgumentCaptor<CitationEdge> savedEdge = ArgumentCaptor.forClass(CitationEdge.class);
     verify(citationEdgeRepository).save(savedEdge.capture());
-    assertEquals("author2022", savedEdge.getValue().getCitingCiteKey());
-    assertEquals("harris2020", savedEdge.getValue().getCitedCiteKey());
+    assertEquals(savedEntry.getValue().getId(), savedEdge.getValue().getCitingEntryId());
+    assertEquals("mongo-id-1", savedEdge.getValue().getCitedEntryId());
     assertTrue(job.getLog().contains("Found 1 citations (capped at 200)."));
   }
 
@@ -769,13 +784,14 @@ public class CitationGraphServiceTests {
 
   @Test
   void saveCitationEdge_saves_a_direct_citing_cited_edge() {
-    citationGraphService.saveCitationEdge(42, "reimer2025", "harris2020");
+    citationGraphService.saveCitationEdge(42, "id-reimer2025", "id-harris2020");
 
     ArgumentCaptor<CitationEdge> savedEdge = ArgumentCaptor.forClass(CitationEdge.class);
     verify(citationEdgeRepository).save(savedEdge.capture());
-    assertEquals(CitationEdge.makeId(42, "reimer2025", "harris2020"), savedEdge.getValue().getId());
+    assertEquals(
+        CitationEdge.makeId(42, "id-reimer2025", "id-harris2020"), savedEdge.getValue().getId());
     assertEquals(42, savedEdge.getValue().getProjectId());
-    assertEquals("reimer2025", savedEdge.getValue().getCitingCiteKey());
-    assertEquals("harris2020", savedEdge.getValue().getCitedCiteKey());
+    assertEquals("id-reimer2025", savedEdge.getValue().getCitingEntryId());
+    assertEquals("id-harris2020", savedEdge.getValue().getCitedEntryId());
   }
 }

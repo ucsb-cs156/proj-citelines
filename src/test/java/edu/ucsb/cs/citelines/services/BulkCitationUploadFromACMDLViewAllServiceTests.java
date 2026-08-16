@@ -308,12 +308,14 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
     when(citationGraphService.tryRecoverMissingTitle(eq(blankTitleWork), eq(resolver), eq(ctx)))
         .thenReturn(recoveredWork);
     when(citationGraphService.resolveOrCreateEntry(eq(recoveredWork), eq(1), any()))
-        .thenReturn(new CitationGraphService.ResolveOrCreateResult("recovered2020", true));
+        .thenReturn(
+            new CitationGraphService.ResolveOrCreateResult(
+                "recovered2020", "id-recovered2020", true));
 
     service.bulkUpload(1, "harris2020", "https://doi.org/10.1145/3770762.3772609\n", ctx);
 
     verify(citationGraphService).resolveOrCreateEntry(eq(recoveredWork), eq(1), any());
-    verify(citationGraphService).saveCitationEdge(1, "recovered2020", "harris2020");
+    verify(citationGraphService).saveCitationEdge(1, "id-recovered2020", "mongo-1");
     assertTrue(job.getLog().contains("Added new entry recovered2020: A Recovered Title"));
   }
 
@@ -363,7 +365,8 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1145/3770762.3772609"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, resolvedWork)));
     when(citationGraphService.resolveOrCreateEntry(eq(resolvedWork), eq(1), any()))
-        .thenReturn(new CitationGraphService.ResolveOrCreateResult("newkey2020", true));
+        .thenReturn(
+            new CitationGraphService.ResolveOrCreateResult("newkey2020", "id-newkey2020", true));
 
     service.bulkUpload(1, "harris2020", "https://doi.org/10.1145/3770762.3772609\n", ctx);
 
@@ -378,7 +381,7 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1145/3770762.3772609"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, resolvedWork)));
     when(citationGraphService.resolveOrCreateEntry(eq(resolvedWork), eq(1), any()))
-        .thenReturn(new CitationGraphService.ResolveOrCreateResult("harris2020", false));
+        .thenReturn(new CitationGraphService.ResolveOrCreateResult("harris2020", "mongo-1", false));
 
     service.bulkUpload(1, "harris2020", "https://doi.org/10.1145/3770762.3772609\n", ctx);
 
@@ -398,14 +401,15 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1145/3770762.3772609"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, resolvedWork)));
     when(citationGraphService.resolveOrCreateEntry(eq(resolvedWork), eq(1), any()))
-        .thenReturn(new CitationGraphService.ResolveOrCreateResult("reimer2025", true));
+        .thenReturn(
+            new CitationGraphService.ResolveOrCreateResult("reimer2025", "id-reimer2025", true));
     String input =
         "Reimer Y et al. A Pedagogy for Assessing Contributions. Proceedings.\n"
             + "https://doi.org/10.1145/3770762.3772609\n";
 
     service.bulkUpload(1, "harris2020", input, ctx);
 
-    verify(citationGraphService).saveCitationEdge(1, "reimer2025", "harris2020");
+    verify(citationGraphService).saveCitationEdge(1, "id-reimer2025", "mongo-1");
     assertTrue(
         job.getLog()
             .contains("Added new entry reimer2025: A Pedagogy for Assessing Contributions"));
@@ -422,11 +426,12 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1145/3770762.3772609"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, resolvedWork)));
     when(citationGraphService.resolveOrCreateEntry(eq(resolvedWork), eq(1), any()))
-        .thenReturn(new CitationGraphService.ResolveOrCreateResult("known2020", false));
+        .thenReturn(
+            new CitationGraphService.ResolveOrCreateResult("known2020", "id-known2020", false));
 
     service.bulkUpload(1, "harris2020", "https://doi.org/10.1145/3770762.3772609\n", ctx);
 
-    verify(citationGraphService).saveCitationEdge(1, "known2020", "harris2020");
+    verify(citationGraphService).saveCitationEdge(1, "id-known2020", "mongo-1");
     assertTrue(job.getLog().contains("Linking to existing entry known2020: Already Known Paper"));
     assertTrue(
         job.getLog()
@@ -441,7 +446,8 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1145/1"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, addedWork)));
     when(citationGraphService.resolveOrCreateEntry(eq(addedWork), eq(1), any()))
-        .thenReturn(new CitationGraphService.ResolveOrCreateResult("added2020", true));
+        .thenReturn(
+            new CitationGraphService.ResolveOrCreateResult("added2020", "id-added2020", true));
     when(citationGraphService.tryResolveByDoi("10.1145/2")).thenReturn(Optional.empty());
     String input =
         "Added Paper.\nhttps://doi.org/10.1145/1\nSome Other Paper.\nhttps://doi.org/10.1145/2\n";
@@ -471,7 +477,8 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
         new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
             "A trailing reference with no DOI.", null);
 
-    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+    var outcome =
+        service.processEntry(parsedEntry, 1, currentPaper("harris2020"), EMPTY_EXISTING, ctx);
 
     assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.ERROR, outcome);
   }
@@ -482,7 +489,8 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
         new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
             "Some reference.", "https://doi.org/not-a-valid-doi-format");
 
-    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+    var outcome =
+        service.processEntry(parsedEntry, 1, currentPaper("harris2020"), EMPTY_EXISTING, ctx);
 
     assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.ERROR, outcome);
   }
@@ -495,7 +503,8 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
         new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
             null, "https://doi.org/10.1145/3770762.3772609");
 
-    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+    var outcome =
+        service.processEntry(parsedEntry, 1, currentPaper("harris2020"), EMPTY_EXISTING, ctx);
 
     assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.ERROR, outcome);
   }
@@ -512,7 +521,8 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
         new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
             null, "https://doi.org/10.1145/3770762.3772609");
 
-    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+    var outcome =
+        service.processEntry(parsedEntry, 1, currentPaper("harris2020"), EMPTY_EXISTING, ctx);
 
     assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.ERROR, outcome);
   }
@@ -527,7 +537,8 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
         new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
             "Some unrelated reference text.", "https://doi.org/10.1145/3770762.3772609");
 
-    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+    var outcome =
+        service.processEntry(parsedEntry, 1, currentPaper("harris2020"), EMPTY_EXISTING, ctx);
 
     assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.ERROR, outcome);
   }
@@ -539,12 +550,13 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1145/3770762.3772609"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, resolvedWork)));
     when(citationGraphService.resolveOrCreateEntry(eq(resolvedWork), eq(1), any()))
-        .thenReturn(new CitationGraphService.ResolveOrCreateResult("harris2020", false));
+        .thenReturn(new CitationGraphService.ResolveOrCreateResult("harris2020", "mongo-1", false));
     var parsedEntry =
         new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
             null, "https://doi.org/10.1145/3770762.3772609");
 
-    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+    var outcome =
+        service.processEntry(parsedEntry, 1, currentPaper("harris2020"), EMPTY_EXISTING, ctx);
 
     assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.ERROR, outcome);
   }
@@ -556,12 +568,14 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1145/3770762.3772609"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, resolvedWork)));
     when(citationGraphService.resolveOrCreateEntry(eq(resolvedWork), eq(1), any()))
-        .thenReturn(new CitationGraphService.ResolveOrCreateResult("newkey2020", true));
+        .thenReturn(
+            new CitationGraphService.ResolveOrCreateResult("newkey2020", "id-newkey2020", true));
     var parsedEntry =
         new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
             null, "https://doi.org/10.1145/3770762.3772609");
 
-    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+    var outcome =
+        service.processEntry(parsedEntry, 1, currentPaper("harris2020"), EMPTY_EXISTING, ctx);
 
     assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.ADDED, outcome);
   }
@@ -573,12 +587,14 @@ public class BulkCitationUploadFromACMDLViewAllServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1145/3770762.3772609"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, resolvedWork)));
     when(citationGraphService.resolveOrCreateEntry(eq(resolvedWork), eq(1), any()))
-        .thenReturn(new CitationGraphService.ResolveOrCreateResult("known2020", false));
+        .thenReturn(
+            new CitationGraphService.ResolveOrCreateResult("known2020", "id-known2020", false));
     var parsedEntry =
         new BulkCitationUploadFromACMDLViewAllService.ParsedEntry(
             null, "https://doi.org/10.1145/3770762.3772609");
 
-    var outcome = service.processEntry(parsedEntry, 1, "harris2020", EMPTY_EXISTING, ctx);
+    var outcome =
+        service.processEntry(parsedEntry, 1, currentPaper("harris2020"), EMPTY_EXISTING, ctx);
 
     assertEquals(BulkCitationUploadFromACMDLViewAllService.Outcome.LINKED, outcome);
   }

@@ -124,12 +124,12 @@ describe("DoiEntryModal tests", () => {
     });
   });
 
-  test("when relationship is 'reference', shows the Add Reference via DOI title and includes relatedCiteKey/relationship in the POST", async () => {
+  test("when relationship is 'reference', shows the Add Reference via DOI title and includes relatedEntryId/relationship in the POST", async () => {
     axiosMock
       .onPost("/api/bibtexentries/postByDoi")
       .reply(200, [bibTexEntriesFixtures.oneEntry]);
 
-    renderModal({ relatedCiteKey: "smith2020", relationship: "reference" });
+    renderModal({ relatedEntryId: "id-smith2020", relationship: "reference" });
 
     expect(screen.getByText("Add Reference via DOI")).toBeInTheDocument();
 
@@ -141,7 +141,7 @@ describe("DoiEntryModal tests", () => {
     await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
     expect(axiosMock.history.post[0].params).toEqual({
       projectId: 1,
-      relatedCiteKey: "smith2020",
+      relatedEntryId: "id-smith2020",
       relationship: "reference",
       relevance: "Unreviewed",
     });

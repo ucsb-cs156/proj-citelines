@@ -99,6 +99,7 @@ public class CitationGraphService {
                   ctx.log("Entry not found: " + sourceCiteKey);
                   return new IllegalStateException("Entry not found: " + sourceCiteKey);
                 });
+    String sourceEntryId = source.getId();
 
     String doi = source.getKeyValuePairs() != null ? source.getKeyValuePairs().get("doi") : null;
     if (doi == null || doi.isBlank()) {
@@ -115,7 +116,7 @@ public class CitationGraphService {
 
     List<ResolvedWork> relatedWorks =
         direction == Direction.REFERENCE
-            ? fetchReferencedWorks(discoveryResolver, sourceWork, projectId, sourceCiteKey, ctx)
+            ? fetchReferencedWorks(discoveryResolver, sourceWork, projectId, sourceEntryId, ctx)
             : fetchCitingWorks(discoveryResolver, sourceWork, ctx);
 
     ExistingEntries existing = loadExistingEntries(projectId);
@@ -136,7 +137,7 @@ public class CitationGraphService {
         String reason = work.doi() != null ? REASON_MISSING_TITLE : REASON_NOT_FOUND;
         saveUnresolved(
             projectId,
-            sourceCiteKey,
+            sourceEntryId,
             direction,
             discoveryResolver.name(),
             work.id(),
@@ -156,7 +157,7 @@ public class CitationGraphService {
         if (work.doi() == null) {
           saveUnresolved(
               projectId,
-              sourceCiteKey,
+              sourceEntryId,
               direction,
               discoveryResolver.name(),
               work.id(),
@@ -168,7 +169,7 @@ public class CitationGraphService {
         ctx.log("Added new entry %s: %s".formatted(result.citeKey(), work.title()));
       }
 
-      citationEdgeRepository.save(makeEdge(projectId, sourceCiteKey, result.citeKey(), direction));
+      citationEdgeRepository.save(makeEdge(projectId, sourceEntryId, result.entryId(), direction));
     }
 
     ctx.log(
@@ -267,21 +268,26 @@ public class CitationGraphService {
     return new ExistingEntries(byDoi, citeKeys);
   }
 
-  /** Whether {@link #resolveOrCreateEntry} linked to an existing entry or created a new one. */
-  record ResolveOrCreateResult(String citeKey, boolean created) {}
+  /**
+   * Whether {@link #resolveOrCreateEntry} linked to an existing entry or created a new one. {@code
+   * entryId} is the (Mongo) id of the resulting entry either way — what {@link CitationEdge}/{@link
+   * UnresolvedCitation} should reference; {@code citeKey} is kept alongside only for human-readable
+   * log messages.
+   */
+  record ResolveOrCreateResult(String citeKey, String entryId, boolean created) {}
 
   /**
-   * Returns the citeKey of the existing entry representing {@code work}'s DOI, if {@code existing}
-   * already has one; otherwise synthesizes, saves, and indexes a new {@link BibTexEntry} for it and
-   * returns that new entry's citeKey. Mutates {@code existing} in place so a second work with the
-   * same DOI (or that generates a colliding citeKey) is caught in the same run. Package-visible for
-   * reuse by {@link BulkCitationUploadFromACMDLViewAllService}.
+   * Returns the existing entry representing {@code work}'s DOI, if {@code existing} already has
+   * one; otherwise synthesizes, saves, and indexes a new {@link BibTexEntry} for it. Mutates {@code
+   * existing} in place so a second work with the same DOI (or that generates a colliding citeKey)
+   * is caught in the same run. Package-visible for reuse by {@link
+   * BulkCitationUploadFromACMDLViewAllService}.
    */
   ResolveOrCreateResult resolveOrCreateEntry(
       ResolvedWork work, int projectId, ExistingEntries existing) {
     BibTexEntry existingEntry = work.doi() != null ? existing.byDoi().get(work.doi()) : null;
     if (existingEntry != null) {
-      return new ResolveOrCreateResult(existingEntry.getCiteKey(), false);
+      return new ResolveOrCreateResult(existingEntry.getCiteKey(), existingEntry.getId(), false);
     }
     String citeKey = bibTexSynthesisService.generateUniqueCiteKey(work, existing.citeKeys());
     existing.citeKeys().add(citeKey);
@@ -291,21 +297,21 @@ public class CitationGraphService {
     if (work.doi() != null) {
       existing.byDoi().put(work.doi(), newEntry);
     }
-    return new ResolveOrCreateResult(citeKey, true);
+    return new ResolveOrCreateResult(citeKey, newEntry.getId(), true);
   }
 
   /**
-   * Saves a "{@code citingCiteKey} cites {@code citedCiteKey}" edge directly, for callers (like
+   * Saves a "{@code citingEntryId} cites {@code citedEntryId}" edge directly, for callers (like
    * {@link BulkCitationUploadFromACMDLViewAllService}) that already know which side is which,
    * rather than a source-relative {@link Direction}.
    */
-  void saveCitationEdge(int projectId, String citingCiteKey, String citedCiteKey) {
+  void saveCitationEdge(int projectId, String citingEntryId, String citedEntryId) {
     citationEdgeRepository.save(
         CitationEdge.builder()
-            .id(CitationEdge.makeId(projectId, citingCiteKey, citedCiteKey))
+            .id(CitationEdge.makeId(projectId, citingEntryId, citedEntryId))
             .projectId(projectId)
-            .citingCiteKey(citingCiteKey)
-            .citedCiteKey(citedCiteKey)
+            .citingEntryId(citingEntryId)
+            .citedEntryId(citedEntryId)
             .build());
   }
 
@@ -313,7 +319,7 @@ public class CitationGraphService {
       CitationMetadataResolver discoveryResolver,
       ResolvedWork sourceWork,
       int projectId,
-      String sourceCiteKey,
+      String sourceEntryId,
       JobContext ctx) {
     List<String> nativeIds = sourceWork.referencedWorkIds();
     int totalFound =
@@ -339,7 +345,7 @@ public class CitationGraphService {
         if (!resolvedIds.contains(id)) {
           saveUnresolved(
               projectId,
-              sourceCiteKey,
+              sourceEntryId,
               Direction.REFERENCE,
               discoveryResolver.name(),
               id,
@@ -373,20 +379,20 @@ public class CitationGraphService {
   }
 
   private static CitationEdge makeEdge(
-      int projectId, String sourceCiteKey, String relatedCiteKey, Direction direction) {
-    String citingCiteKey = direction == Direction.REFERENCE ? sourceCiteKey : relatedCiteKey;
-    String citedCiteKey = direction == Direction.REFERENCE ? relatedCiteKey : sourceCiteKey;
+      int projectId, String sourceEntryId, String relatedEntryId, Direction direction) {
+    String citingEntryId = direction == Direction.REFERENCE ? sourceEntryId : relatedEntryId;
+    String citedEntryId = direction == Direction.REFERENCE ? relatedEntryId : sourceEntryId;
     return CitationEdge.builder()
-        .id(CitationEdge.makeId(projectId, citingCiteKey, citedCiteKey))
+        .id(CitationEdge.makeId(projectId, citingEntryId, citedEntryId))
         .projectId(projectId)
-        .citingCiteKey(citingCiteKey)
-        .citedCiteKey(citedCiteKey)
+        .citingEntryId(citingEntryId)
+        .citedEntryId(citedEntryId)
         .build();
   }
 
   private void saveUnresolved(
       int projectId,
-      String sourceCiteKey,
+      String sourceEntryId,
       Direction direction,
       String resolverName,
       String resolverWorkId,
@@ -395,12 +401,12 @@ public class CitationGraphService {
       String reason) {
     String id =
         UnresolvedCitation.makeId(
-            projectId, sourceCiteKey, direction.trackingLabel, reason, doi, resolverWorkId, title);
+            projectId, sourceEntryId, direction.trackingLabel, reason, doi, resolverWorkId, title);
     unresolvedCitationRepository.save(
         UnresolvedCitation.builder()
             .id(id)
             .projectId(projectId)
-            .sourceCiteKey(sourceCiteKey)
+            .sourceEntryId(sourceEntryId)
             .direction(direction.trackingLabel)
             .resolverName(resolverName)
             .resolverWorkId(resolverWorkId)

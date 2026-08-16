@@ -65,6 +65,20 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
       }
       """;
 
+  // Simulates real Spring Data MongoDB behavior: saveAll() assigns a generated id back onto each
+  // entity that doesn't already have one, which makeCitationEdge relies on for a newly created
+  // entry's side of the edge.
+  private static List<BibTexEntry> assignIds(org.mockito.invocation.InvocationOnMock invocation) {
+    List<BibTexEntry> entries = invocation.getArgument(0);
+    entries.forEach(
+        entry -> {
+          if (entry.getId() == null) {
+            entry.setId("generated-" + entry.getCiteKey());
+          }
+        });
+    return entries;
+  }
+
   // ---- Authorization tests ----
 
   @Test
@@ -211,11 +225,11 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
       throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(BibTexEntriesControllerTests::assignIds);
 
     mockMvc
         .perform(
-            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021"
+            post("/api/bibtexentries/post?projectId=1&relatedEntryId=id-paper2021"
                     + "&relationship=reference")
                 .content(RAW_BIBTEX)
                 .with(csrf()))
@@ -224,8 +238,8 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
     org.mockito.ArgumentCaptor<CitationEdge> captor =
         org.mockito.ArgumentCaptor.forClass(CitationEdge.class);
     verify(citationEdgeRepository, times(1)).save(captor.capture());
-    assertEquals("paper2021", captor.getValue().getCitingCiteKey());
-    assertEquals("smith2020", captor.getValue().getCitedCiteKey());
+    assertEquals("id-paper2021", captor.getValue().getCitingEntryId());
+    assertEquals("generated-smith2020", captor.getValue().getCitedEntryId());
     assertEquals(1, captor.getValue().getProjectId());
   }
 
@@ -237,11 +251,11 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
       throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(BibTexEntriesControllerTests::assignIds);
 
     mockMvc
         .perform(
-            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021"
+            post("/api/bibtexentries/post?projectId=1&relatedEntryId=id-paper2021"
                     + "&relationship=citation")
                 .content(RAW_BIBTEX)
                 .with(csrf()))
@@ -250,8 +264,8 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
     org.mockito.ArgumentCaptor<CitationEdge> captor =
         org.mockito.ArgumentCaptor.forClass(CitationEdge.class);
     verify(citationEdgeRepository, times(1)).save(captor.capture());
-    assertEquals("smith2020", captor.getValue().getCitingCiteKey());
-    assertEquals("paper2021", captor.getValue().getCitedCiteKey());
+    assertEquals("generated-smith2020", captor.getValue().getCitingEntryId());
+    assertEquals("id-paper2021", captor.getValue().getCitedEntryId());
     assertEquals(1, captor.getValue().getProjectId());
   }
 
@@ -259,7 +273,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
       username = "phtcon",
       roles = {"RESEARCHER"})
   @Test
-  public void posting_bibtex_without_relatedCiteKey_or_relationship_does_not_create_an_edge()
+  public void posting_bibtex_without_relatedEntryId_or_relationship_does_not_create_an_edge()
       throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
@@ -276,7 +290,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
       username = "phtcon",
       roles = {"RESEARCHER"})
   @Test
-  public void posting_bibtex_with_relatedCiteKey_but_no_relationship_does_not_create_an_edge()
+  public void posting_bibtex_with_relatedEntryId_but_no_relationship_does_not_create_an_edge()
       throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
@@ -284,7 +298,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
 
     mockMvc
         .perform(
-            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021")
+            post("/api/bibtexentries/post?projectId=1&relatedEntryId=id-paper2021")
                 .content(RAW_BIBTEX)
                 .with(csrf()))
         .andExpect(status().isOk());
@@ -314,7 +328,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
 
     mockMvc
         .perform(
-            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021"
+            post("/api/bibtexentries/post?projectId=1&relatedEntryId=id-paper2021"
                     + "&relationship=citation")
                 .content(RAW_BIBTEX)
                 .with(csrf()))
@@ -380,7 +394,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
 
     mockMvc
         .perform(
-            post("/api/bibtexentries/post?projectId=1&relatedCiteKey=paper2021"
+            post("/api/bibtexentries/post?projectId=1&relatedEntryId=id-paper2021"
                     + "&relationship=bogus")
                 .content(RAW_BIBTEX)
                 .with(csrf()))
@@ -1076,7 +1090,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
     MvcResult response =
         mockMvc
             .perform(
-                post("/api/bibtexentries/postByDoi?projectId=1&relatedCiteKey=paper2021"
+                post("/api/bibtexentries/postByDoi?projectId=1&relatedEntryId=id-paper2021"
                         + "&relationship=citation")
                     .content("10.1038/s41586-020-2649-2")
                     .with(csrf()))
@@ -1094,8 +1108,8 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
     org.mockito.ArgumentCaptor<CitationEdge> edgeCaptor =
         org.mockito.ArgumentCaptor.forClass(CitationEdge.class);
     verify(citationEdgeRepository, times(1)).save(edgeCaptor.capture());
-    assertEquals("smith2020", edgeCaptor.getValue().getCitingCiteKey());
-    assertEquals("paper2021", edgeCaptor.getValue().getCitedCiteKey());
+    assertEquals("existing-id", edgeCaptor.getValue().getCitingEntryId());
+    assertEquals("id-paper2021", edgeCaptor.getValue().getCitedEntryId());
   }
 
   @WithMockUser(
@@ -1133,7 +1147,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
       roles = {"RESEARCHER"})
   @Test
   public void
-      posting_a_doi_that_already_has_an_entry_with_only_a_relatedCiteKey_and_no_relationship_saves_no_edge()
+      posting_a_doi_that_already_has_an_entry_with_only_a_relatedEntryId_and_no_relationship_saves_no_edge()
           throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     BibTexEntry existingEntry =
@@ -1149,7 +1163,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
 
     mockMvc
         .perform(
-            post("/api/bibtexentries/postByDoi?projectId=1&relatedCiteKey=paper2021")
+            post("/api/bibtexentries/postByDoi?projectId=1&relatedEntryId=id-paper2021")
                 .content("10.1038/s41586-020-2649-2")
                 .with(csrf()))
         .andExpect(status().isOk());
@@ -1167,7 +1181,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
 
     mockMvc
         .perform(
-            post("/api/bibtexentries/postByDoi?projectId=1&relatedCiteKey=paper2021"
+            post("/api/bibtexentries/postByDoi?projectId=1&relatedEntryId=id-paper2021"
                     + "&relationship=bogus")
                 .content("10.1038/s41586-020-2649-2")
                 .with(csrf()))

@@ -30,8 +30,8 @@ public class UnresolvedCitation {
 
   private int projectId;
 
-  /** The citeKey of the entry whose references/citations were being fetched. */
-  private String sourceCiteKey;
+  /** The Mongo {@code _id} of the entry whose references/citations were being fetched. */
+  private String sourceEntryId;
 
   /** {@code "reference"} or {@code "citation"}. */
   private String direction;
@@ -58,7 +58,7 @@ public class UnresolvedCitation {
    * throwing, since even a coarse dedup key is better than none for so rare a case).
    */
   public static String makeId(
-      int projectId, String sourceCiteKey, String direction, String reason, String... candidates) {
+      int projectId, String sourceEntryId, String direction, String reason, String... candidates) {
     String identifyingValue = "unknown";
     for (String candidate : candidates) {
       if (candidate != null && !candidate.isBlank()) {
@@ -67,6 +67,6 @@ public class UnresolvedCitation {
       }
     }
     return "%d:%s:%s:%s:%s"
-        .formatted(projectId, sourceCiteKey, direction, reason, identifyingValue);
+        .formatted(projectId, sourceEntryId, direction, reason, identifyingValue);
   }
 }
