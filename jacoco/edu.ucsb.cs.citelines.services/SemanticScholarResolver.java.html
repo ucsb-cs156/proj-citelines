@@ -34,7 +34,7 @@ public class SemanticScholarResolver implements CitationMetadataResolver {
 
   private static final String BASE_URL = &quot;https://api.semanticscholar.org/graph/v1/paper&quot;;
   private static final String FIELDS =
-      &quot;title,year,venue,externalIds,publicationTypes,authors,&quot;
+      &quot;title,year,venue,externalIds,publicationTypes,authors,abstract,&quot;
           + &quot;references.title,references.year,references.externalIds,references.authors,references.venue,&quot;
           + &quot;citations.title,citations.year,citations.externalIds,citations.authors,citations.venue&quot;;
 
@@ -121,86 +121,94 @@ public class SemanticScholarResolver implements CitationMetadataResolver {
 <span class="fc" id="L121">        textOrNull(node, &quot;venue&quot;),</span>
 <span class="fc" id="L122">        List.of(),</span>
 <span class="fc" id="L123">        parseEmbeddedList(node.path(&quot;references&quot;)),</span>
-<span class="fc" id="L124">        parseEmbeddedList(node.path(&quot;citations&quot;)));</span>
+<span class="fc" id="L124">        parseEmbeddedList(node.path(&quot;citations&quot;)),</span>
+<span class="fc" id="L125">        textOrNull(node, &quot;abstract&quot;),</span>
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null);
   }
 
   // A reference/citation item shares its parent's shape, minus publicationTypes (never requested
   // for embedded items) and referenced/citing lists of its own (this project only needs one hop).
   private ResolvedWork parseEmbeddedItem(JsonNode node) {
-<span class="fc" id="L130">    List&lt;String&gt; authorNames = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L131" title="All 2 branches covered.">    for (JsonNode author : node.path(&quot;authors&quot;)) {</span>
-<span class="fc" id="L132">      String name = textOrNull(author, &quot;name&quot;);</span>
-<span class="fc bfc" id="L133" title="All 2 branches covered.">      if (name != null) {</span>
-<span class="fc" id="L134">        authorNames.add(name);</span>
+<span class="fc" id="L138">    List&lt;String&gt; authorNames = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">    for (JsonNode author : node.path(&quot;authors&quot;)) {</span>
+<span class="fc" id="L140">      String name = textOrNull(author, &quot;name&quot;);</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">      if (name != null) {</span>
+<span class="fc" id="L142">        authorNames.add(name);</span>
       }
-<span class="fc" id="L136">    }</span>
-<span class="fc" id="L137">    return new ResolvedWork(</span>
-<span class="fc" id="L138">        textOrNull(node, &quot;paperId&quot;),</span>
-<span class="fc" id="L139">        normalizeDoiOrNull(textOrNull(node.path(&quot;externalIds&quot;), &quot;DOI&quot;)),</span>
-<span class="fc" id="L140">        textOrNull(node, &quot;title&quot;),</span>
-<span class="fc bfc" id="L141" title="All 2 branches covered.">        node.path(&quot;year&quot;).isInt() ? node.path(&quot;year&quot;).asInt() : null,</span>
+<span class="fc" id="L144">    }</span>
+<span class="fc" id="L145">    return new ResolvedWork(</span>
+<span class="fc" id="L146">        textOrNull(node, &quot;paperId&quot;),</span>
+<span class="fc" id="L147">        normalizeDoiOrNull(textOrNull(node.path(&quot;externalIds&quot;), &quot;DOI&quot;)),</span>
+<span class="fc" id="L148">        textOrNull(node, &quot;title&quot;),</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        node.path(&quot;year&quot;).isInt() ? node.path(&quot;year&quot;).asInt() : null,</span>
         null,
         authorNames,
-<span class="fc" id="L144">        textOrNull(node, &quot;venue&quot;),</span>
-<span class="fc" id="L145">        List.of(),</span>
-<span class="fc" id="L146">        List.of(),</span>
-<span class="fc" id="L147">        List.of());</span>
+<span class="fc" id="L152">        textOrNull(node, &quot;venue&quot;),</span>
+<span class="fc" id="L153">        List.of(),</span>
+<span class="fc" id="L154">        List.of(),</span>
+<span class="fc" id="L155">        List.of());</span>
   }
 
   // `references`/`citations` are JSON null (not []) when the publisher has restricted them.
   private List&lt;ResolvedWork&gt; parseEmbeddedList(JsonNode arrayNode) {
-<span class="fc bfc" id="L152" title="All 4 branches covered.">    if (arrayNode.isMissingNode() || arrayNode.isNull()) {</span>
-<span class="fc" id="L153">      return List.of();</span>
+<span class="fc bfc" id="L160" title="All 4 branches covered.">    if (arrayNode.isMissingNode() || arrayNode.isNull()) {</span>
+<span class="fc" id="L161">      return List.of();</span>
     }
-<span class="fc" id="L155">    List&lt;ResolvedWork&gt; works = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L156" title="All 2 branches covered.">    for (JsonNode item : arrayNode) {</span>
-<span class="fc" id="L157">      works.add(parseEmbeddedItem(item));</span>
-<span class="fc" id="L158">    }</span>
-<span class="fc" id="L159">    return works;</span>
+<span class="fc" id="L163">    List&lt;ResolvedWork&gt; works = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">    for (JsonNode item : arrayNode) {</span>
+<span class="fc" id="L165">      works.add(parseEmbeddedItem(item));</span>
+<span class="fc" id="L166">    }</span>
+<span class="fc" id="L167">    return works;</span>
   }
 
   // publicationTypes is a list (e.g. [&quot;JournalArticle&quot;,&quot;Conference&quot;]); translated to the single
   // OpenAlex-style vocabulary string BibTexSynthesisService's ENTRY_TYPE_MAP understands, in
   // priority order. An unmapped/absent set of types falls back to &quot;misc&quot; there, same as Crossref.
   private static String translateType(JsonNode publicationTypes) {
-<span class="fc" id="L166">    List&lt;String&gt; types = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L167" title="All 2 branches covered.">    for (JsonNode t : publicationTypes) {</span>
-<span class="fc" id="L168">      types.add(t.asText());</span>
-<span class="fc" id="L169">    }</span>
-<span class="fc bfc" id="L170" title="All 2 branches covered.">    if (types.contains(&quot;Conference&quot;)) {</span>
-<span class="fc" id="L171">      return &quot;proceedings-article&quot;;</span>
+<span class="fc" id="L174">    List&lt;String&gt; types = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">    for (JsonNode t : publicationTypes) {</span>
+<span class="fc" id="L176">      types.add(t.asText());</span>
+<span class="fc" id="L177">    }</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">    if (types.contains(&quot;Conference&quot;)) {</span>
+<span class="fc" id="L179">      return &quot;proceedings-article&quot;;</span>
     }
-<span class="fc bfc" id="L173" title="All 2 branches covered.">    if (types.contains(&quot;JournalArticle&quot;)) {</span>
-<span class="fc" id="L174">      return &quot;article&quot;;</span>
+<span class="fc bfc" id="L181" title="All 2 branches covered.">    if (types.contains(&quot;JournalArticle&quot;)) {</span>
+<span class="fc" id="L182">      return &quot;article&quot;;</span>
     }
-<span class="fc bfc" id="L176" title="All 2 branches covered.">    if (types.contains(&quot;Book&quot;)) {</span>
-<span class="fc" id="L177">      return &quot;book&quot;;</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">    if (types.contains(&quot;Book&quot;)) {</span>
+<span class="fc" id="L185">      return &quot;book&quot;;</span>
     }
-<span class="fc" id="L179">    return null;</span>
+<span class="fc" id="L187">    return null;</span>
   }
 
   private String normalizeDoiOrNull(String rawDoi) {
-<span class="fc bfc" id="L183" title="All 2 branches covered.">    if (rawDoi == null) {</span>
-<span class="fc" id="L184">      return null;</span>
+<span class="fc bfc" id="L191" title="All 2 branches covered.">    if (rawDoi == null) {</span>
+<span class="fc" id="L192">      return null;</span>
     }
     try {
-<span class="fc" id="L187">      return doiService.normalizeRawDOI(rawDoi);</span>
-<span class="fc" id="L188">    } catch (IllegalArgumentException e) {</span>
-<span class="fc" id="L189">      log.debug(&quot;Could not normalize DOI from Semantic Scholar: {}&quot;, rawDoi);</span>
-<span class="fc" id="L190">      return null;</span>
+<span class="fc" id="L195">      return doiService.normalizeRawDOI(rawDoi);</span>
+<span class="fc" id="L196">    } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L197">      log.debug(&quot;Could not normalize DOI from Semantic Scholar: {}&quot;, rawDoi);</span>
+<span class="fc" id="L198">      return null;</span>
     }
   }
 
   private static String textOrNull(JsonNode node, String field) {
-<span class="fc" id="L195">    JsonNode child = node.path(field);</span>
-<span class="fc bfc" id="L196" title="All 4 branches covered.">    return child.isMissingNode() || child.isNull() ? null : child.asText();</span>
+<span class="fc" id="L203">    JsonNode child = node.path(field);</span>
+<span class="fc bfc" id="L204" title="All 4 branches covered.">    return child.isMissingNode() || child.isNull() ? null : child.asText();</span>
   }
 
   private JsonNode readTree(String json) {
     try {
-<span class="fc" id="L201">      return objectMapper.readTree(json);</span>
-<span class="fc" id="L202">    } catch (JsonProcessingException e) {</span>
-<span class="fc" id="L203">      throw new IllegalStateException(&quot;Could not parse Semantic Scholar API response as JSON&quot;, e);</span>
+<span class="fc" id="L209">      return objectMapper.readTree(json);</span>
+<span class="fc" id="L210">    } catch (JsonProcessingException e) {</span>
+<span class="fc" id="L211">      throw new IllegalStateException(&quot;Could not parse Semantic Scholar API response as JSON&quot;, e);</span>
     }
   }
 }
