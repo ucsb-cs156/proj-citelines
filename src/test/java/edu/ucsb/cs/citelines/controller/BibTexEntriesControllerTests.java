@@ -28,11 +28,15 @@ import edu.ucsb.cs.citelines.errors.DoiNotFoundException;
 import edu.ucsb.cs.citelines.repository.ProjectCollaboratorRepository;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
 import edu.ucsb.cs.citelines.services.BibTexConverterService;
+import edu.ucsb.cs.citelines.services.CitationGraphService;
 import edu.ucsb.cs.citelines.services.DOIService;
 import edu.ucsb.cs.citelines.services.DoiToBibTexService;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -56,6 +60,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
   @MockitoBean BibTexEntryRepository bibTexEntryRepository;
   @MockitoBean CitationEdgeRepository citationEdgeRepository;
   @MockitoBean DoiToBibTexService doiToBibTexService;
+  @MockitoBean CitationGraphService citationGraphService;
 
   private static final String RAW_BIBTEX =
       """
@@ -64,6 +69,24 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
         title = {A Great Paper}
       }
       """;
+
+  private static final String RAW_BIBTEX_WITH_DOI =
+      """
+      @article{smith2020,
+        author = {Jane Smith},
+        title = {A Great Paper},
+        doi = {10.1038/nrd842}
+      }
+      """;
+
+  // Overridden per-test (declared after this default, so Mockito's "last stubbing wins" rule
+  // lets a more specific test-body stub take precedence) when a test needs postBibTexEntries to
+  // see a particular project's existing entries for DOI-based dedup.
+  @BeforeEach
+  public void setupExistingEntries() {
+    when(citationGraphService.loadExistingEntries(org.mockito.ArgumentMatchers.anyInt()))
+        .thenReturn(new CitationGraphService.ExistingEntries(new HashMap<>(), new HashSet<>()));
+  }
 
   // Simulates real Spring Data MongoDB behavior: saveAll() assigns a generated id back onto each
   // entity that doesn't already have one, which makeCitationEdge relies on for a newly created
@@ -382,6 +405,114 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
         org.mockito.ArgumentCaptor.forClass(List.class);
     verify(bibTexEntryRepository, times(1)).deleteAll(deleteCaptor.capture());
     assertEquals(List.of(existing2), deleteCaptor.getValue());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void
+      posting_bibtex_whose_doi_matches_an_existing_entry_under_a_different_citekey_reuses_it_instead_of_creating_a_duplicate()
+          throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findAllByProjectIdAndCiteKey(1, "smith2020")).thenReturn(List.of());
+    BibTexEntry existingByDoi =
+        BibTexEntry.builder()
+            .id("existing-id")
+            .projectId(1)
+            .citeKey("someOtherKey2020")
+            .keyValuePairs(Map.of("doi", "10.1038/nrd842", "author", "Someone Else"))
+            .build();
+    when(citationGraphService.loadExistingEntries(1))
+        .thenReturn(
+            new CitationGraphService.ExistingEntries(
+                new HashMap<>(Map.of("10.1038/nrd842", existingByDoi)), new HashSet<>()));
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                post("/api/bibtexentries/post?projectId=1")
+                    .content(RAW_BIBTEX_WITH_DOI)
+                    .with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> body =
+        mapper.readValue(response.getResponse().getContentAsString(), List.class);
+    assertEquals(1, body.size());
+    assertEquals("existing-id", body.get(0).get("id"));
+    assertEquals("someOtherKey2020", body.get(0).get("citeKey"));
+    assertEquals("Someone Else", ((Map<?, ?>) body.get(0).get("keyValuePairs")).get("author"));
+
+    verify(bibTexEntryRepository, times(0)).saveAll(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void
+      posting_bibtex_whose_doi_matches_an_existing_entry_still_links_it_when_relatedEntryId_is_given()
+          throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findAllByProjectIdAndCiteKey(1, "smith2020")).thenReturn(List.of());
+    BibTexEntry existingByDoi =
+        BibTexEntry.builder()
+            .id("existing-id")
+            .projectId(1)
+            .citeKey("someOtherKey2020")
+            .keyValuePairs(Map.of("doi", "10.1038/nrd842"))
+            .build();
+    when(citationGraphService.loadExistingEntries(1))
+        .thenReturn(
+            new CitationGraphService.ExistingEntries(
+                new HashMap<>(Map.of("10.1038/nrd842", existingByDoi)), new HashSet<>()));
+
+    mockMvc
+        .perform(
+            post("/api/bibtexentries/post?projectId=1&relatedEntryId=id-paper2021"
+                    + "&relationship=reference")
+                .content(RAW_BIBTEX_WITH_DOI)
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<CitationEdge> captor =
+        org.mockito.ArgumentCaptor.forClass(CitationEdge.class);
+    verify(citationEdgeRepository, times(1)).save(captor.capture());
+    assertEquals("id-paper2021", captor.getValue().getCitingEntryId());
+    assertEquals("existing-id", captor.getValue().getCitedEntryId());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void posting_bibtex_with_a_doi_not_matching_any_existing_entry_is_saved_as_new()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findAllByProjectIdAndCiteKey(1, "smith2020")).thenReturn(List.of());
+    when(bibTexEntryRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                post("/api/bibtexentries/post?projectId=1")
+                    .content(RAW_BIBTEX_WITH_DOI)
+                    .with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> body =
+        mapper.readValue(response.getResponse().getContentAsString(), List.class);
+    assertEquals(1, body.size());
+    assertEquals("smith2020", body.get(0).get("citeKey"));
+
+    verify(bibTexEntryRepository, times(1)).saveAll(any());
   }
 
   @WithMockUser(
