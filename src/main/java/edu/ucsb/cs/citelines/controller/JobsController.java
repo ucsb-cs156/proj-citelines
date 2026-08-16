@@ -4,12 +4,14 @@ import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
+import edu.ucsb.cs.citelines.jobs.BibTexEntryUpgradeJob;
 import edu.ucsb.cs.citelines.jobs.BulkCitationUploadFromACMDLViewAllJob;
 import edu.ucsb.cs.citelines.jobs.CheckLinksJob;
 import edu.ucsb.cs.citelines.jobs.DuplicateDetectionJob;
 import edu.ucsb.cs.citelines.jobs.GetCitationsJob;
 import edu.ucsb.cs.citelines.jobs.GetReferencesJob;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
+import edu.ucsb.cs.citelines.services.BibTexEntryUpgradeService;
 import edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllService;
 import edu.ucsb.cs.citelines.services.CheckLinksService;
 import edu.ucsb.cs.citelines.services.CitationGraphService;
@@ -49,6 +51,7 @@ public class JobsController extends ApiController {
   @Autowired private CitationGraphService citationGraphService;
   @Autowired private CheckLinksService checkLinksService;
   @Autowired private DuplicateDetectionService duplicateDetectionService;
+  @Autowired private BibTexEntryUpgradeService bibTexEntryUpgradeService;
 
   @Autowired
   private BulkCitationUploadFromACMDLViewAllService bulkCitationUploadFromACMDLViewAllService;
@@ -121,6 +124,24 @@ public class JobsController extends ApiController {
         DuplicateDetectionJob.builder()
             .projectId(projectId.intValue())
             .duplicateDetectionService(duplicateDetectionService)
+            .build());
+  }
+
+  @Operation(
+      summary =
+          "Launch a job to re-resolve a project's BibTeX entries and fill in any additional"
+              + " metadata now available that each entry doesn't already have")
+  @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
+  @PostMapping("/launch/upgradeBibTexEntries")
+  public Job launchUpgradeBibTexEntries(
+      @Parameter(name = "projectId") @RequestParam Long projectId) {
+    projectRepository
+        .findById(projectId)
+        .orElseThrow(() -> new EntityNotFoundException(Project.class, projectId));
+    return jobService.runAsJob(
+        BibTexEntryUpgradeJob.builder()
+            .projectId(projectId.intValue())
+            .bibTexEntryUpgradeService(bibTexEntryUpgradeService)
             .build());
   }
 

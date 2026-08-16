@@ -11,9 +11,9 @@ import org.springframework.stereotype.Service;
 
 /**
  * Resolves a bare/formatted DOI to a raw BibTeX string, for the "Add Citation via DOI" flow (see
- * issue #63). Tries the same resolver chain (OpenAlex, then Semantic Scholar, then Crossref) that
- * {@link CitationGraphService} uses to discover a source work's references/citations, then
- * synthesizes a BibTeX entry for it via {@link BibTexSynthesisService}, using a citeKey unique
+ * issue #63). Tries the same resolver chain (OpenAlex, then Semantic Scholar, then Crossref, then
+ * DBLP) that {@link CitationGraphService} uses to discover a source work's references/citations,
+ * then synthesizes a BibTeX entry for it via {@link BibTexSynthesisService}, using a citeKey unique
  * among the project's existing entries.
  */
 @Service
@@ -32,13 +32,14 @@ public class DoiToBibTexService {
       CitationGraphService citationGraphService,
       OpenAlexService openAlexService,
       SemanticScholarResolver semanticScholarResolver,
-      CrossrefResolver crossrefResolver) {
+      CrossrefResolver crossrefResolver,
+      DblpResolver dblpResolver) {
     this.doiService = doiService;
     this.bibTexSynthesisService = bibTexSynthesisService;
     this.bibTexEntryRepository = bibTexEntryRepository;
     this.citationGraphService = citationGraphService;
     this.resolversInPriorityOrder =
-        List.of(openAlexService, semanticScholarResolver, crossrefResolver);
+        List.of(openAlexService, semanticScholarResolver, crossrefResolver, dblpResolver);
   }
 
   /**

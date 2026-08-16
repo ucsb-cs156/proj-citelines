@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -169,6 +170,7 @@ public class OpenAlexService implements CitationMetadataResolver {
       referencedWorkIds.add(stripPrefix(refNode.asText()));
     }
 
+    JsonNode biblio = node.path("biblio");
     return new ResolvedWork(
         stripPrefix(textOrNull(node, "id")),
         normalizeDoiOrNull(textOrNull(node, "doi")),
@@ -179,7 +181,54 @@ public class OpenAlexService implements CitationMetadataResolver {
         textOrNull(node.path("primary_location").path("source"), "display_name"),
         referencedWorkIds,
         List.of(),
-        List.of());
+        List.of(),
+        reconstructAbstract(node.path("abstract_inverted_index")),
+        textOrNull(node.path("primary_location").path("source"), "host_organization_name"),
+        pageRange(textOrNull(biblio, "first_page"), textOrNull(biblio, "last_page")),
+        firstOrNull(node.path("ids").path("isbn")),
+        null,
+        null,
+        textOrNull(biblio, "volume"),
+        textOrNull(biblio, "issue"));
+  }
+
+  // OpenAlex returns an abstract as an inverted index (word -> the list of positions it appears
+  // at) rather than plain text, presumably for copyright reasons — reconstructed here by placing
+  // each word back at every position it's listed for.
+  private static String reconstructAbstract(JsonNode invertedIndex) {
+    if (!invertedIndex.isObject()) {
+      return null;
+    }
+    int maxPosition = -1;
+    for (JsonNode positions : invertedIndex) {
+      for (JsonNode position : positions) {
+        maxPosition = Math.max(maxPosition, position.asInt());
+      }
+    }
+    if (maxPosition < 0) {
+      return null;
+    }
+    String[] words = new String[maxPosition + 1];
+    var fields = invertedIndex.fields();
+    while (fields.hasNext()) {
+      Map.Entry<String, JsonNode> entry = fields.next();
+      for (JsonNode position : entry.getValue()) {
+        words[position.asInt()] = entry.getKey();
+      }
+    }
+    return String.join(" ", words);
+  }
+
+  private static String pageRange(String firstPage, String lastPage) {
+    if (firstPage == null) {
+      return lastPage;
+    }
+    return lastPage == null ? firstPage : firstPage + "-" + lastPage;
+  }
+
+  private static String firstOrNull(JsonNode arrayNode) {
+    JsonNode first = arrayNode.path(0);
+    return first.isMissingNode() || first.isNull() ? null : first.asText();
   }
 
   private String normalizeDoiOrNull(String rawDoi) {
