@@ -86,6 +86,10 @@ export default function BibTexEntryShowPage({
     useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  // Debug-only card (issue #77): local, unpersisted state (unlike CARD_DEFS' cards) since this
+  // is a temporary aid for actively developing/verifying backend schema changes, not a permanent
+  // per-entry preference worth writing into CITELINES_ fields.
+  const [showRawEntry, setShowRawEntry] = useState(false);
 
   const entryQueryKey = `/api/bibtexentries/entry?projectId=${projectId}&id=${entryId}`;
   const { data: entry, failureCount: entryBackendFailureCount } = useBackend(
@@ -590,6 +594,20 @@ export default function BibTexEntryShowPage({
               projectId={projectId}
               testId={`${testId}-CitationsTable`}
             />
+          </CollapsibleCard>
+
+          <CollapsibleCard
+            testId={`${testId}-RawEntryCard`}
+            header="Raw BibTeX (debug)"
+            isOpen={showRawEntry}
+            onToggle={() => setShowRawEntry((prev) => !prev)}
+          >
+            <pre
+              data-testid={`${testId}-raw-entry-json`}
+              className="border rounded-3 p-3"
+            >
+              {JSON.stringify(entry, null, 2)}
+            </pre>
           </CollapsibleCard>
         </div>
       )}

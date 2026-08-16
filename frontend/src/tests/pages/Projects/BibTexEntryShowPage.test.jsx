@@ -718,4 +718,52 @@ describe("BibTexEntryShowPage tests", () => {
       screen.getByTestId("BibTexEntryShowPage-BibTexEntryComments-base"),
     ).toBeInTheDocument();
   });
+
+  test("the Raw BibTeX (debug) card is closed by default", async () => {
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-RawEntryCard-header"),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("opening the Raw BibTeX (debug) card shows the full entry as JSON, including fields not shown elsewhere on the page", async () => {
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-RawEntryCard-header"),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("BibTexEntryShowPage-RawEntryCard-header"),
+      ).toHaveAttribute("aria-expanded", "true");
+    });
+    const json = screen.getByTestId("BibTexEntryShowPage-raw-entry-json");
+    expect(json).toHaveTextContent('"id": "64f1b2c3d4e5f6a7b8c9d0e1"');
+    expect(json).toHaveTextContent('"entryType": "article"');
+    expect(json).toHaveTextContent('"doi": "10.1038/s41586-020-2649-2"');
+  });
+
+  test("toggling the Raw BibTeX (debug) card does not PUT any changes to the backend", async () => {
+    axiosMock
+      .onPut("/api/bibtexentries")
+      .reply(200, bibTexEntriesFixtures.oneEntry);
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-RawEntryCard-header"),
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("BibTexEntryShowPage-RawEntryCard-header"),
+      ).toHaveAttribute("aria-expanded", "true");
+    });
+
+    expect(axiosMock.history.put.length).toBe(0);
+  });
 });
