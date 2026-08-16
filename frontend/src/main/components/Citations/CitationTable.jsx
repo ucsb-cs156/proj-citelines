@@ -124,6 +124,17 @@ export default function CitationTable({
       id: "title",
       accessorFn: (row) => truncate(row.keyValuePairs?.title, TITLE_MAX_LENGTH),
     },
+    {
+      // Debug/iteration aid (issue #68): flags entries the "Detect Duplicates" job has marked as
+      // possibly duplicating another entry, via possibleDuplicateIds/possibleDuplicateReason. Not
+      // yet a finished UX — see issue #75 for the eventual manual-review workflow.
+      header: "Flags",
+      id: "flags",
+      accessorFn: (row) =>
+        row.possibleDuplicateIds != null || row.possibleDuplicateReason != null
+          ? "dup?"
+          : "",
+    },
   ];
 
   if (!readOnly) {

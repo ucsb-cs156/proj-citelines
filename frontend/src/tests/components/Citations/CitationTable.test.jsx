@@ -43,11 +43,19 @@ describe("CitationTable tests", () => {
   test("renders expected columns, truncated citekey/author/title, year, and a doi link", () => {
     renderTable({ citations: bibTexEntriesFixtures.threeEntries });
 
-    ["citeKey", "link", "year", "author", "title", "edit", "delete"].forEach(
-      (colId) =>
-        expect(
-          screen.getByTestId(`CitationTable-header-${colId}`),
-        ).toBeInTheDocument(),
+    [
+      "citeKey",
+      "link",
+      "year",
+      "author",
+      "title",
+      "flags",
+      "edit",
+      "delete",
+    ].forEach((colId) =>
+      expect(
+        screen.getByTestId(`CitationTable-header-${colId}`),
+      ).toBeInTheDocument(),
     );
     expect(
       screen.queryByTestId("CitationTable-header-entryType"),
@@ -78,6 +86,38 @@ describe("CitationTable tests", () => {
       "https://doi.org/10.1038/s41586-020-2649-2",
     );
     expect(doiLink).toHaveAttribute("target", "_blank");
+  });
+
+  test("the Flags column is empty for an entry with no duplicate-detection fields set", () => {
+    renderTable({ citations: [bibTexEntriesFixtures.threeEntries[0]] });
+
+    expect(
+      screen.getByTestId("CitationTable-cell-row-0-col-flags"),
+    ).toHaveTextContent("");
+  });
+
+  test("the Flags column shows dup? when possibleDuplicateIds is set", () => {
+    const flaggedEntry = {
+      ...bibTexEntriesFixtures.threeEntries[0],
+      possibleDuplicateIds: ["64f1b2c3d4e5f6a7b8c9d0e2"],
+    };
+    renderTable({ citations: [flaggedEntry] });
+
+    expect(
+      screen.getByTestId("CitationTable-cell-row-0-col-flags"),
+    ).toHaveTextContent("dup?");
+  });
+
+  test("the Flags column shows dup? when possibleDuplicateReason is set, even without possibleDuplicateIds", () => {
+    const flaggedEntry = {
+      ...bibTexEntriesFixtures.threeEntries[0],
+      possibleDuplicateReason: "SAME_DOI",
+    };
+    renderTable({ citations: [flaggedEntry] });
+
+    expect(
+      screen.getByTestId("CitationTable-cell-row-0-col-flags"),
+    ).toHaveTextContent("dup?");
   });
 
   test("a short citekey is not truncated or given an ellipsis", () => {
