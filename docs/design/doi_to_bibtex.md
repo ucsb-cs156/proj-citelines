@@ -335,3 +335,8 @@ is currently missing. It never overwrites a field that already has a value, even
 reports something different for it — an existing value may already have been reviewed or
 hand-edited, and the job has no way to tell "reviewed and correct" apart from "just never
 updated."
+
+`entryType` is the one exception: an entry currently typed `misc` (the fallback used whenever a
+resolver's own type couldn't be mapped to something more specific — see `ENTRY_TYPE_MAP` above) is
+upgraded to whatever more specific type the resolver now reports, since `misc` was never a
+deliberate choice to begin with, unlike a hand-set/reviewed field value.
