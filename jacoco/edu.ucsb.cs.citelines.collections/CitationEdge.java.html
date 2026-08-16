@@ -9,10 +9,13 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * A MongoDB document representing a directed &quot;cites&quot; relationship between two {@link BibTexEntry}s
- * in the same project, identified by their citeKeys.
+ * in the same project, identified by their (immutable) Mongo {@code _id}s — not their citeKeys,
+ * which a user can freely rename via the &quot;Edit Citation&quot; flow. Identifying entries by id keeps an
+ * edge valid across a rename; the same reasoning that led {@code BibTexEntriesController} to look
+ * entries up by id rather than citeKey elsewhere (see its {@code bibTexEntryById} Javadoc).
  *
- * &lt;p&gt;{@code id} is a deterministic composite of {@code projectId}/{@code citingCiteKey}/{@code
- * citedCiteKey} so that saving the same edge twice (e.g. on a repeated Get References/Get Citations
+ * &lt;p&gt;{@code id} is a deterministic composite of {@code projectId}/{@code citingEntryId}/{@code
+ * citedEntryId} so that saving the same edge twice (e.g. on a repeated Get References/Get Citations
  * job run) overwrites rather than duplicates it.
  */
 @Data
@@ -26,11 +29,11 @@ public class CitationEdge {
 
   private int projectId;
 
-  private String citingCiteKey;
-  private String citedCiteKey;
+  private String citingEntryId;
+  private String citedEntryId;
 
-  public static String makeId(int projectId, String citingCiteKey, String citedCiteKey) {
-<span class="fc" id="L33">    return &quot;%d:%s:%s&quot;.formatted(projectId, citingCiteKey, citedCiteKey);</span>
+  public static String makeId(int projectId, String citingEntryId, String citedEntryId) {
+<span class="fc" id="L36">    return &quot;%d:%s:%s&quot;.formatted(projectId, citingEntryId, citedEntryId);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

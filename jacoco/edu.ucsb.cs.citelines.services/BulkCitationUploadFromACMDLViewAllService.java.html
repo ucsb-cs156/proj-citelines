@@ -123,41 +123,42 @@ public class BulkCitationUploadFromACMDLViewAllService {
 <span class="fc" id="L123">    ctx.log(</span>
         &quot;Starting Bulk Citation Upload from ACM DL for %s in project %d&quot;
 <span class="fc" id="L125">            .formatted(currentPaperCiteKey, projectId));</span>
-<span class="fc" id="L126">    bibTexEntryRepository</span>
-<span class="fc" id="L127">        .findByProjectIdAndCiteKey(projectId, currentPaperCiteKey)</span>
-<span class="fc" id="L128">        .orElseThrow(</span>
-            () -&gt; {
-<span class="fc" id="L130">              ctx.log(&quot;Entry not found: &quot; + currentPaperCiteKey);</span>
-<span class="fc" id="L131">              return new IllegalStateException(&quot;Entry not found: &quot; + currentPaperCiteKey);</span>
-            });
+<span class="fc" id="L126">    BibTexEntry currentPaper =</span>
+        bibTexEntryRepository
+<span class="fc" id="L128">            .findByProjectIdAndCiteKey(projectId, currentPaperCiteKey)</span>
+<span class="fc" id="L129">            .orElseThrow(</span>
+                () -&gt; {
+<span class="fc" id="L131">                  ctx.log(&quot;Entry not found: &quot; + currentPaperCiteKey);</span>
+<span class="fc" id="L132">                  return new IllegalStateException(&quot;Entry not found: &quot; + currentPaperCiteKey);</span>
+                });
 
-<span class="fc" id="L134">    List&lt;ParsedEntry&gt; parsedEntries = parse(rawText);</span>
-<span class="fc" id="L135">    CitationGraphService.ExistingEntries existing =</span>
-<span class="fc" id="L136">        citationGraphService.loadExistingEntries(projectId);</span>
+<span class="fc" id="L135">    List&lt;ParsedEntry&gt; parsedEntries = parse(rawText);</span>
+<span class="fc" id="L136">    CitationGraphService.ExistingEntries existing =</span>
+<span class="fc" id="L137">        citationGraphService.loadExistingEntries(projectId);</span>
 
-<span class="fc" id="L138">    int added = 0;</span>
-<span class="fc" id="L139">    int linked = 0;</span>
-<span class="fc" id="L140">    int errors = 0;</span>
-<span class="fc bfc" id="L141" title="All 2 branches covered.">    for (ParsedEntry parsedEntry : parsedEntries) {</span>
-<span class="fc" id="L142">      Outcome outcome = processEntry(parsedEntry, projectId, currentPaperCiteKey, existing, ctx);</span>
-<span class="fc bfc" id="L143" title="All 2 branches covered.">      if (outcome == Outcome.ADDED) {</span>
-<span class="fc" id="L144">        added++;</span>
-<span class="fc bfc" id="L145" title="All 2 branches covered.">      } else if (outcome == Outcome.LINKED) {</span>
-<span class="fc" id="L146">        linked++;</span>
+<span class="fc" id="L139">    int added = 0;</span>
+<span class="fc" id="L140">    int linked = 0;</span>
+<span class="fc" id="L141">    int errors = 0;</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">    for (ParsedEntry parsedEntry : parsedEntries) {</span>
+<span class="fc" id="L143">      Outcome outcome = processEntry(parsedEntry, projectId, currentPaper, existing, ctx);</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">      if (outcome == Outcome.ADDED) {</span>
+<span class="fc" id="L145">        added++;</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">      } else if (outcome == Outcome.LINKED) {</span>
+<span class="fc" id="L147">        linked++;</span>
       } else {
-<span class="fc" id="L148">        errors++;</span>
+<span class="fc" id="L149">        errors++;</span>
       }
-<span class="fc" id="L150">    }</span>
+<span class="fc" id="L151">    }</span>
 
-<span class="fc" id="L152">    ctx.log(</span>
+<span class="fc" id="L153">    ctx.log(</span>
         &quot;Done: checked %d entr%s, %d added, %d linked to existing entries, %d errors.&quot;
-<span class="fc" id="L154">            .formatted(</span>
-<span class="fc" id="L155">                parsedEntries.size(),</span>
-<span class="fc bfc" id="L156" title="All 2 branches covered.">                parsedEntries.size() == 1 ? &quot;y&quot; : &quot;ies&quot;,</span>
-<span class="fc" id="L157">                added,</span>
-<span class="fc" id="L158">                linked,</span>
-<span class="fc" id="L159">                errors));</span>
-<span class="fc" id="L160">  }</span>
+<span class="fc" id="L155">            .formatted(</span>
+<span class="fc" id="L156">                parsedEntries.size(),</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">                parsedEntries.size() == 1 ? &quot;y&quot; : &quot;ies&quot;,</span>
+<span class="fc" id="L158">                added,</span>
+<span class="fc" id="L159">                linked,</span>
+<span class="fc" id="L160">                errors));</span>
+<span class="fc" id="L161">  }</span>
 
   // Package-visible so tests can assert the exact returned Outcome per branch directly — needed
   // to distinguish a genuine Outcome.ERROR from a null return (a real Pitest mutation) when
@@ -165,99 +166,99 @@ public class BulkCitationUploadFromACMDLViewAllService {
   Outcome processEntry(
       ParsedEntry parsedEntry,
       int projectId,
-      String currentPaperCiteKey,
+      BibTexEntry currentPaper,
       CitationGraphService.ExistingEntries existing,
       JobContext ctx) {
-<span class="fc" id="L171">    String description = describeEntry(parsedEntry);</span>
+<span class="fc" id="L172">    String description = describeEntry(parsedEntry);</span>
 
-<span class="fc bfc" id="L173" title="All 2 branches covered.">    if (parsedEntry.doiLine() == null) {</span>
-<span class="fc" id="L174">      ctx.log(&quot;Skipping %s: no DOI found for this reference.&quot;.formatted(description));</span>
-<span class="fc" id="L175">      return Outcome.ERROR;</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">    if (parsedEntry.doiLine() == null) {</span>
+<span class="fc" id="L175">      ctx.log(&quot;Skipping %s: no DOI found for this reference.&quot;.formatted(description));</span>
+<span class="fc" id="L176">      return Outcome.ERROR;</span>
     }
 
     String doi;
     try {
-<span class="fc" id="L180">      doi = doiService.normalizeRawDOI(parsedEntry.doiLine());</span>
-<span class="fc" id="L181">    } catch (IllegalArgumentException e) {</span>
-<span class="fc" id="L182">      ctx.log(</span>
+<span class="fc" id="L181">      doi = doiService.normalizeRawDOI(parsedEntry.doiLine());</span>
+<span class="fc" id="L182">    } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L183">      ctx.log(</span>
           &quot;Skipping %s: %s is not a recognizable DOI.&quot;
-<span class="fc" id="L184">              .formatted(description, parsedEntry.doiLine()));</span>
-<span class="fc" id="L185">      return Outcome.ERROR;</span>
-<span class="fc" id="L186">    }</span>
+<span class="fc" id="L185">              .formatted(description, parsedEntry.doiLine()));</span>
+<span class="fc" id="L186">      return Outcome.ERROR;</span>
+<span class="fc" id="L187">    }</span>
 
-<span class="fc" id="L188">    Optional&lt;CitationGraphService.ResolverResult&gt; resolved =</span>
-<span class="fc" id="L189">        citationGraphService.tryResolveByDoi(doi);</span>
-<span class="fc bfc" id="L190" title="All 2 branches covered.">    if (resolved.isEmpty()) {</span>
-<span class="fc" id="L191">      ctx.log(</span>
-<span class="fc" id="L192">          &quot;Skipping %s: DOI %s could not be resolved by any provider.&quot;.formatted(description, doi));</span>
-<span class="fc" id="L193">      return Outcome.ERROR;</span>
+<span class="fc" id="L189">    Optional&lt;CitationGraphService.ResolverResult&gt; resolved =</span>
+<span class="fc" id="L190">        citationGraphService.tryResolveByDoi(doi);</span>
+<span class="fc bfc" id="L191" title="All 2 branches covered.">    if (resolved.isEmpty()) {</span>
+<span class="fc" id="L192">      ctx.log(</span>
+<span class="fc" id="L193">          &quot;Skipping %s: DOI %s could not be resolved by any provider.&quot;.formatted(description, doi));</span>
+<span class="fc" id="L194">      return Outcome.ERROR;</span>
     }
 
-<span class="fc" id="L196">    CitationGraphService.ResolverResult resolverResult = resolved.get();</span>
-<span class="fc" id="L197">    ResolvedWork work = resolverResult.work();</span>
-<span class="fc bfc" id="L198" title="All 2 branches covered.">    if (isBlank(work.title())) {</span>
-<span class="fc" id="L199">      ResolvedWork recovered =</span>
-<span class="fc" id="L200">          citationGraphService.tryRecoverMissingTitle(work, resolverResult.resolver(), ctx);</span>
-<span class="fc bfc" id="L201" title="All 2 branches covered.">      if (recovered != null) {</span>
-<span class="fc" id="L202">        work = recovered;</span>
+<span class="fc" id="L197">    CitationGraphService.ResolverResult resolverResult = resolved.get();</span>
+<span class="fc" id="L198">    ResolvedWork work = resolverResult.work();</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">    if (isBlank(work.title())) {</span>
+<span class="fc" id="L200">      ResolvedWork recovered =</span>
+<span class="fc" id="L201">          citationGraphService.tryRecoverMissingTitle(work, resolverResult.resolver(), ctx);</span>
+<span class="fc bfc" id="L202" title="All 2 branches covered.">      if (recovered != null) {</span>
+<span class="fc" id="L203">        work = recovered;</span>
       }
     }
-<span class="fc bfc" id="L205" title="All 2 branches covered.">    if (isBlank(work.title())) {</span>
-<span class="fc" id="L206">      ctx.log(</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">    if (isBlank(work.title())) {</span>
+<span class="fc" id="L207">      ctx.log(</span>
           &quot;Skipping %s: DOI %s resolved, but no title is available from any provider.&quot;
-<span class="fc" id="L208">              .formatted(description, doi));</span>
-<span class="fc" id="L209">      return Outcome.ERROR;</span>
+<span class="fc" id="L209">              .formatted(description, doi));</span>
+<span class="fc" id="L210">      return Outcome.ERROR;</span>
     }
 
-<span class="fc bfc" id="L212" title="All 2 branches covered.">    if (parsedEntry.refText() != null</span>
-<span class="fc bfc" id="L213" title="All 2 branches covered.">        &amp;&amp; !refTextMatchesTitle(parsedEntry.refText(), work.title())) {</span>
-<span class="fc" id="L214">      ctx.log(</span>
+<span class="fc bfc" id="L213" title="All 2 branches covered.">    if (parsedEntry.refText() != null</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">        &amp;&amp; !refTextMatchesTitle(parsedEntry.refText(), work.title())) {</span>
+<span class="fc" id="L215">      ctx.log(</span>
           &quot;Skipping %s: resolved title \&quot;%s\&quot; does not appear to match the pasted reference.&quot;
-<span class="fc" id="L216">              .formatted(description, work.title()));</span>
-<span class="fc" id="L217">      return Outcome.ERROR;</span>
+<span class="fc" id="L217">              .formatted(description, work.title()));</span>
+<span class="fc" id="L218">      return Outcome.ERROR;</span>
     }
 
-<span class="fc" id="L220">    CitationGraphService.ResolveOrCreateResult result =</span>
-<span class="fc" id="L221">        citationGraphService.resolveOrCreateEntry(work, projectId, existing);</span>
-<span class="fc bfc" id="L222" title="All 2 branches covered.">    if (result.citeKey().equals(currentPaperCiteKey)) {</span>
-<span class="fc" id="L223">      ctx.log(</span>
-<span class="fc" id="L224">          &quot;Skipping %s: DOI %s resolves to the current paper itself.&quot;.formatted(description, doi));</span>
-<span class="fc" id="L225">      return Outcome.ERROR;</span>
+<span class="fc" id="L221">    CitationGraphService.ResolveOrCreateResult result =</span>
+<span class="fc" id="L222">        citationGraphService.resolveOrCreateEntry(work, projectId, existing);</span>
+<span class="fc bfc" id="L223" title="All 2 branches covered.">    if (result.entryId().equals(currentPaper.getId())) {</span>
+<span class="fc" id="L224">      ctx.log(</span>
+<span class="fc" id="L225">          &quot;Skipping %s: DOI %s resolves to the current paper itself.&quot;.formatted(description, doi));</span>
+<span class="fc" id="L226">      return Outcome.ERROR;</span>
     }
 
-<span class="fc" id="L228">    citationGraphService.saveCitationEdge(projectId, result.citeKey(), currentPaperCiteKey);</span>
-<span class="fc bfc" id="L229" title="All 2 branches covered.">    if (result.created()) {</span>
-<span class="fc" id="L230">      ctx.log(&quot;Added new entry %s: %s&quot;.formatted(result.citeKey(), work.title()));</span>
-<span class="fc" id="L231">      return Outcome.ADDED;</span>
+<span class="fc" id="L229">    citationGraphService.saveCitationEdge(projectId, result.entryId(), currentPaper.getId());</span>
+<span class="fc bfc" id="L230" title="All 2 branches covered.">    if (result.created()) {</span>
+<span class="fc" id="L231">      ctx.log(&quot;Added new entry %s: %s&quot;.formatted(result.citeKey(), work.title()));</span>
+<span class="fc" id="L232">      return Outcome.ADDED;</span>
     }
-<span class="fc" id="L233">    ctx.log(&quot;Linking to existing entry %s: %s&quot;.formatted(result.citeKey(), work.title()));</span>
-<span class="fc" id="L234">    return Outcome.LINKED;</span>
+<span class="fc" id="L234">    ctx.log(&quot;Linking to existing entry %s: %s&quot;.formatted(result.citeKey(), work.title()));</span>
+<span class="fc" id="L235">    return Outcome.LINKED;</span>
   }
 
   private static boolean refTextMatchesTitle(String refText, String resolvedTitle) {
-<span class="fc" id="L238">    String normalizedTitle = normalizeForComparison(resolvedTitle);</span>
-<span class="fc bfc" id="L239" title="All 4 branches covered.">    return !normalizedTitle.isBlank() &amp;&amp; normalizeForComparison(refText).contains(normalizedTitle);</span>
+<span class="fc" id="L239">    String normalizedTitle = normalizeForComparison(resolvedTitle);</span>
+<span class="fc bfc" id="L240" title="All 4 branches covered.">    return !normalizedTitle.isBlank() &amp;&amp; normalizeForComparison(refText).contains(normalizedTitle);</span>
   }
 
   private static String normalizeForComparison(String value) {
-<span class="fc" id="L243">    return value.toLowerCase(Locale.ROOT).replaceAll(&quot;[^a-z0-9]+&quot;, &quot; &quot;).trim();</span>
+<span class="fc" id="L244">    return value.toLowerCase(Locale.ROOT).replaceAll(&quot;[^a-z0-9]+&quot;, &quot; &quot;).trim();</span>
   }
 
   private static boolean isBlank(String value) {
-<span class="fc bfc" id="L247" title="All 4 branches covered.">    return value == null || value.isBlank();</span>
+<span class="fc bfc" id="L248" title="All 4 branches covered.">    return value == null || value.isBlank();</span>
   }
 
   // parse() never produces a ParsedEntry with both fields null, so refText/doiLine here always
   // has at least one branch to take.
   private static String describeEntry(ParsedEntry parsedEntry) {
-<span class="fc bfc" id="L253" title="All 2 branches covered.">    if (parsedEntry.refText() != null) {</span>
-<span class="fc" id="L254">      return &quot;\&quot;%s\&quot;&quot;.formatted(truncate(parsedEntry.refText(), 80));</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">    if (parsedEntry.refText() != null) {</span>
+<span class="fc" id="L255">      return &quot;\&quot;%s\&quot;&quot;.formatted(truncate(parsedEntry.refText(), 80));</span>
     }
-<span class="fc" id="L256">    return parsedEntry.doiLine();</span>
+<span class="fc" id="L257">    return parsedEntry.doiLine();</span>
   }
 
   private static String truncate(String value, int maxLength) {
-<span class="fc bfc" id="L260" title="All 2 branches covered.">    return value.length() &lt;= maxLength ? value : value.substring(0, maxLength) + &quot;...&quot;;</span>
+<span class="fc bfc" id="L261" title="All 2 branches covered.">    return value.length() &lt;= maxLength ? value : value.substring(0, maxLength) + &quot;...&quot;;</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

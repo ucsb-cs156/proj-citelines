@@ -30,8 +30,8 @@ public class UnresolvedCitation {
 
   private int projectId;
 
-  /** The citeKey of the entry whose references/citations were being fetched. */
-  private String sourceCiteKey;
+  /** The Mongo {@code _id} of the entry whose references/citations were being fetched. */
+  private String sourceEntryId;
 
   /** {@code &quot;reference&quot;} or {@code &quot;citation&quot;}. */
   private String direction;
@@ -58,7 +58,7 @@ public class UnresolvedCitation {
    * throwing, since even a coarse dedup key is better than none for so rare a case).
    */
   public static String makeId(
-      int projectId, String sourceCiteKey, String direction, String reason, String... candidates) {
+      int projectId, String sourceEntryId, String direction, String reason, String... candidates) {
 <span class="fc" id="L62">    String identifyingValue = &quot;unknown&quot;;</span>
 <span class="fc bfc" id="L63" title="All 2 branches covered.">    for (String candidate : candidates) {</span>
 <span class="fc bfc" id="L64" title="All 4 branches covered.">      if (candidate != null &amp;&amp; !candidate.isBlank()) {</span>
@@ -67,7 +67,7 @@ public class UnresolvedCitation {
       }
     }
 <span class="fc" id="L69">    return &quot;%d:%s:%s:%s:%s&quot;</span>
-<span class="fc" id="L70">        .formatted(projectId, sourceCiteKey, direction, reason, identifyingValue);</span>
+<span class="fc" id="L70">        .formatted(projectId, sourceEntryId, direction, reason, identifyingValue);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

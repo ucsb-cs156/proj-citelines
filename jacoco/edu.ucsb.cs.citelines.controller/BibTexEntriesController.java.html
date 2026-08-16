@@ -64,15 +64,15 @@ import org.springframework.web.bind.annotation.RestController;
    * entries. An entry whose citeKey already exists for this project updates that entry rather than
    * creating a duplicate (see {@link #reuseExistingIdIfPresent}).
    *
-   * &lt;p&gt;If {@code relatedCiteKey} and {@code relationship} are both provided, a {@link CitationEdge}
-   * is also recorded between {@code relatedCiteKey} and each newly saved entry, so that a citation
+   * &lt;p&gt;If {@code relatedEntryId} and {@code relationship} are both provided, a {@link CitationEdge}
+   * is also recorded between {@code relatedEntryId} and each newly saved entry, so that a citation
    * the external APIs failed to find can be entered manually from the BibTexEntryShowPage (see
    * issue #24). When {@code relationship} is {@code &quot;reference&quot;} the related entry is treated as
    * citing the new entries; when it is {@code &quot;citation&quot;} the new entries are treated as citing the
    * related entry.
    *
    * @param projectId the project the entries belong to
-   * @param relatedCiteKey the citeKey of the entry to link the new entries to, if any
+   * @param relatedEntryId the (Mongo) id of the entry to link the new entries to, if any
    * @param relationship {@code &quot;reference&quot;} or {@code &quot;citation&quot;}, if linking to a related entry
    * @param rawBibTex the pasted BibTeX text
    * @return the saved entries
@@ -82,20 +82,20 @@ import org.springframework.web.bind.annotation.RestController;
   @PostMapping(&quot;/post&quot;)
   public List&lt;BibTexEntry&gt; postBibTexEntries(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
-      @Parameter(name = &quot;relatedCiteKey&quot;) @RequestParam(required = false) String relatedCiteKey,
+      @Parameter(name = &quot;relatedEntryId&quot;) @RequestParam(required = false) String relatedEntryId,
       @Parameter(name = &quot;relationship&quot;) @RequestParam(required = false) String relationship,
       @RequestBody String rawBibTex) {
-<span class="fc" id="L88">    validateRelationship(relatedCiteKey, relationship);</span>
+<span class="fc" id="L88">    validateRelationship(relatedEntryId, relationship);</span>
 
 <span class="fc" id="L90">    List&lt;BibTexEntry&gt; entries =</span>
 <span class="fc" id="L91">        bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());</span>
 <span class="fc" id="L92">    entries.forEach(entry -&gt; reuseExistingIdIfPresent(projectId.intValue(), entry));</span>
 <span class="fc" id="L93">    List&lt;BibTexEntry&gt; saved = bibTexEntryRepository.saveAll(entries);</span>
 
-<span class="fc bfc" id="L95" title="All 4 branches covered.">    if (relatedCiteKey != null &amp;&amp; relationship != null) {</span>
+<span class="fc bfc" id="L95" title="All 4 branches covered.">    if (relatedEntryId != null &amp;&amp; relationship != null) {</span>
 <span class="fc bfc" id="L96" title="All 2 branches covered.">      for (BibTexEntry entry : saved) {</span>
 <span class="fc" id="L97">        citationEdgeRepository.save(</span>
-<span class="fc" id="L98">            makeCitationEdge(projectId.intValue(), relatedCiteKey, relationship, entry));</span>
+<span class="fc" id="L98">            makeCitationEdge(projectId.intValue(), relatedEntryId, relationship, entry));</span>
 <span class="fc" id="L99">      }</span>
     }
 
@@ -110,12 +110,12 @@ import org.springframework.web.bind.annotation.RestController;
    * DoiToBibTexService#findExistingEntryForDoi}), that entry is reused rather than creating a
    * duplicate for the same paper — see issue #67. {@code relevance} is only ever applied to a newly
    * synthesized entry, never to an existing one (which may already have been reviewed/hand-edited);
-   * a {@code relatedCiteKey}/{@code relationship} pair, if provided, still gets linked to the
+   * a {@code relatedEntryId}/{@code relationship} pair, if provided, still gets linked to the
    * existing entry either way, since linking a citation/reference that turns out to already be in
    * the project is the case this fix matters most for.
    *
    * @param projectId the project the entry belongs to
-   * @param relatedCiteKey the citeKey of the entry to link the new entry to, if any
+   * @param relatedEntryId the (Mongo) id of the entry to link the new entry to, if any
    * @param relationship {@code &quot;reference&quot;} or {@code &quot;citation&quot;}, if linking to a related entry
    * @param relevance the CITELINES_relevance value to attach, if a new entry is created
    * @param rawDoi the DOI to resolve
@@ -127,29 +127,29 @@ import org.springframework.web.bind.annotation.RestController;
   @PostMapping(&quot;/postByDoi&quot;)
   public List&lt;BibTexEntry&gt; postBibTexEntryByDoi(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
-      @Parameter(name = &quot;relatedCiteKey&quot;) @RequestParam(required = false) String relatedCiteKey,
+      @Parameter(name = &quot;relatedEntryId&quot;) @RequestParam(required = false) String relatedEntryId,
       @Parameter(name = &quot;relationship&quot;) @RequestParam(required = false) String relationship,
       @Parameter(name = &quot;relevance&quot;) @RequestParam(required = false) String relevance,
       @RequestBody String rawDoi) {
-<span class="fc" id="L134">    validateRelationship(relatedCiteKey, relationship);</span>
+<span class="fc" id="L134">    validateRelationship(relatedEntryId, relationship);</span>
 
 <span class="fc" id="L136">    Optional&lt;BibTexEntry&gt; existingEntry =</span>
 <span class="fc" id="L137">        doiToBibTexService.findExistingEntryForDoi(rawDoi, projectId.intValue());</span>
 <span class="fc bfc" id="L138" title="All 2 branches covered.">    if (existingEntry.isPresent()) {</span>
 <span class="fc" id="L139">      BibTexEntry entry = existingEntry.get();</span>
-<span class="fc bfc" id="L140" title="All 4 branches covered.">      if (relatedCiteKey != null &amp;&amp; relationship != null) {</span>
+<span class="fc bfc" id="L140" title="All 4 branches covered.">      if (relatedEntryId != null &amp;&amp; relationship != null) {</span>
 <span class="fc" id="L141">        citationEdgeRepository.save(</span>
-<span class="fc" id="L142">            makeCitationEdge(projectId.intValue(), relatedCiteKey, relationship, entry));</span>
+<span class="fc" id="L142">            makeCitationEdge(projectId.intValue(), relatedEntryId, relationship, entry));</span>
       }
 <span class="fc" id="L144">      return List.of(entry);</span>
     }
 
 <span class="fc" id="L147">    String rawBibTex = doiToBibTexService.resolveToBibTex(rawDoi, projectId.intValue(), relevance);</span>
-<span class="fc" id="L148">    return postBibTexEntries(projectId, relatedCiteKey, relationship, rawBibTex);</span>
+<span class="fc" id="L148">    return postBibTexEntries(projectId, relatedEntryId, relationship, rawBibTex);</span>
   }
 
-  private static void validateRelationship(String relatedCiteKey, String relationship) {
-<span class="fc bfc" id="L152" title="All 4 branches covered.">    if (relatedCiteKey != null</span>
+  private static void validateRelationship(String relatedEntryId, String relationship) {
+<span class="fc bfc" id="L152" title="All 4 branches covered.">    if (relatedEntryId != null</span>
         &amp;&amp; relationship != null
 <span class="fc bfc" id="L154" title="All 2 branches covered.">        &amp;&amp; !&quot;reference&quot;.equals(relationship)</span>
 <span class="fc bfc" id="L155" title="All 2 branches covered.">        &amp;&amp; !&quot;citation&quot;.equals(relationship)) {</span>
@@ -182,15 +182,15 @@ import org.springframework.web.bind.annotation.RestController;
 <span class="fc" id="L182">  }</span>
 
   private static CitationEdge makeCitationEdge(
-      int projectId, String relatedCiteKey, String relationship, BibTexEntry entry) {
+      int projectId, String relatedEntryId, String relationship, BibTexEntry entry) {
 <span class="fc" id="L186">    boolean isReference = &quot;reference&quot;.equals(relationship);</span>
-<span class="fc bfc" id="L187" title="All 2 branches covered.">    String citingCiteKey = isReference ? relatedCiteKey : entry.getCiteKey();</span>
-<span class="fc bfc" id="L188" title="All 2 branches covered.">    String citedCiteKey = isReference ? entry.getCiteKey() : relatedCiteKey;</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">    String citingEntryId = isReference ? relatedEntryId : entry.getId();</span>
+<span class="fc bfc" id="L188" title="All 2 branches covered.">    String citedEntryId = isReference ? entry.getId() : relatedEntryId;</span>
 <span class="fc" id="L189">    return CitationEdge.builder()</span>
-<span class="fc" id="L190">        .id(CitationEdge.makeId(projectId, citingCiteKey, citedCiteKey))</span>
+<span class="fc" id="L190">        .id(CitationEdge.makeId(projectId, citingEntryId, citedEntryId))</span>
 <span class="fc" id="L191">        .projectId(projectId)</span>
-<span class="fc" id="L192">        .citingCiteKey(citingCiteKey)</span>
-<span class="fc" id="L193">        .citedCiteKey(citedCiteKey)</span>
+<span class="fc" id="L192">        .citingEntryId(citingEntryId)</span>
+<span class="fc" id="L193">        .citedEntryId(citedEntryId)</span>
 <span class="fc" id="L194">        .build();</span>
   }
 
