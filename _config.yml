@@ -20,4 +20,4 @@ repo_name: "TBD"
 repo: ucsb-cs156/proj-citelines
 owner: ucsb-cs156
 repo_name: proj-citelines
-pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue70-citation-edge-by-id","number":73,"title":"Track citing/cited entries in CitationEdge by Mongo id, not citeKey","url":"https://github.com/ucsb-cs156/proj-citelines/pull/73"}]
+pull_requests: []
