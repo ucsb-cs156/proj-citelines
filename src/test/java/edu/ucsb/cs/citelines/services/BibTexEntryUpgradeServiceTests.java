@@ -56,12 +56,16 @@ public class BibTexEntryUpgradeServiceTests {
   }
 
   private static ResolvedWork richWork() {
+    return workOfType("proceedings-article");
+  }
+
+  private static ResolvedWork workOfType(String type) {
     return new ResolvedWork(
         "W1",
         "10.1/x",
         "A Full Title",
         2021,
-        "proceedings-article",
+        type,
         List.of("Ann Author"),
         "Some Venue",
         List.of(),
@@ -151,7 +155,16 @@ public class BibTexEntryUpgradeServiceTests {
     existing.put("isbn", "978-0-00-000000-0");
     existing.put("series", "Some Series");
     existing.put("address", "Some City");
-    BibTexEntry e = entry("smith2020", existing);
+    // entryType is already the specific type richWork() resolves to (not "misc"), so this truly
+    // has nothing left to improve, including entryType.
+    BibTexEntry e =
+        BibTexEntry.builder()
+            .id("id-smith2020")
+            .projectId(1)
+            .entryType("inproceedings")
+            .citeKey("smith2020")
+            .keyValuePairs(existing)
+            .build();
     CitationMetadataResolver resolver = mock(CitationMetadataResolver.class);
     when(citationGraphService.tryResolveByDoi("10.1/x"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, richWork())));
@@ -221,7 +234,7 @@ public class BibTexEntryUpgradeServiceTests {
   }
 
   @Test
-  void upgradeEntry_never_changes_entryType_or_citeKey() {
+  void upgradeEntry_never_changes_citeKey() {
     Map<String, String> existing = new HashMap<>();
     existing.put("doi", "10.1/x");
     existing.put("title", "A Full Title");
@@ -234,8 +247,100 @@ public class BibTexEntryUpgradeServiceTests {
 
     ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
     verify(bibTexEntryRepository).save(savedEntry.capture());
-    assertEquals("misc", savedEntry.getValue().getEntryType());
     assertEquals("smith2020", savedEntry.getValue().getCiteKey());
+  }
+
+  @Test
+  void upgradeEntry_upgrades_entryType_from_misc_to_a_more_specific_resolved_type() {
+    Map<String, String> existing = new HashMap<>();
+    existing.put("doi", "10.1/x");
+    existing.put("title", "A Full Title");
+    BibTexEntry e = entry("smith2020", existing);
+    assertEquals("misc", e.getEntryType());
+    CitationMetadataResolver resolver = mock(CitationMetadataResolver.class);
+    when(citationGraphService.tryResolveByDoi("10.1/x"))
+        .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, richWork())));
+
+    BibTexEntryUpgradeService.Outcome outcome = service.upgradeEntry(e, 1, ctx);
+
+    assertEquals(BibTexEntryUpgradeService.Outcome.IMPROVED, outcome);
+    ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository).save(savedEntry.capture());
+    assertEquals("inproceedings", savedEntry.getValue().getEntryType());
+    assertTrue(job.getLog().contains("entryType (misc → inproceedings)"));
+  }
+
+  @Test
+  void upgradeEntry_counts_as_improved_when_only_the_entryType_changes() {
+    Map<String, String> existing = new HashMap<>();
+    existing.put("doi", "10.1/x");
+    existing.put("title", "A Full Title");
+    existing.put("author", "Author, Ann");
+    existing.put("year", "2021");
+    existing.put("booktitle", "Some Venue");
+    existing.put("abstract", "An abstract.");
+    existing.put("publisher", "Some Publisher");
+    existing.put("pages", "1-10");
+    existing.put("isbn", "978-0-00-000000-0");
+    existing.put("series", "Some Series");
+    existing.put("address", "Some City");
+    BibTexEntry e = entry("smith2020", existing);
+    assertEquals("misc", e.getEntryType());
+    CitationMetadataResolver resolver = mock(CitationMetadataResolver.class);
+    when(citationGraphService.tryResolveByDoi("10.1/x"))
+        .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, richWork())));
+
+    BibTexEntryUpgradeService.Outcome outcome = service.upgradeEntry(e, 1, ctx);
+
+    assertEquals(BibTexEntryUpgradeService.Outcome.IMPROVED, outcome);
+    ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository).save(savedEntry.capture());
+    assertEquals("inproceedings", savedEntry.getValue().getEntryType());
+  }
+
+  @Test
+  void upgradeEntry_never_overwrites_an_entryType_that_is_not_misc() {
+    Map<String, String> existing = new HashMap<>();
+    existing.put("doi", "10.1/x");
+    existing.put("title", "A Full Title");
+    BibTexEntry e =
+        BibTexEntry.builder()
+            .id("id-smith2020")
+            .projectId(1)
+            .entryType("article")
+            .citeKey("smith2020")
+            .keyValuePairs(existing)
+            .build();
+    CitationMetadataResolver resolver = mock(CitationMetadataResolver.class);
+    when(citationGraphService.tryResolveByDoi("10.1/x"))
+        .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, richWork())));
+
+    service.upgradeEntry(e, 1, ctx);
+
+    ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository).save(savedEntry.capture());
+    assertEquals("article", savedEntry.getValue().getEntryType());
+  }
+
+  @Test
+  void upgradeEntry_does_not_treat_misc_resolving_to_misc_as_an_entryType_upgrade() {
+    Map<String, String> existing = new HashMap<>();
+    existing.put("doi", "10.1/x");
+    existing.put("title", "A Full Title");
+    BibTexEntry e = entry("smith2020", existing);
+    CitationMetadataResolver resolver = mock(CitationMetadataResolver.class);
+    // "dataset" isn't in BibTexSynthesisService.ENTRY_TYPE_MAP, so it also synthesizes as "misc".
+    when(citationGraphService.tryResolveByDoi("10.1/x"))
+        .thenReturn(
+            Optional.of(new CitationGraphService.ResolverResult(resolver, workOfType("dataset"))));
+
+    BibTexEntryUpgradeService.Outcome outcome = service.upgradeEntry(e, 1, ctx);
+
+    assertEquals(BibTexEntryUpgradeService.Outcome.IMPROVED, outcome);
+    ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository).save(savedEntry.capture());
+    assertEquals("misc", savedEntry.getValue().getEntryType());
+    assertTrue(!job.getLog().contains("entryType"));
   }
 
   @Test
@@ -279,13 +384,24 @@ public class BibTexEntryUpgradeServiceTests {
     improvable.put("doi", "10.1/improvable");
     improvable.put("title", "A Full Title");
 
+    // entryType is already the specific type richWork() resolves to (not "misc"), so this stays
+    // truly complete rather than triggering an entryType-only upgrade.
+    BibTexEntry completeEntry =
+        BibTexEntry.builder()
+            .id("id-complete2020")
+            .projectId(1)
+            .entryType("inproceedings")
+            .citeKey("complete2020")
+            .keyValuePairs(alreadyComplete)
+            .build();
+
     when(bibTexEntryRepository.findByProjectId(1))
         .thenReturn(
             List.of(
                 entry("nodoi2020", noDoi),
                 entry("nodoi2021", noDoi2),
                 entry("unresolvable2020", unresolvable),
-                entry("complete2020", alreadyComplete),
+                completeEntry,
                 entry("improvable2020", improvable)));
     when(citationGraphService.tryResolveByDoi("10.1/unresolvable")).thenReturn(Optional.empty());
     CitationMetadataResolver resolver = mock(CitationMetadataResolver.class);

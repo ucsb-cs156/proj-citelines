@@ -19,9 +19,12 @@ import org.springframework.stereotype.Service;
  *
  * <p>Never overwrites a field the entry already has a non-blank value for, even if a resolver now
  * reports a different one for it — an existing value may already have been reviewed or hand-edited,
- * and this job has no way to distinguish "reviewed and correct" from "just never updated." The
- * entry's {@code entryType} and {@code citeKey} are likewise never touched, only {@code
- * keyValuePairs}.
+ * and this job has no way to distinguish "reviewed and correct" from "just never updated." {@code
+ * citeKey} is likewise never touched. {@code entryType} is the one exception: an entry currently
+ * typed {@code misc} (the fallback used whenever a resolver's own type couldn't be mapped to a more
+ * specific BibTeX type — see {@code BibTexSynthesisService#ENTRY_TYPE_MAP}) is upgraded to whatever
+ * more specific type the resolver now reports, since {@code misc} was never a deliberate choice to
+ * begin with, unlike a hand-set/reviewed field value.
  */
 @Service
 public class BibTexEntryUpgradeService {
@@ -114,8 +117,13 @@ public class BibTexEntryUpgradeService {
     BibTexEntry candidate =
         bibTexConverterService.parseToEntries(candidateBibtex, projectId).get(0);
 
-    Map<String, String> merged = new HashMap<>(keyValuePairs);
     List<String> addedFields = new ArrayList<>();
+    if ("misc".equals(entry.getEntryType()) && !"misc".equals(candidate.getEntryType())) {
+      addedFields.add("entryType (misc → %s)".formatted(candidate.getEntryType()));
+      entry.setEntryType(candidate.getEntryType());
+    }
+
+    Map<String, String> merged = new HashMap<>(keyValuePairs);
     for (Map.Entry<String, String> field : candidate.getKeyValuePairs().entrySet()) {
       String currentValue = merged.get(field.getKey());
       if (currentValue == null || currentValue.isBlank()) {
