@@ -6,6 +6,7 @@ import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
 import edu.ucsb.cs.citelines.jobs.BibTexEntryUpgradeJob;
 import edu.ucsb.cs.citelines.jobs.BulkCitationUploadFromACMDLViewAllJob;
+import edu.ucsb.cs.citelines.jobs.BulkReferenceUploadFromACMDLJob;
 import edu.ucsb.cs.citelines.jobs.CheckLinksJob;
 import edu.ucsb.cs.citelines.jobs.DuplicateDetectionJob;
 import edu.ucsb.cs.citelines.jobs.GetCitationsJob;
@@ -13,6 +14,7 @@ import edu.ucsb.cs.citelines.jobs.GetReferencesJob;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
 import edu.ucsb.cs.citelines.services.BibTexEntryUpgradeService;
 import edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllService;
+import edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLService;
 import edu.ucsb.cs.citelines.services.CheckLinksService;
 import edu.ucsb.cs.citelines.services.CitationGraphService;
 import edu.ucsb.cs.citelines.services.DuplicateDetectionService;
@@ -55,6 +57,8 @@ public class JobsController extends ApiController {
 
   @Autowired
   private BulkCitationUploadFromACMDLViewAllService bulkCitationUploadFromACMDLViewAllService;
+
+  @Autowired private BulkReferenceUploadFromACMDLService bulkReferenceUploadFromACMDLService;
 
   @Operation(summary = "List jobs scoped to a project")
   @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
@@ -162,6 +166,26 @@ public class JobsController extends ApiController {
             .citeKey(citeKey)
             .rawText(rawText)
             .bulkCitationUploadFromACMDLViewAllService(bulkCitationUploadFromACMDLViewAllService)
+            .build());
+  }
+
+  @Operation(
+      summary =
+          "Launch a job to parse a pasted ACM DL References section and add each reference as a"
+              + " new citation of a BibTeX entry")
+  @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
+  @PostMapping("/launch/bulkReferenceUploadFromAcmDl")
+  public Job launchBulkReferenceUploadFromAcmDl(
+      @Parameter(name = "projectId") @RequestParam Long projectId,
+      @Parameter(name = "citeKey") @RequestParam String citeKey,
+      @RequestBody String rawHtml) {
+    requireEntry(projectId, citeKey);
+    return jobService.runAsJob(
+        BulkReferenceUploadFromACMDLJob.builder()
+            .projectId(projectId.intValue())
+            .citeKey(citeKey)
+            .rawHtml(rawHtml)
+            .bulkReferenceUploadFromACMDLService(bulkReferenceUploadFromACMDLService)
             .build());
   }
 

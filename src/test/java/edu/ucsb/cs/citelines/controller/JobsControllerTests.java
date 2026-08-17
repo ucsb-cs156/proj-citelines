@@ -17,6 +17,7 @@ import edu.ucsb.cs.citelines.config.ProjectSecurity;
 import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.jobs.BibTexEntryUpgradeJob;
 import edu.ucsb.cs.citelines.jobs.BulkCitationUploadFromACMDLViewAllJob;
+import edu.ucsb.cs.citelines.jobs.BulkReferenceUploadFromACMDLJob;
 import edu.ucsb.cs.citelines.jobs.CheckLinksJob;
 import edu.ucsb.cs.citelines.jobs.DuplicateDetectionJob;
 import edu.ucsb.cs.citelines.jobs.GetCitationsJob;
@@ -25,6 +26,7 @@ import edu.ucsb.cs.citelines.repository.ProjectCollaboratorRepository;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
 import edu.ucsb.cs.citelines.services.BibTexEntryUpgradeService;
 import edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllService;
+import edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLService;
 import edu.ucsb.cs.citelines.services.CheckLinksService;
 import edu.ucsb.cs.citelines.services.CitationGraphService;
 import edu.ucsb.cs.citelines.services.DuplicateDetectionService;
@@ -54,6 +56,7 @@ public class JobsControllerTests extends ControllerTestCase {
   @MockitoBean DuplicateDetectionService duplicateDetectionService;
   @MockitoBean BibTexEntryUpgradeService bibTexEntryUpgradeService;
   @MockitoBean BulkCitationUploadFromACMDLViewAllService bulkCitationUploadFromACMDLViewAllService;
+  @MockitoBean BulkReferenceUploadFromACMDLService bulkReferenceUploadFromACMDLService;
 
   @Test
   public void logged_out_users_cannot_list_jobs_by_project() throws Exception {
@@ -455,6 +458,84 @@ public class JobsControllerTests extends ControllerTestCase {
         .perform(
             post("/api/jobs/launch/bulkCitationUploadFromAcmDlViewAll?projectId=1&citeKey=smith2020")
                 .content("some pasted text")
+                .with(csrf()))
+        .andExpect(status().is(403));
+
+    verify(jobService, times(0)).runAsJob(any());
+  }
+
+  @Test
+  public void logged_out_users_cannot_launch_bulkReferenceUploadFromAcmDl() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/jobs/launch/bulkReferenceUploadFromAcmDl?projectId=1&citeKey=smith2020")
+                .content("<section id=\"bibliography\"></section>"))
+        .andExpect(status().is(403));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_launch_a_bulkReferenceUploadFromAcmDl_job() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry entry = BibTexEntry.builder().id("id1").projectId(1).citeKey("smith2020").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findByProjectIdAndCiteKey(1, "smith2020"))
+        .thenReturn(Optional.of(entry));
+    Job launchedJob = Job.builder().id(15L).jobName("BulkReferenceUploadFromACMDLJob").build();
+    when(jobService.runAsJob(any(BulkReferenceUploadFromACMDLJob.class))).thenReturn(launchedJob);
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                post("/api/jobs/launch/bulkReferenceUploadFromAcmDl?projectId=1&citeKey=smith2020")
+                    .content("<section id=\"bibliography\"></section>")
+                    .with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    assertEquals(
+        mapper.writeValueAsString(launchedJob), response.getResponse().getContentAsString());
+    verify(jobService, times(1)).runAsJob(any(BulkReferenceUploadFromACMDLJob.class));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void launch_bulkReferenceUploadFromAcmDl_throws_not_found_for_nonexistent_entry()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findByProjectIdAndCiteKey(1, "missing"))
+        .thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(
+            post("/api/jobs/launch/bulkReferenceUploadFromAcmDl?projectId=1&citeKey=missing")
+                .content("<section id=\"bibliography\"></section>")
+                .with(csrf()))
+        .andExpect(status().isNotFound());
+
+    verify(jobService, times(0)).runAsJob(any());
+  }
+
+  @WithMockUser(
+      username = "stranger",
+      roles = {"USER"})
+  @Test
+  public void
+      a_stranger_cannot_launch_bulkReferenceUploadFromAcmDl_for_a_project_they_dont_own_or_collaborate_on()
+          throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(projectCollaboratorRepository.findAllByEmail(any())).thenReturn(List.of());
+
+    mockMvc
+        .perform(
+            post("/api/jobs/launch/bulkReferenceUploadFromAcmDl?projectId=1&citeKey=smith2020")
+                .content("<section id=\"bibliography\"></section>")
                 .with(csrf()))
         .andExpect(status().is(403));
 
