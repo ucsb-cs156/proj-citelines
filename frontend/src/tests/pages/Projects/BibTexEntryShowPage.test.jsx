@@ -468,6 +468,47 @@ describe("BibTexEntryShowPage tests", () => {
     );
   });
 
+  test("clicking Bulk References from ACM DL opens the modal, and submitting launches the job with the current entry's citeKey", async () => {
+    axiosMock
+      .onPost("/api/jobs/launch/bulkReferenceUploadFromAcmDl")
+      .reply(200, { id: 99 });
+
+    renderAtSmith2020();
+    await screen.findByTestId(
+      "BibTexEntryShowPage-bulk-reference-upload-button",
+    );
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-bulk-reference-upload-button"),
+    );
+
+    expect(
+      screen.getByTestId("BulkReferenceUploadModal-base"),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId("BulkReferenceUploadModal-rawHtml"), {
+      target: {
+        value:
+          '<section id="bibliography"><div class="biblioentry"></div></section>',
+      },
+    });
+    fireEvent.click(screen.getByTestId("BulkReferenceUploadModal-submit"));
+
+    await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+    expect(axiosMock.history.post[0].url).toBe(
+      "/api/jobs/launch/bulkReferenceUploadFromAcmDl",
+    );
+    expect(axiosMock.history.post[0].params).toEqual({
+      projectId: "1",
+      citeKey: "smith2020",
+    });
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith(
+        "Bulk reference upload job launched — check the Jobs tab for progress.",
+      ),
+    );
+  });
+
   test("shows a Relevance dropdown defaulting to Unreviewed when no relevance field is present", async () => {
     renderAtSmith2020();
 

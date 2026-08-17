@@ -75,6 +75,14 @@
       <version>4.0.0</version>
     </dependency>
 
+    <!-- HTML parsing for BulkReferenceUploadFromACMDLService (issue #80): the pasted ACM DL page
+    HTML is real markup (nested divs/attributes), not something a regex can traverse reliably. -->
+    <dependency>
+      <groupId>org.jsoup</groupId>
+      <artifactId>jsoup</artifactId>
+      <version>1.21.1</version>
+    </dependency>
+
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
