@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JobsController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.controller</a> &gt; <span class="el_source">JobsController.java</span></div><h1>JobsController.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.controller;
+
+import edu.ucsb.cs.citelines.collections.BibTexEntry;
+import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
+import edu.ucsb.cs.citelines.entity.Project;
+import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
+import edu.ucsb.cs.citelines.jobs.BibTexEntryUpgradeJob;
+import edu.ucsb.cs.citelines.jobs.BulkCitationUploadFromACMDLViewAllJob;
+import edu.ucsb.cs.citelines.jobs.CheckLinksJob;
+import edu.ucsb.cs.citelines.jobs.DuplicateDetectionJob;
+import edu.ucsb.cs.citelines.jobs.GetCitationsJob;
+import edu.ucsb.cs.citelines.jobs.GetReferencesJob;
+import edu.ucsb.cs.citelines.repository.ProjectRepository;
+import edu.ucsb.cs.citelines.services.BibTexEntryUpgradeService;
+import edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllService;
+import edu.ucsb.cs.citelines.services.CheckLinksService;
+import edu.ucsb.cs.citelines.services.CitationGraphService;
+import edu.ucsb.cs.citelines.services.DuplicateDetectionService;
+import edu.ucsb.cs156.jobs.entities.Job;
+import edu.ucsb.cs156.jobs.repositories.JobsRepository;
+import edu.ucsb.cs156.jobs.services.JobService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * App-level job endpoints: launching the &quot;Get References&quot;/&quot;Get Citations&quot; jobs for a project's
+ * BibTeX entries, and listing jobs scoped to a project. Coexists with lib-jobs' own {@code
+ * JobsController} (admin-only list/logs/delete) under the same {@code /api/jobs} prefix, on
+ * non-overlapping sub-paths — same pattern as proj-scaffold's app-level {@code JobsController}.
+ */
+@Tag(name = &quot;Jobs&quot;)
+@RequestMapping(&quot;/api/jobs&quot;)
+@RestController
+<span class="fc" id="L44">@Slf4j</span>
+<span class="fc" id="L45">public class JobsController extends ApiController {</span>
+
+  @Autowired private JobsRepository jobsRepository;
+  @Autowired private JobService jobService;
+  @Autowired private ProjectRepository projectRepository;
+  @Autowired private BibTexEntryRepository bibTexEntryRepository;
+  @Autowired private CitationGraphService citationGraphService;
+  @Autowired private CheckLinksService checkLinksService;
+  @Autowired private DuplicateDetectionService duplicateDetectionService;
+  @Autowired private BibTexEntryUpgradeService bibTexEntryUpgradeService;
+
+  @Autowired
+  private BulkCitationUploadFromACMDLViewAllService bulkCitationUploadFromACMDLViewAllService;
+
+  @Operation(summary = &quot;List jobs scoped to a project&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @GetMapping(&quot;/project&quot;)
+  public Iterable&lt;Job&gt; jobsByProject(@Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) {
+<span class="fc" id="L63">    projectRepository</span>
+<span class="fc" id="L64">        .findById(projectId)</span>
+<span class="fc" id="L65">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L66">    return jobsRepository.findByScopeTypeAndScopeIdOrderByIdDesc(&quot;project&quot;, projectId);</span>
+  }
+
+  @Operation(summary = &quot;Launch a job to fetch the papers a BibTeX entry cites&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @PostMapping(&quot;/launch/getReferences&quot;)
+  public Job launchGetReferences(
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
+      @Parameter(name = &quot;citeKey&quot;) @RequestParam String citeKey) {
+<span class="fc" id="L75">    requireEntry(projectId, citeKey);</span>
+<span class="fc" id="L76">    return jobService.runAsJob(</span>
+<span class="fc" id="L77">        GetReferencesJob.builder()</span>
+<span class="fc" id="L78">            .projectId(projectId.intValue())</span>
+<span class="fc" id="L79">            .citeKey(citeKey)</span>
+<span class="fc" id="L80">            .citationGraphService(citationGraphService)</span>
+<span class="fc" id="L81">            .build());</span>
+  }
+
+  @Operation(summary = &quot;Launch a job to fetch the papers that cite a BibTeX entry&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @PostMapping(&quot;/launch/getCitations&quot;)
+  public Job launchGetCitations(
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
+      @Parameter(name = &quot;citeKey&quot;) @RequestParam String citeKey) {
+<span class="fc" id="L90">    requireEntry(projectId, citeKey);</span>
+<span class="fc" id="L91">    return jobService.runAsJob(</span>
+<span class="fc" id="L92">        GetCitationsJob.builder()</span>
+<span class="fc" id="L93">            .projectId(projectId.intValue())</span>
+<span class="fc" id="L94">            .citeKey(citeKey)</span>
+<span class="fc" id="L95">            .citationGraphService(citationGraphService)</span>
+<span class="fc" id="L96">            .build());</span>
+  }
+
+  @Operation(summary = &quot;Launch a job to check DOI/URL links for a project's BibTeX entries&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @PostMapping(&quot;/launch/checkLinks&quot;)
+  public Job launchCheckLinks(@Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) {
+<span class="fc" id="L103">    projectRepository</span>
+<span class="fc" id="L104">        .findById(projectId)</span>
+<span class="fc" id="L105">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L106">    return jobService.runAsJob(</span>
+<span class="fc" id="L107">        CheckLinksJob.builder()</span>
+<span class="fc" id="L108">            .projectId(projectId.intValue())</span>
+<span class="fc" id="L109">            .checkLinksService(checkLinksService)</span>
+<span class="fc" id="L110">            .build());</span>
+  }
+
+  @Operation(
+      summary =
+          &quot;Launch a job to scan a project's BibTeX entries for likely duplicates and mark them for&quot;
+              + &quot; manual review&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @PostMapping(&quot;/launch/detectDuplicates&quot;)
+  public Job launchDetectDuplicates(@Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) {
+<span class="fc" id="L120">    projectRepository</span>
+<span class="fc" id="L121">        .findById(projectId)</span>
+<span class="fc" id="L122">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L123">    return jobService.runAsJob(</span>
+<span class="fc" id="L124">        DuplicateDetectionJob.builder()</span>
+<span class="fc" id="L125">            .projectId(projectId.intValue())</span>
+<span class="fc" id="L126">            .duplicateDetectionService(duplicateDetectionService)</span>
+<span class="fc" id="L127">            .build());</span>
+  }
+
+  @Operation(
+      summary =
+          &quot;Launch a job to re-resolve a project's BibTeX entries and fill in any additional&quot;
+              + &quot; metadata now available that each entry doesn't already have&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @PostMapping(&quot;/launch/upgradeBibTexEntries&quot;)
+  public Job launchUpgradeBibTexEntries(
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) {
+<span class="fc" id="L138">    projectRepository</span>
+<span class="fc" id="L139">        .findById(projectId)</span>
+<span class="fc" id="L140">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L141">    return jobService.runAsJob(</span>
+<span class="fc" id="L142">        BibTexEntryUpgradeJob.builder()</span>
+<span class="fc" id="L143">            .projectId(projectId.intValue())</span>
+<span class="fc" id="L144">            .bibTexEntryUpgradeService(bibTexEntryUpgradeService)</span>
+<span class="fc" id="L145">            .build());</span>
+  }
+
+  @Operation(
+      summary =
+          &quot;Launch a job to parse a pasted ACM DL \&quot;Cited By &gt; View All\&quot; page and add each citing&quot;
+              + &quot; paper as a new citation of a BibTeX entry&quot;)
+  @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
+  @PostMapping(&quot;/launch/bulkCitationUploadFromAcmDlViewAll&quot;)
+  public Job launchBulkCitationUploadFromAcmDlViewAll(
+      @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
+      @Parameter(name = &quot;citeKey&quot;) @RequestParam String citeKey,
+      @RequestBody String rawText) {
+<span class="fc" id="L158">    requireEntry(projectId, citeKey);</span>
+<span class="fc" id="L159">    return jobService.runAsJob(</span>
+<span class="fc" id="L160">        BulkCitationUploadFromACMDLViewAllJob.builder()</span>
+<span class="fc" id="L161">            .projectId(projectId.intValue())</span>
+<span class="fc" id="L162">            .citeKey(citeKey)</span>
+<span class="fc" id="L163">            .rawText(rawText)</span>
+<span class="fc" id="L164">            .bulkCitationUploadFromACMDLViewAllService(bulkCitationUploadFromACMDLViewAllService)</span>
+<span class="fc" id="L165">            .build());</span>
+  }
+
+  private void requireEntry(Long projectId, String citeKey) {
+<span class="fc" id="L169">    BibTexEntry entry =</span>
+<span class="fc" id="L170">        bibTexEntryRepository.findByProjectIdAndCiteKey(projectId.intValue(), citeKey).orElse(null);</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">    if (entry == null) {</span>
+<span class="fc" id="L172">      throw new EntityNotFoundException(BibTexEntry.class, citeKey);</span>
+    }
+<span class="fc" id="L174">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
