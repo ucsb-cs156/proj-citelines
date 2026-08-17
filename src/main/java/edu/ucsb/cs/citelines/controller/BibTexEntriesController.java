@@ -28,6 +28,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -361,6 +362,35 @@ public class BibTexEntriesController extends ApiController {
     existing.setKeyValuePairs(updated.getKeyValuePairs());
 
     return bibTexEntryRepository.save(existing);
+  }
+
+  /**
+   * Updates just the abstract field of a BibTeX entry, leaving every other field untouched — a
+   * narrower alternative to {@link #updateBibTexEntry} for BibTexEntryShowPage's Abstract card,
+   * useful when the abstract comes from a different source than the rest of the entry (see issue
+   * #79).
+   *
+   * @param id the id of the entry to update
+   * @param projectId the project the entry belongs to
+   * @param newAbstract the new abstract text; a blank value removes the field entirely
+   * @return the updated entry
+   */
+  @Operation(summary = "Update just the abstract field of a BibTeX entry")
+  @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
+  @PatchMapping("/abstract")
+  public BibTexEntry updateAbstract(
+      @Parameter(name = "id") @RequestParam String id,
+      @Parameter(name = "projectId") @RequestParam Long projectId,
+      @RequestBody String newAbstract) {
+    BibTexEntry entry = findEntryOrThrow(id);
+    Map<String, String> keyValuePairs = mutableKeyValuePairs(entry);
+    if (newAbstract.isBlank()) {
+      keyValuePairs.remove("abstract");
+    } else {
+      keyValuePairs.put("abstract", newAbstract);
+    }
+    entry.setKeyValuePairs(keyValuePairs);
+    return bibTexEntryRepository.save(entry);
   }
 
   /**

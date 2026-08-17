@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -156,6 +157,13 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
   public void logged_out_users_cannot_delete() throws Exception {
     mockMvc
         .perform(delete("/api/bibtexentries/delete?id=abc&projectId=1"))
+        .andExpect(status().is(403));
+  }
+
+  @Test
+  public void logged_out_users_cannot_update_the_abstract() throws Exception {
+    mockMvc
+        .perform(patch("/api/bibtexentries/abstract?id=abc&projectId=1").content("An abstract."))
         .andExpect(status().is(403));
   }
 
@@ -886,6 +894,139 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
     mockMvc
         .perform(delete("/api/bibtexentries/delete?id=missing&projectId=1").with(csrf()))
         .andExpect(status().isNotFound());
+  }
+
+  // ---- Abstract tests ----
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_set_the_abstract_when_the_entry_has_no_keyValuePairs_at_all()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existing = BibTexEntry.builder().id("abc123").projectId(1).citeKey("k").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+    when(bibTexEntryRepository.save(any(BibTexEntry.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            patch("/api/bibtexentries/abstract?id=abc123&projectId=1")
+                .content("A new abstract.")
+                .with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<BibTexEntry> captor =
+        org.mockito.ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository, times(1)).save(captor.capture());
+    assertEquals("A new abstract.", captor.getValue().getKeyValuePairs().get("abstract"));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_overwrite_an_existing_abstract_leaving_other_fields_untouched()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existing =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .citeKey("k")
+            .keyValuePairs(
+                new java.util.HashMap<>(Map.of("abstract", "Old abstract.", "title", "A Title")))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+    when(bibTexEntryRepository.save(any(BibTexEntry.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                patch("/api/bibtexentries/abstract?id=abc123&projectId=1")
+                    .content("New abstract text.")
+                    .with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    org.mockito.ArgumentCaptor<BibTexEntry> captor =
+        org.mockito.ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository, times(1)).save(captor.capture());
+    assertEquals("New abstract text.", captor.getValue().getKeyValuePairs().get("abstract"));
+    assertEquals("A Title", captor.getValue().getKeyValuePairs().get("title"));
+
+    Map<String, Object> json = responseToJson(response);
+    @SuppressWarnings("unchecked")
+    Map<String, Object> keyValuePairs = (Map<String, Object>) json.get("keyValuePairs");
+    assertEquals("New abstract text.", keyValuePairs.get("abstract"));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_clear_the_abstract_by_setting_it_blank() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existing =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .citeKey("k")
+            .keyValuePairs(new java.util.HashMap<>(Map.of("abstract", "Old abstract.")))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+    when(bibTexEntryRepository.save(any(BibTexEntry.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(
+            patch("/api/bibtexentries/abstract?id=abc123&projectId=1").content("   ").with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<BibTexEntry> captor =
+        org.mockito.ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository, times(1)).save(captor.capture());
+    assertEquals(false, captor.getValue().getKeyValuePairs().containsKey("abstract"));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void update_abstract_throws_not_found_for_nonexistent_entry() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("missing")).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(
+            patch("/api/bibtexentries/abstract?id=missing&projectId=1")
+                .content("text")
+                .with(csrf()))
+        .andExpect(status().isNotFound());
+  }
+
+  @WithMockUser(
+      username = "stranger",
+      roles = {"USER"})
+  @Test
+  public void a_stranger_cannot_update_the_abstract_for_a_project_they_dont_own_or_collaborate_on()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(projectCollaboratorRepository.findAllByEmail(any())).thenReturn(List.of());
+
+    mockMvc
+        .perform(
+            patch("/api/bibtexentries/abstract?id=abc123&projectId=1").content("text").with(csrf()))
+        .andExpect(status().is(403));
+
+    verify(bibTexEntryRepository, times(0)).save(any());
   }
 
   // ---- Comments draft tests ----

@@ -650,10 +650,13 @@ describe("BibTexEntryShowPage tests", () => {
     ).toHaveAttribute("aria-expanded", "true");
   });
 
-  test("the BibTex Entry card is open by default, and the other three cards are closed by default", async () => {
+  test("the BibTex Entry card is open by default, and the other cards are closed by default", async () => {
     renderAtSmith2020();
     await screen.findByTestId("BibTexEntryShowPage-title");
 
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-AbstractCard-header"),
+    ).toHaveAttribute("aria-expanded", "false");
     expect(
       screen.getByTestId("BibTexEntryShowPage-BibtexCard-header"),
     ).toHaveAttribute("aria-expanded", "true");
@@ -929,5 +932,136 @@ describe("BibTexEntryShowPage tests", () => {
     expect(
       screen.getByTestId("BibTexEntryShowPage-PossibleDuplicatesCard-header"),
     ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("the Abstract card shows a word count of 0 when the entry has no abstract", async () => {
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-AbstractCard-header"),
+    ).toHaveTextContent("Abstract (0 words)");
+  });
+
+  test("the Abstract card shows the word count and text for an entry with an abstract", async () => {
+    axiosMock.reset();
+    axiosMock.onGet("/api/bibtexentries/entry").reply(200, {
+      ...bibTexEntriesFixtures.oneEntry,
+      keyValuePairs: {
+        ...bibTexEntriesFixtures.oneEntry.keyValuePairs,
+        abstract: "This abstract has exactly six words.",
+      },
+    });
+    axiosMock
+      .onGet("/api/bibtexentries/export")
+      .reply(200, "@article{smith2020,\n  title = {A Very Long Title}\n}\n");
+    axiosMock
+      .onGet("/api/bibtexentries/formatted")
+      .reply(200, "Smith, J. A Very Long Title.");
+    axiosMock
+      .onGet("/api/projects/1")
+      .reply(200, { id: 1, citationFormat: "ACM" });
+    axiosMock.onGet("/api/citationedges/references").reply(200, []);
+    axiosMock.onGet("/api/citationedges/citations").reply(200, []);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-AbstractCard-header"),
+    ).toHaveTextContent("Abstract (6 words)");
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-AbstractCard-header"),
+    );
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-abstract-text"),
+    ).toHaveTextContent("This abstract has exactly six words.");
+  });
+
+  test("clicking the Abstract Edit button opens the AbstractEditModal pre-filled with the current abstract", async () => {
+    axiosMock.reset();
+    axiosMock.onGet("/api/bibtexentries/entry").reply(200, {
+      ...bibTexEntriesFixtures.oneEntry,
+      keyValuePairs: {
+        ...bibTexEntriesFixtures.oneEntry.keyValuePairs,
+        abstract: "Existing abstract text.",
+      },
+    });
+    axiosMock
+      .onGet("/api/bibtexentries/export")
+      .reply(200, "@article{smith2020,\n  title = {A Very Long Title}\n}\n");
+    axiosMock
+      .onGet("/api/bibtexentries/formatted")
+      .reply(200, "Smith, J. A Very Long Title.");
+    axiosMock
+      .onGet("/api/projects/1")
+      .reply(200, { id: 1, citationFormat: "ACM" });
+    axiosMock.onGet("/api/citationedges/references").reply(200, []);
+    axiosMock.onGet("/api/citationedges/citations").reply(200, []);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-abstract-edit-button"),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("BibTexEntryShowPage-AbstractEditModal-base"),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-AbstractEditModal-abstract"),
+    ).toHaveValue("Existing abstract text.");
+  });
+
+  test("clicking the Abstract Edit button in the card header does not toggle the card open/closed", async () => {
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-AbstractCard-header"),
+    ).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-abstract-edit-button"),
+    );
+
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-AbstractCard-header"),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("saving a new abstract via the modal PATCHes it and refetches the entry", async () => {
+    axiosMock
+      .onPatch("/api/bibtexentries/abstract")
+      .reply(200, { ...bibTexEntriesFixtures.oneEntry });
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-abstract-edit-button"),
+    );
+    await screen.findByTestId("BibTexEntryShowPage-AbstractEditModal-base");
+
+    fireEvent.change(
+      screen.getByTestId("BibTexEntryShowPage-AbstractEditModal-abstract"),
+      { target: { value: "A brand new abstract." } },
+    );
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-AbstractEditModal-submit"),
+    );
+
+    await waitFor(() => expect(axiosMock.history.patch.length).toBe(1));
+    expect(axiosMock.history.patch[0].data).toBe("A brand new abstract.");
+    expect(axiosMock.history.patch[0].params).toEqual({
+      id: ENTRY_ID,
+      projectId: "1",
+    });
   });
 });
