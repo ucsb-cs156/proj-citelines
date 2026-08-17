@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useBackendMutation } from "main/utils/useBackend";
 import { toast } from "react-toastify";
 import BibTexEntryLink from "main/components/Citations/BibTexEntryLink";
+import { extractBibliographySection } from "main/utils/bulkReferenceHtml";
 
 export default function BulkReferenceUploadModal({
   showModal,
@@ -35,7 +36,7 @@ export default function BulkReferenceUploadModal({
     url: "/api/jobs/launch/bulkReferenceUploadFromAcmDl",
     method: "POST",
     params: { projectId, citeKey },
-    data: formData.rawHtml,
+    data: extractBibliographySection(formData.rawHtml),
     headers: { "Content-Type": "text/plain" },
   });
 
@@ -77,10 +78,18 @@ export default function BulkReferenceUploadModal({
       <Form onSubmit={handleSubmit(onSubmit)}>
         <Modal.Body>
           <p>
-            Open the link above on the ACM DL. Then, use the page inspector to
-            select the root node of the HTML, and use &quot;copy inner
-            HTML&quot;, to copy the HTML. Then paste it into the window below.
-            It will be parsed for references, and the references will be added.
+            Open the link below on the ACM DL. Find the list of references, and
+            then click the &quot;Show All References&quot; button.
+          </p>
+          <p>
+            When they have all loaded, use the Developer Tools of your browser
+            to load the HTML for the page (note that View Source typically
+            doesn&apos;t work; you need the entire DOM tree). Copy the HTML
+            (typically with a tool such as &quot;Copy Inner HTML&quot;).
+          </p>
+          <p>
+            Then paste it into the window below. It will be parsed for
+            references, and the references will be added.
           </p>
           <BibTexEntryLink
             keyValuePairs={keyValuePairs}

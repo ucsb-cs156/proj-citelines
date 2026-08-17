@@ -46,7 +46,11 @@ describe("BulkReferenceUploadModal tests", () => {
 
     expect(screen.getByText("Bulk References from ACM DL")).toBeInTheDocument();
     expect(
-      screen.getByText(/Open the link above on the ACM DL\./),
+      screen.getByText(/Open the link below on the ACM DL\./),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Show All References/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/use the Developer Tools of your/),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -126,6 +130,33 @@ describe("BulkReferenceUploadModal tests", () => {
       ),
     );
     expect(toggleShowModal).toHaveBeenCalledWith(false);
+  });
+
+  test("submits only the bibliography section, trimming out the rest of a full pasted page", async () => {
+    axiosMock
+      .onPost("/api/jobs/launch/bulkReferenceUploadFromAcmDl")
+      .reply(200, { id: 99 });
+
+    renderModal();
+
+    fireEvent.change(screen.getByTestId("BulkReferenceUploadModal-rawHtml"), {
+      target: {
+        value:
+          "<html><body><nav>irrelevant nav markup</nav>" +
+          '<section id="bibliography"><div class="biblioentry">entry</div></section>' +
+          "<footer>irrelevant footer markup</footer></body></html>",
+      },
+    });
+    fireEvent.click(screen.getByTestId("BulkReferenceUploadModal-submit"));
+
+    await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+    expect(axiosMock.history.post[0].data).toContain("entry");
+    expect(axiosMock.history.post[0].data).not.toContain(
+      "irrelevant nav markup",
+    );
+    expect(axiosMock.history.post[0].data).not.toContain(
+      "irrelevant footer markup",
+    );
   });
 
   test("close button closes the modal", () => {
