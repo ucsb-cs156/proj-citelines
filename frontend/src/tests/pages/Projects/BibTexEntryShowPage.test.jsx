@@ -766,4 +766,168 @@ describe("BibTexEntryShowPage tests", () => {
 
     expect(axiosMock.history.put.length).toBe(0);
   });
+
+  test("does not show a Possible Duplicates card when the entry has no duplicate flags", async () => {
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    expect(
+      screen.queryByTestId("BibTexEntryShowPage-PossibleDuplicatesCard"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("shows a Possible Duplicates card, open by default with a pastel red header, when the entry is flagged", async () => {
+    const OTHER_ID = "64f1b2c3d4e5f6a7b8c9d0e9";
+    axiosMock.reset();
+    axiosMock.onGet("/api/bibtexentries/entry").reply(200, {
+      ...bibTexEntriesFixtures.oneEntry,
+      possibleDuplicateIds: [OTHER_ID],
+      possibleDuplicateReason: "SIMILAR_TITLE",
+    });
+    axiosMock
+      .onGet("/api/bibtexentries/export")
+      .reply(200, "@article{smith2020,\n  title = {A Very Long Title}\n}\n");
+    axiosMock
+      .onGet("/api/bibtexentries/formatted", {
+        params: { projectId: "1", id: ENTRY_ID },
+      })
+      .reply(200, "Smith, J. A Very Long Title.");
+    axiosMock
+      .onGet("/api/bibtexentries/formatted", {
+        params: { projectId: "1", id: OTHER_ID },
+      })
+      .reply(200, "Other, A. The Other Paper.");
+    axiosMock
+      .onGet("/api/projects/1")
+      .reply(200, { id: 1, citationFormat: "ACM" });
+    axiosMock.onGet("/api/citationedges/references").reply(200, []);
+    axiosMock.onGet("/api/citationedges/citations").reply(200, []);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-PossibleDuplicatesCard-header"),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-PossibleDuplicatesCard-header"),
+    ).toHaveStyle("background-color: #f8d7da");
+
+    expect(
+      screen.getByTestId(
+        `BibTexEntryShowPage-PossibleDuplicatesCard-item-${OTHER_ID}`,
+      ),
+    ).toBeInTheDocument();
+
+    const citationLink = await screen.findByTestId(
+      `BibTexEntryShowPage-PossibleDuplicatesCard-citation-${OTHER_ID}`,
+    );
+    expect(citationLink).toHaveTextContent("Other, A. The Other Paper.");
+    expect(citationLink).toHaveAttribute(
+      "href",
+      `/project/1/bibtex/${OTHER_ID}`,
+    );
+    expect(
+      screen.getByTestId(
+        `BibTexEntryShowPage-PossibleDuplicatesCard-reason-${OTHER_ID}`,
+      ),
+    ).toHaveTextContent("Reason: Similar Title");
+  });
+
+  test("lists multiple possible duplicates, one after another", async () => {
+    const OTHER_ID_1 = "64f1b2c3d4e5f6a7b8c9d0e9";
+    const OTHER_ID_2 = "64f1b2c3d4e5f6a7b8c9d0ea";
+    axiosMock.reset();
+    axiosMock.onGet("/api/bibtexentries/entry").reply(200, {
+      ...bibTexEntriesFixtures.oneEntry,
+      possibleDuplicateIds: [OTHER_ID_1, OTHER_ID_2],
+      possibleDuplicateReason: "SAME_DOI",
+    });
+    axiosMock
+      .onGet("/api/bibtexentries/export")
+      .reply(200, "@article{smith2020,\n  title = {A Very Long Title}\n}\n");
+    axiosMock
+      .onGet("/api/bibtexentries/formatted", {
+        params: { projectId: "1", id: ENTRY_ID },
+      })
+      .reply(200, "Smith, J. A Very Long Title.");
+    axiosMock
+      .onGet("/api/bibtexentries/formatted", {
+        params: { projectId: "1", id: OTHER_ID_1 },
+      })
+      .reply(200, "First Duplicate Citation.");
+    axiosMock
+      .onGet("/api/bibtexentries/formatted", {
+        params: { projectId: "1", id: OTHER_ID_2 },
+      })
+      .reply(200, "Second Duplicate Citation.");
+    axiosMock
+      .onGet("/api/projects/1")
+      .reply(200, { id: 1, citationFormat: "ACM" });
+    axiosMock.onGet("/api/citationedges/references").reply(200, []);
+    axiosMock.onGet("/api/citationedges/citations").reply(200, []);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    expect(
+      await screen.findByTestId(
+        `BibTexEntryShowPage-PossibleDuplicatesCard-citation-${OTHER_ID_1}`,
+      ),
+    ).toHaveTextContent("First Duplicate Citation.");
+    expect(
+      await screen.findByTestId(
+        `BibTexEntryShowPage-PossibleDuplicatesCard-citation-${OTHER_ID_2}`,
+      ),
+    ).toHaveTextContent("Second Duplicate Citation.");
+    expect(
+      screen.getByTestId(
+        `BibTexEntryShowPage-PossibleDuplicatesCard-reason-${OTHER_ID_1}`,
+      ),
+    ).toHaveTextContent("Reason: Same DOI");
+    expect(
+      screen.getByTestId(
+        `BibTexEntryShowPage-PossibleDuplicatesCard-reason-${OTHER_ID_2}`,
+      ),
+    ).toHaveTextContent("Reason: Same DOI");
+  });
+
+  test("the Possible Duplicates card can be collapsed like the other cards", async () => {
+    axiosMock.reset();
+    axiosMock.onGet("/api/bibtexentries/entry").reply(200, {
+      ...bibTexEntriesFixtures.oneEntry,
+      possibleDuplicateReason: "SAME_DOI",
+    });
+    axiosMock
+      .onGet("/api/bibtexentries/export")
+      .reply(200, "@article{smith2020,\n  title = {A Very Long Title}\n}\n");
+    axiosMock
+      .onGet("/api/bibtexentries/formatted")
+      .reply(200, "Smith, J. A Very Long Title.");
+    axiosMock
+      .onGet("/api/projects/1")
+      .reply(200, { id: 1, citationFormat: "ACM" });
+    axiosMock.onGet("/api/citationedges/references").reply(200, []);
+    axiosMock.onGet("/api/citationedges/citations").reply(200, []);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    // possibleDuplicateIds is absent (only possibleDuplicateReason is set), so the card shows
+    // no duplicate items at all — the flag alone is enough to show the card.
+    expect(
+      screen.queryAllByTestId(/PossibleDuplicatesCard-item-/),
+    ).toHaveLength(0);
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-PossibleDuplicatesCard-header"),
+    );
+
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-PossibleDuplicatesCard-header"),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
 });

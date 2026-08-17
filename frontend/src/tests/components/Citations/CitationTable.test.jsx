@@ -45,11 +45,11 @@ describe("CitationTable tests", () => {
 
     [
       "citeKey",
+      "flags",
       "link",
       "year",
       "author",
       "title",
-      "flags",
       "edit",
       "delete",
     ].forEach((colId) =>
@@ -88,27 +88,35 @@ describe("CitationTable tests", () => {
     expect(doiLink).toHaveAttribute("target", "_blank");
   });
 
-  test("the Flags column is empty for an entry with no duplicate-detection fields set", () => {
+  test("the Flags column is empty for an entry with no flagged fields set", () => {
     renderTable({ citations: [bibTexEntriesFixtures.threeEntries[0]] });
 
     expect(
       screen.getByTestId("CitationTable-cell-row-0-col-flags"),
     ).toHaveTextContent("");
+    expect(
+      screen.queryByTestId("CitationTable-cell-row-0-col-flags-dup-badge"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("CitationTable-cell-row-0-col-flags-link-badge"),
+    ).not.toBeInTheDocument();
   });
 
-  test("the Flags column shows dup? when possibleDuplicateIds is set", () => {
+  test("the Flags column shows a red dup? pill badge when possibleDuplicateIds is set", () => {
     const flaggedEntry = {
       ...bibTexEntriesFixtures.threeEntries[0],
       possibleDuplicateIds: ["64f1b2c3d4e5f6a7b8c9d0e2"],
     };
     renderTable({ citations: [flaggedEntry] });
 
-    expect(
-      screen.getByTestId("CitationTable-cell-row-0-col-flags"),
-    ).toHaveTextContent("dup?");
+    const badge = screen.getByTestId(
+      "CitationTable-cell-row-0-col-flags-dup-badge",
+    );
+    expect(badge).toHaveTextContent("dup?");
+    expect(badge).toHaveStyle("background-color: #dc3545");
   });
 
-  test("the Flags column shows dup? when possibleDuplicateReason is set, even without possibleDuplicateIds", () => {
+  test("the Flags column shows a dup? badge when possibleDuplicateReason is set, even without possibleDuplicateIds", () => {
     const flaggedEntry = {
       ...bibTexEntriesFixtures.threeEntries[0],
       possibleDuplicateReason: "SAME_DOI",
@@ -116,8 +124,161 @@ describe("CitationTable tests", () => {
     renderTable({ citations: [flaggedEntry] });
 
     expect(
-      screen.getByTestId("CitationTable-cell-row-0-col-flags"),
+      screen.getByTestId("CitationTable-cell-row-0-col-flags-dup-badge"),
     ).toHaveTextContent("dup?");
+  });
+
+  test("the Flags column shows a bright yellow link? pill badge when CITELINES_invalid_doi is True", () => {
+    const invalidDoiEntry = {
+      ...bibTexEntriesFixtures.threeEntries[0],
+      keyValuePairs: {
+        ...bibTexEntriesFixtures.threeEntries[0].keyValuePairs,
+        CITELINES_invalid_doi: "True",
+      },
+    };
+    renderTable({ citations: [invalidDoiEntry] });
+
+    const badge = screen.getByTestId(
+      "CitationTable-cell-row-0-col-flags-link-badge",
+    );
+    expect(badge).toHaveTextContent("link?");
+    expect(badge).toHaveStyle("background-color: #ffff00");
+  });
+
+  test("the Flags column shows a link? badge when CITELINES_invalid_url is True", () => {
+    const invalidUrlEntry = {
+      ...bibTexEntriesFixtures.threeEntries[1],
+      keyValuePairs: {
+        ...bibTexEntriesFixtures.threeEntries[1].keyValuePairs,
+        CITELINES_invalid_url: "True",
+      },
+    };
+    renderTable({ citations: [invalidUrlEntry] });
+
+    expect(
+      screen.getByTestId("CitationTable-cell-row-0-col-flags-link-badge"),
+    ).toHaveTextContent("link?");
+  });
+
+  test("the Flags column shows both badges together when an entry has both flags", () => {
+    const bothFlagsEntry = {
+      ...bibTexEntriesFixtures.threeEntries[0],
+      possibleDuplicateReason: "SAME_DOI",
+      keyValuePairs: {
+        ...bibTexEntriesFixtures.threeEntries[0].keyValuePairs,
+        CITELINES_invalid_doi: "True",
+      },
+    };
+    renderTable({ citations: [bothFlagsEntry] });
+
+    expect(
+      screen.getByTestId("CitationTable-cell-row-0-col-flags-dup-badge"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("CitationTable-cell-row-0-col-flags-link-badge"),
+    ).toBeInTheDocument();
+  });
+
+  test("the Link column no longer shows a warning emoji for an invalid doi", () => {
+    const invalidDoiEntry = {
+      ...bibTexEntriesFixtures.threeEntries[0],
+      keyValuePairs: {
+        ...bibTexEntriesFixtures.threeEntries[0].keyValuePairs,
+        CITELINES_invalid_doi: "True",
+      },
+    };
+    renderTable({ citations: [invalidDoiEntry] });
+
+    const doiLink = screen.getByTestId("CitationTable-cell-row-0-col-doi-link");
+    expect(doiLink).toHaveTextContent("doi");
+    expect(doiLink).not.toHaveTextContent("⚠️");
+  });
+
+  // TanStack Table's Row#index reflects each row's position in the *original* (unsorted) data,
+  // not its current display position, so a "-cell-row-N-col-X" testid always identifies the same
+  // underlying row regardless of sort order. To observe actual sort order, query all cells for a
+  // column by a regex (matching every row's testid) — getAllByTestId returns matches in DOM order,
+  // which does reflect the current sort.
+  function citeKeyLinksInDomOrder() {
+    return screen
+      .getAllByTestId(/^CitationTable-cell-row-\d+-col-citeKey-link$/)
+      .map((el) => el.textContent);
+  }
+
+  test("clicking the Flags column header sorts unflagged and flagged rows into distinct groups", () => {
+    const flaggedEntry = {
+      ...bibTexEntriesFixtures.threeEntries[1],
+      possibleDuplicateReason: "SAME_DOI",
+    };
+    renderTable({
+      citations: [flaggedEntry, bibTexEntriesFixtures.threeEntries[0]],
+    });
+    expect(citeKeyLinksInDomOrder()).toEqual(["jones201...", "smith202..."]);
+
+    fireEvent.click(
+      screen.getByTestId("CitationTable-header-flags-sort-header"),
+    );
+
+    expect(citeKeyLinksInDomOrder()).toEqual(["smith202...", "jones201..."]);
+  });
+
+  test("clicking the Cite Key column header sorts rows lexicographically by the full citeKey", () => {
+    renderTable({ citations: bibTexEntriesFixtures.threeEntries });
+    expect(citeKeyLinksInDomOrder()).toEqual([
+      "smith202...",
+      "jones201...",
+      "lee2021",
+    ]);
+
+    fireEvent.click(
+      screen.getByTestId("CitationTable-header-citeKey-sort-header"),
+    );
+
+    expect(citeKeyLinksInDomOrder()).toEqual([
+      "jones201...",
+      "lee2021",
+      "smith202...",
+    ]);
+  });
+
+  test("clicking the Link column header sorts rows by doi/url/blank", () => {
+    renderTable({ citations: bibTexEntriesFixtures.threeEntries });
+
+    fireEvent.click(
+      screen.getByTestId("CitationTable-header-link-sort-header"),
+    );
+
+    // Ascending: "doi" sorts before "url" — smith2020 and lee2021 (both doi) stay ahead of
+    // jones2019 (url), in their original relative order (stable sort).
+    expect(citeKeyLinksInDomOrder()).toEqual([
+      "smith202...",
+      "lee2021",
+      "jones201...",
+    ]);
+  });
+
+  test("clicking the Link column header sorts a blank link ahead of both doi and url", () => {
+    const noLinkEntry = {
+      ...bibTexEntriesFixtures.threeEntries[0],
+      id: "64f1b2c3d4e5f6a7b8c9d0e5",
+      citeKey: "noLink2022",
+      keyValuePairs: { author: "No Link", title: "No Link Paper" },
+    };
+    renderTable({
+      citations: [...bibTexEntriesFixtures.threeEntries, noLinkEntry],
+    });
+
+    fireEvent.click(
+      screen.getByTestId("CitationTable-header-link-sort-header"),
+    );
+
+    // Ascending: "" (blank) sorts before "doi", which sorts before "url".
+    expect(citeKeyLinksInDomOrder()).toEqual([
+      "noLink20...",
+      "smith202...",
+      "lee2021",
+      "jones201...",
+    ]);
   });
 
   test("a short citekey is not truncated or given an ellipsis", () => {
@@ -191,50 +352,6 @@ describe("CitationTable tests", () => {
     expect(
       screen.queryByTestId("CitationTable-cell-row-0-col-url-link"),
     ).not.toBeInTheDocument();
-  });
-
-  test("shows a warning emoji next to the doi link when CITELINES_invalid_doi is True", () => {
-    const invalidDoiEntry = {
-      ...bibTexEntriesFixtures.threeEntries[0],
-      keyValuePairs: {
-        ...bibTexEntriesFixtures.threeEntries[0].keyValuePairs,
-        CITELINES_invalid_doi: "True",
-      },
-    };
-    renderTable({ citations: [invalidDoiEntry] });
-
-    const doiLink = screen.getByTestId("CitationTable-cell-row-0-col-doi-link");
-    expect(doiLink).toHaveTextContent("doi \u26A0\uFE0F");
-  });
-
-  test("does not show a warning emoji next to the doi link when CITELINES_invalid_doi is not present", () => {
-    renderTable({ citations: [bibTexEntriesFixtures.threeEntries[0]] });
-
-    const doiLink = screen.getByTestId("CitationTable-cell-row-0-col-doi-link");
-    expect(doiLink).toHaveTextContent("doi");
-    expect(doiLink).not.toHaveTextContent("\u26A0\uFE0F");
-  });
-
-  test("shows a warning emoji next to the url link when CITELINES_invalid_url is True", () => {
-    const invalidUrlEntry = {
-      ...bibTexEntriesFixtures.threeEntries[1],
-      keyValuePairs: {
-        ...bibTexEntriesFixtures.threeEntries[1].keyValuePairs,
-        CITELINES_invalid_url: "True",
-      },
-    };
-    renderTable({ citations: [invalidUrlEntry] });
-
-    const urlLink = screen.getByTestId("CitationTable-cell-row-0-col-url-link");
-    expect(urlLink).toHaveTextContent("url \u26A0\uFE0F");
-  });
-
-  test("does not show a warning emoji next to the url link when CITELINES_invalid_url is not present", () => {
-    renderTable({ citations: [bibTexEntriesFixtures.threeEntries[1]] });
-
-    const urlLink = screen.getByTestId("CitationTable-cell-row-0-col-url-link");
-    expect(urlLink).toHaveTextContent("url");
-    expect(urlLink).not.toHaveTextContent("\u26A0\uFE0F");
   });
 
   test("clicking Edit opens the modal pre-filled from the export endpoint", async () => {

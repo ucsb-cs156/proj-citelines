@@ -25,6 +25,12 @@ import {
   extractCitelinesFields,
   injectCitelinesFields,
 } from "main/utils/citelinesFields";
+import {
+  formatDuplicateReason,
+  hasPossibleDuplicateFlag,
+} from "main/utils/duplicateFlags";
+
+const POSSIBLE_DUPLICATE_HEADER_COLOR = "#f8d7da";
 
 // The four independently-collapsible cards on this page (issue #38). Unlike a react-bootstrap
 // Accordion, any number of these may be open at once. `field` is the (lowercased, unprefixed)
@@ -44,6 +50,7 @@ function CollapsibleCard({
   testId,
   header,
   headerActions,
+  headerStyle,
   isOpen,
   onToggle,
   children,
@@ -56,7 +63,7 @@ function CollapsibleCard({
         aria-expanded={isOpen}
         data-testid={`${testId}-header`}
         className="d-flex justify-content-between align-items-center"
-        style={{ cursor: "pointer" }}
+        style={{ cursor: "pointer", ...headerStyle }}
       >
         <div className="flex-grow-1">{header}</div>
         {headerActions && (
@@ -75,6 +82,31 @@ function CollapsibleCard({
   );
 }
 
+/** The formatted-citation link for a single entry named as a possible duplicate — its own
+ * component (rather than an inline map) since each one needs its own useBackend call. */
+function PossibleDuplicateCitation({ projectId, duplicateId, testId }) {
+  const queryKey = `/api/bibtexentries/formatted?projectId=${projectId}&id=${duplicateId}`;
+  const { data: formattedCitation } = useBackend(
+    [queryKey],
+    {
+      method: "GET",
+      url: "/api/bibtexentries/formatted",
+      params: { projectId, id: duplicateId },
+    },
+    "",
+    true,
+  );
+
+  return (
+    <Link
+      to={`/project/${projectId}/bibtex/${duplicateId}`}
+      data-testid={testId}
+    >
+      {formattedCitation || "Loading..."}
+    </Link>
+  );
+}
+
 export default function BibTexEntryShowPage({
   testId = "BibTexEntryShowPage",
 }) {
@@ -90,6 +122,8 @@ export default function BibTexEntryShowPage({
   // is a temporary aid for actively developing/verifying backend schema changes, not a permanent
   // per-entry preference worth writing into CITELINES_ fields.
   const [showRawEntry, setShowRawEntry] = useState(false);
+  // Open by default whenever the entry is flagged, matching CitationTable's Flags column.
+  const [showPossibleDuplicates, setShowPossibleDuplicates] = useState(true);
 
   const entryQueryKey = `/api/bibtexentries/entry?projectId=${projectId}&id=${entryId}`;
   const { data: entry, failureCount: entryBackendFailureCount } = useBackend(
@@ -488,6 +522,37 @@ export default function BibTexEntryShowPage({
               </Button>
             </Modal.Footer>
           </Modal>
+
+          {hasPossibleDuplicateFlag(entry) && (
+            <CollapsibleCard
+              testId={`${testId}-PossibleDuplicatesCard`}
+              header="Possible Duplicates"
+              headerStyle={{ backgroundColor: POSSIBLE_DUPLICATE_HEADER_COLOR }}
+              isOpen={showPossibleDuplicates}
+              onToggle={() => setShowPossibleDuplicates((prev) => !prev)}
+            >
+              {(entry.possibleDuplicateIds ?? []).map((duplicateId) => (
+                <div
+                  key={duplicateId}
+                  className="mb-3"
+                  data-testid={`${testId}-PossibleDuplicatesCard-item-${duplicateId}`}
+                >
+                  <div className="fw-semibold">Possible duplicate:</div>
+                  <PossibleDuplicateCitation
+                    projectId={projectId}
+                    duplicateId={duplicateId}
+                    testId={`${testId}-PossibleDuplicatesCard-citation-${duplicateId}`}
+                  />
+                  <div
+                    data-testid={`${testId}-PossibleDuplicatesCard-reason-${duplicateId}`}
+                  >
+                    Reason:{" "}
+                    {formatDuplicateReason(entry.possibleDuplicateReason)}
+                  </div>
+                </div>
+              ))}
+            </CollapsibleCard>
+          )}
 
           <Card
             className="mb-3"
