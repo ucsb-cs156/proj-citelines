@@ -3,6 +3,7 @@ package edu.ucsb.cs.citelines.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,6 +16,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import edu.ucsb.cs.citelines.ControllerTestCase;
+import edu.ucsb.cs.citelines.collections.BibTexEntry;
+import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs.citelines.config.ProjectSecurity;
 import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.entity.Tag;
@@ -38,6 +41,7 @@ public class TagsControllerTests extends ControllerTestCase {
   @MockitoBean ProjectRepository projectRepository;
   @MockitoBean TagRepository tagRepository;
   @MockitoBean ProjectCollaboratorRepository projectCollaboratorRepository;
+  @MockitoBean BibTexEntryRepository bibTexEntryRepository;
 
   // ---- Authorization tests ----
 
@@ -284,6 +288,67 @@ public class TagsControllerTests extends ControllerTestCase {
         .andExpect(content().string("Successfully deleted tag."));
 
     verify(tagRepository, times(1)).delete(tag);
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void deleting_a_tag_strips_it_from_every_entry_that_referenced_it() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    Tag tag = Tag.builder().id(5L).tag("method").explanation("desc").project(project).build();
+    BibTexEntry taggedEntry =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .citeKey("k1")
+            .tagIds(new java.util.ArrayList<>(List.of(5L, 7L)))
+            .build();
+    BibTexEntry untaggedEntry =
+        BibTexEntry.builder()
+            .id("def456")
+            .projectId(1)
+            .citeKey("k2")
+            .tagIds(new java.util.ArrayList<>(List.of(7L)))
+            .build();
+    when(tagRepository.findById(5L)).thenReturn(Optional.of(tag));
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(taggedEntry, untaggedEntry));
+
+    mockMvc
+        .perform(delete("/api/tags/delete?id=5&projectId=1").with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<List<BibTexEntry>> captor =
+        org.mockito.ArgumentCaptor.forClass(List.class);
+    verify(bibTexEntryRepository, times(1)).saveAll(captor.capture());
+    assertEquals(1, captor.getValue().size());
+    assertEquals("abc123", captor.getValue().get(0).getId());
+    assertEquals(List.of(7L), captor.getValue().get(0).getTagIds());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void deleting_a_tag_that_no_entry_references_does_not_call_saveAll() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    Tag tag = Tag.builder().id(5L).tag("method").explanation("desc").project(project).build();
+    BibTexEntry untaggedEntry =
+        BibTexEntry.builder()
+            .id("def456")
+            .projectId(1)
+            .citeKey("k2")
+            .tagIds(new java.util.ArrayList<>(List.of(7L)))
+            .build();
+    BibTexEntry noTagsEntry = BibTexEntry.builder().id("ghi789").projectId(1).citeKey("k3").build();
+    when(tagRepository.findById(5L)).thenReturn(Optional.of(tag));
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(untaggedEntry, noTagsEntry));
+
+    mockMvc
+        .perform(delete("/api/tags/delete?id=5&projectId=1").with(csrf()))
+        .andExpect(status().isOk());
+
+    verify(bibTexEntryRepository, never()).saveAll(any());
   }
 
   @WithMockUser(

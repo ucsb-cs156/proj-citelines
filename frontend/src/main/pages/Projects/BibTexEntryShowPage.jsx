@@ -22,6 +22,7 @@ import BulkCitationUploadModal from "main/components/Citations/BulkCitationUploa
 import BulkReferenceUploadModal from "main/components/Citations/BulkReferenceUploadModal";
 import BibTexEntryComments from "main/components/Citations/BibTexEntryComments";
 import BibTexEntryLink from "main/components/Citations/BibTexEntryLink";
+import TagSelector from "main/components/Tags/TagSelector";
 import {
   RELEVANCE_OPTIONS,
   extractCitelinesFields,
@@ -166,6 +167,37 @@ export default function BibTexEntryShowPage({
     { method: "GET", url: `/api/projects/${projectId}` },
     null,
     true,
+  );
+
+  const tagsQueryKey = `/api/tags/project?projectId=${projectId}`;
+  const { data: allTags } = useBackend(
+    [tagsQueryKey],
+    // Stryker disable next-line StringLiteral : GET and empty string are equivalent
+    { method: "GET", url: tagsQueryKey },
+    [],
+    true,
+  );
+  const assignedTagIds = new Set(entry?.tagIds ?? []);
+  const assignedTags = allTags.filter((tag) => assignedTagIds.has(tag.id));
+
+  const addTagMutation = useBackendMutation(
+    (tag) => ({
+      url: "/api/bibtexentries/tags",
+      method: "POST",
+      params: { id: entry?.id, projectId, tagId: tag.id },
+    }),
+    {},
+    [entryQueryKey],
+  );
+
+  const removeTagMutation = useBackendMutation(
+    (tag) => ({
+      url: "/api/bibtexentries/tags",
+      method: "DELETE",
+      params: { id: entry?.id, projectId, tagId: tag.id },
+    }),
+    {},
+    [entryQueryKey],
   );
 
   const formattedCitationQueryKey = `/api/bibtexentries/formatted?projectId=${projectId}&id=${entry?.id}`;
@@ -431,6 +463,17 @@ export default function BibTexEntryShowPage({
             keyValuePairs={entry.keyValuePairs}
             testId={testId}
           />
+
+          <div className="mb-3">
+            <TagSelector
+              allTags={allTags}
+              assignedTags={assignedTags}
+              onAddTag={(tag) => addTagMutation.mutate(tag)}
+              onRemoveTag={(tag) => removeTagMutation.mutate(tag)}
+              projectId={projectId}
+              testId={`${testId}-TagSelector`}
+            />
+          </div>
 
           <Form.Group className="mb-3" style={{ maxWidth: "200px" }}>
             <Form.Label htmlFor={`${testId}-relevance-select`}>

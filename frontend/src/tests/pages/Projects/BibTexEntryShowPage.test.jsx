@@ -7,6 +7,7 @@ import AxiosMockAdapter from "axios-mock-adapter";
 
 import BibTexEntryShowPage from "main/pages/Projects/BibTexEntryShowPage";
 import bibTexEntriesFixtures from "fixtures/bibTexEntriesFixtures";
+import { tagsFixtures } from "fixtures/tagsFixtures";
 
 // CodeMirror (used internally by BibTexEntryComments' Markdown editor) needs a working
 // Document.createRange, which jsdom does not provide — same polyfill react-simplemde-editor's
@@ -71,6 +72,7 @@ describe("BibTexEntryShowPage tests", () => {
     axiosMock.onGet("/api/citationedges/references").reply(200, []);
     axiosMock.onGet("/api/citationedges/citations").reply(200, []);
     axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
+    axiosMock.onGet("/api/tags/project?projectId=1").reply(200, []);
   });
 
   test("shows loading, then the entry's citekey, raw bibtex, and both buttons", async () => {
@@ -1103,6 +1105,88 @@ describe("BibTexEntryShowPage tests", () => {
     expect(axiosMock.history.patch[0].params).toEqual({
       id: ENTRY_ID,
       projectId: "1",
+    });
+  });
+
+  test("shows a TagSelector with the project's tags and the entry's assigned tags", async () => {
+    axiosMock
+      .onGet("/api/bibtexentries/entry")
+      .reply(200, { ...bibTexEntriesFixtures.oneEntry, tagIds: [1] });
+    axiosMock
+      .onGet("/api/tags/project?projectId=1")
+      .reply(200, tagsFixtures.threeTags);
+
+    renderAtSmith2020();
+
+    await screen.findByTestId("BibTexEntryShowPage-TagSelector-assigned-tag-1");
+    expect(
+      screen.queryByTestId("BibTexEntryShowPage-TagSelector-assigned-tag-2"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-TagSelector-add-tag-dropdown"),
+    );
+    expect(
+      await screen.findByTestId(
+        "BibTexEntryShowPage-TagSelector-available-tag-2",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("clicking a tag in the Add Tag dropdown POSTs to associate it and refetches the entry", async () => {
+    axiosMock
+      .onGet("/api/tags/project?projectId=1")
+      .reply(200, tagsFixtures.threeTags);
+    axiosMock.onPost("/api/bibtexentries/tags").reply(200, {
+      ...bibTexEntriesFixtures.oneEntry,
+      tagIds: [1],
+    });
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-TagSelector-add-tag-dropdown"),
+    );
+    fireEvent.click(
+      await screen.findByTestId(
+        "BibTexEntryShowPage-TagSelector-available-tag-1",
+      ),
+    );
+
+    await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+    expect(axiosMock.history.post[0].url).toBe("/api/bibtexentries/tags");
+    expect(axiosMock.history.post[0].params).toEqual({
+      id: ENTRY_ID,
+      projectId: "1",
+      tagId: 1,
+    });
+  });
+
+  test("clicking the remove button on an assigned tag DELETEs to remove it and refetches the entry", async () => {
+    axiosMock
+      .onGet("/api/bibtexentries/entry")
+      .reply(200, { ...bibTexEntriesFixtures.oneEntry, tagIds: [1] });
+    axiosMock
+      .onGet("/api/tags/project?projectId=1")
+      .reply(200, tagsFixtures.threeTags);
+    axiosMock.onDelete("/api/bibtexentries/tags").reply(200, {
+      ...bibTexEntriesFixtures.oneEntry,
+      tagIds: [],
+    });
+
+    renderAtSmith2020();
+
+    fireEvent.click(
+      await screen.findByTestId("BibTexEntryShowPage-TagSelector-remove-tag-1"),
+    );
+
+    await waitFor(() => expect(axiosMock.history.delete.length).toBe(1));
+    expect(axiosMock.history.delete[0].url).toBe("/api/bibtexentries/tags");
+    expect(axiosMock.history.delete[0].params).toEqual({
+      id: ENTRY_ID,
+      projectId: "1",
+      tagId: 1,
     });
   });
 });
