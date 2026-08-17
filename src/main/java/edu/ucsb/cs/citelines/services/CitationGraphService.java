@@ -247,15 +247,19 @@ public class CitationGraphService {
    * byDoi} to detect an entry that already represents a given DOI, {@code citeKeys} to keep newly
    * generated citeKeys from colliding with ones already in use. Both are mutated in place by {@link
    * #resolveOrCreateEntry} as new entries are created, so a single instance should be reused across
-   * every work resolved in one job run — see that method's doc.
+   * every work resolved in one job run — see that method's doc. Public so {@code
+   * BibTexEntriesController#postBibTexEntries} can also dedup a pasted entry by DOI, not just by
+   * citeKey — see issue #68.
    */
-  record ExistingEntries(Map<String, BibTexEntry> byDoi, Set<String> citeKeys) {}
+  public record ExistingEntries(Map<String, BibTexEntry> byDoi, Set<String> citeKeys) {}
 
   /**
-   * Builds a snapshot of {@code projectId}'s existing entries for {@link #resolveOrCreateEntry} to
-   * dedup against. Package-visible for reuse by {@link BulkCitationUploadFromACMDLViewAllService}.
+   * Builds a snapshot of {@code projectId}'s existing entries for {@link #resolveOrCreateEntry} (or
+   * a caller outside this class, e.g. {@code BibTexEntriesController#postBibTexEntries}) to dedup
+   * against. Package-visible reuse by {@link BulkCitationUploadFromACMDLViewAllService}; public
+   * visibility is for {@code BibTexEntriesController}, which lives in a different package.
    */
-  ExistingEntries loadExistingEntries(int projectId) {
+  public ExistingEntries loadExistingEntries(int projectId) {
     Map<String, BibTexEntry> byDoi = new HashMap<>();
     Set<String> citeKeys = new HashSet<>();
     for (BibTexEntry entry : bibTexEntryRepository.findByProjectId(projectId)) {

@@ -18,6 +18,7 @@ import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.jobs.BibTexEntryUpgradeJob;
 import edu.ucsb.cs.citelines.jobs.BulkCitationUploadFromACMDLViewAllJob;
 import edu.ucsb.cs.citelines.jobs.CheckLinksJob;
+import edu.ucsb.cs.citelines.jobs.DuplicateDetectionJob;
 import edu.ucsb.cs.citelines.jobs.GetCitationsJob;
 import edu.ucsb.cs.citelines.jobs.GetReferencesJob;
 import edu.ucsb.cs.citelines.repository.ProjectCollaboratorRepository;
@@ -26,6 +27,7 @@ import edu.ucsb.cs.citelines.services.BibTexEntryUpgradeService;
 import edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllService;
 import edu.ucsb.cs.citelines.services.CheckLinksService;
 import edu.ucsb.cs.citelines.services.CitationGraphService;
+import edu.ucsb.cs.citelines.services.DuplicateDetectionService;
 import edu.ucsb.cs156.jobs.entities.Job;
 import edu.ucsb.cs156.jobs.repositories.JobsRepository;
 import edu.ucsb.cs156.jobs.services.JobService;
@@ -49,6 +51,7 @@ public class JobsControllerTests extends ControllerTestCase {
   @MockitoBean JobService jobService;
   @MockitoBean CitationGraphService citationGraphService;
   @MockitoBean CheckLinksService checkLinksService;
+  @MockitoBean DuplicateDetectionService duplicateDetectionService;
   @MockitoBean BibTexEntryUpgradeService bibTexEntryUpgradeService;
   @MockitoBean BulkCitationUploadFromACMDLViewAllService bulkCitationUploadFromACMDLViewAllService;
 
@@ -252,6 +255,66 @@ public class JobsControllerTests extends ControllerTestCase {
 
     mockMvc
         .perform(post("/api/jobs/launch/checkLinks?projectId=1").with(csrf()))
+        .andExpect(status().is(403));
+
+    verify(jobService, times(0)).runAsJob(any());
+  }
+
+  @Test
+  public void logged_out_users_cannot_launch_detectDuplicates() throws Exception {
+    mockMvc
+        .perform(post("/api/jobs/launch/detectDuplicates?projectId=1"))
+        .andExpect(status().is(403));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_launch_a_detectDuplicates_job() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    Job launchedJob = Job.builder().id(14L).jobName("DuplicateDetectionJob").build();
+    when(jobService.runAsJob(any(DuplicateDetectionJob.class))).thenReturn(launchedJob);
+
+    MvcResult response =
+        mockMvc
+            .perform(post("/api/jobs/launch/detectDuplicates?projectId=1").with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    assertEquals(
+        mapper.writeValueAsString(launchedJob), response.getResponse().getContentAsString());
+    verify(jobService, times(1)).runAsJob(any(DuplicateDetectionJob.class));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void launch_detectDuplicates_throws_not_found_for_nonexistent_project() throws Exception {
+    when(projectRepository.findById(1L)).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(post("/api/jobs/launch/detectDuplicates?projectId=1").with(csrf()))
+        .andExpect(status().isNotFound());
+
+    verify(jobService, times(0)).runAsJob(any());
+  }
+
+  @WithMockUser(
+      username = "stranger",
+      roles = {"USER"})
+  @Test
+  public void
+      a_stranger_cannot_launch_detectDuplicates_for_a_project_they_dont_own_or_collaborate_on()
+          throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(projectCollaboratorRepository.findAllByEmail(any())).thenReturn(List.of());
+
+    mockMvc
+        .perform(post("/api/jobs/launch/detectDuplicates?projectId=1").with(csrf()))
         .andExpect(status().is(403));
 
     verify(jobService, times(0)).runAsJob(any());

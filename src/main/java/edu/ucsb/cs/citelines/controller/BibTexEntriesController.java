@@ -10,11 +10,13 @@ import edu.ucsb.cs.citelines.repository.ProjectRepository;
 import edu.ucsb.cs.citelines.services.BibTexConverterService;
 import edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService;
 import edu.ucsb.cs.citelines.services.CitationFormattingService;
+import edu.ucsb.cs.citelines.services.CitationGraphService;
 import edu.ucsb.cs.citelines.services.DoiToBibTexService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,23 +61,28 @@ public class BibTexEntriesController extends ApiController {
 
   @Autowired private DoiToBibTexService doiToBibTexService;
 
+  @Autowired private CitationGraphService citationGraphService;
+
   /**
    * Parses pasted BibTeX text (which may contain more than one entry) and saves the resulting
    * entries. An entry whose citeKey already exists for this project updates that entry rather than
-   * creating a duplicate (see {@link #reuseExistingIdIfPresent}).
+   * creating a duplicate; failing that, an entry whose DOI already exists for this project (under a
+   * different citeKey) is reused as-is rather than creating a duplicate for the same paper — same
+   * "don't duplicate a DOI already in the project" rule {@link #postBibTexEntryByDoi} applies, just
+   * reached via a different entry point (see {@link #reuseExistingIdIfPresent} and issue #68).
    *
    * <p>If {@code relatedEntryId} and {@code relationship} are both provided, a {@link CitationEdge}
-   * is also recorded between {@code relatedEntryId} and each newly saved entry, so that a citation
-   * the external APIs failed to find can be entered manually from the BibTexEntryShowPage (see
-   * issue #24). When {@code relationship} is {@code "reference"} the related entry is treated as
-   * citing the new entries; when it is {@code "citation"} the new entries are treated as citing the
-   * related entry.
+   * is also recorded between {@code relatedEntryId} and each saved (or reused) entry, so that a
+   * citation the external APIs failed to find can be entered manually from the BibTexEntryShowPage
+   * (see issue #24). When {@code relationship} is {@code "reference"} the related entry is treated
+   * as citing the new entries; when it is {@code "citation"} the new entries are treated as citing
+   * the related entry.
    *
    * @param projectId the project the entries belong to
    * @param relatedEntryId the (Mongo) id of the entry to link the new entries to, if any
    * @param relationship {@code "reference"} or {@code "citation"}, if linking to a related entry
    * @param rawBibTex the pasted BibTeX text
-   * @return the saved entries
+   * @return the saved (or reused) entries
    */
   @Operation(summary = "Parse and save one or more BibTeX entries pasted for a project")
   @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
@@ -87,10 +94,26 @@ public class BibTexEntriesController extends ApiController {
       @RequestBody String rawBibTex) {
     validateRelationship(relatedEntryId, relationship);
 
-    List<BibTexEntry> entries =
+    List<BibTexEntry> parsedEntries =
         bibTexConverterService.parseToEntries(rawBibTex, projectId.intValue());
-    entries.forEach(entry -> reuseExistingIdIfPresent(projectId.intValue(), entry));
-    List<BibTexEntry> saved = bibTexEntryRepository.saveAll(entries);
+    CitationGraphService.ExistingEntries existingEntries =
+        citationGraphService.loadExistingEntries(projectId.intValue());
+
+    List<BibTexEntry> toSave = new ArrayList<>();
+    List<BibTexEntry> saved = new ArrayList<>();
+    for (BibTexEntry entry : parsedEntries) {
+      BibTexEntry reusedByDoi =
+          reuseExistingIdIfPresent(projectId.intValue(), entry, existingEntries);
+      if (reusedByDoi != null) {
+        saved.add(reusedByDoi);
+      } else {
+        toSave.add(entry);
+        saved.add(entry);
+      }
+    }
+    if (!toSave.isEmpty()) {
+      bibTexEntryRepository.saveAll(toSave);
+    }
 
     if (relatedEntryId != null && relationship != null) {
       for (BibTexEntry entry : saved) {
@@ -167,18 +190,43 @@ public class BibTexEntriesController extends ApiController {
   // If more than one entry is already stored for that citeKey (e.g. duplicates created before
   // this de-duplication existed), they are coalesced into a single entry first (via
   // BibTexEntryCoalescingService) so that assumption holds going forward.
-  private void reuseExistingIdIfPresent(int projectId, BibTexEntry entry) {
-    List<BibTexEntry> existing =
+  //
+  // Failing a citeKey match, the entry may still represent a paper already in the project under a
+  // *different* citeKey (e.g. pasted from a source that generated its own citeKey). Unlike the
+  // citeKey-match case, this is not treated as an intentional edit: the existing entry is returned
+  // as-is (not overwritten with the pasted entry's fields) — same "reuse rather than duplicate,
+  // don't touch what might already be reviewed/hand-edited" rule postBibTexEntryByDoi already
+  // applies (see issue #67) — and the caller skips saving the pasted entry at all.
+  //
+  // Returns null if the entry (possibly with its id now set to an existing citeKey match) should
+  // still be saved by the caller; otherwise returns the existing entry that should be reused
+  // in its place.
+  private BibTexEntry reuseExistingIdIfPresent(
+      int projectId, BibTexEntry entry, CitationGraphService.ExistingEntries existingEntries) {
+    List<BibTexEntry> existingByCiteKey =
         bibTexEntryRepository.findAllByProjectIdAndCiteKey(projectId, entry.getCiteKey());
-    if (existing.isEmpty()) {
-      return;
+    if (!existingByCiteKey.isEmpty()) {
+      BibTexEntry coalesced = bibTexEntryCoalescingService.coalesce(existingByCiteKey);
+      if (existingByCiteKey.size() > 1) {
+        List<BibTexEntry> duplicates =
+            existingByCiteKey.stream().filter(e -> e != coalesced).toList();
+        bibTexEntryRepository.deleteAll(duplicates);
+      }
+      entry.setId(coalesced.getId());
+      return null;
     }
-    BibTexEntry coalesced = bibTexEntryCoalescingService.coalesce(existing);
-    if (existing.size() > 1) {
-      List<BibTexEntry> duplicates = existing.stream().filter(e -> e != coalesced).toList();
-      bibTexEntryRepository.deleteAll(duplicates);
+
+    // entry came from bibTexConverterService.parseToEntries, which always sets a (possibly
+    // empty) keyValuePairs map, never null.
+    String doi = entry.getKeyValuePairs().get("doi");
+    if (doi != null) {
+      BibTexEntry existingByDoi = existingEntries.byDoi().get(doi);
+      if (existingByDoi != null) {
+        return existingByDoi;
+      }
+      existingEntries.byDoi().put(doi, entry);
     }
-    entry.setId(coalesced.getId());
+    return null;
   }
 
   private static CitationEdge makeCitationEdge(

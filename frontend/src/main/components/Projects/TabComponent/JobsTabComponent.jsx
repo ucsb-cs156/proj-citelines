@@ -57,6 +57,24 @@ export default function JobsTabComponent({
     upgradeBibTexEntriesMutation.mutate({});
   };
 
+  const detectDuplicatesMutation = useBackendMutation(
+    () => ({
+      url: "/api/jobs/launch/detectDuplicates",
+      method: "POST",
+      params: { projectId },
+    }),
+    {
+      onSuccess: () => {
+        toast("Detect Duplicates job launched — check below for progress.");
+        refetch();
+      },
+    },
+  );
+
+  const submitDetectDuplicates = async () => {
+    detectDuplicatesMutation.mutate({});
+  };
+
   return (
     <div
       data-testid={`${testIdPrefix}-JobsTabComponent`}
@@ -81,6 +99,16 @@ export default function JobsTabComponent({
                 callback={submitUpgradeBibTexEntries}
                 text={"Start"}
                 testid={`${testIdPrefix}-upgradeBibTexEntriesJob`}
+              />
+            </Accordion.Body>
+          </Accordion.Item>
+          <Accordion.Item eventKey="detectDuplicates">
+            <Accordion.Header>Detect Duplicates</Accordion.Header>
+            <Accordion.Body>
+              <SingleButtonJobForm
+                callback={submitDetectDuplicates}
+                text={"Start"}
+                testid={`${testIdPrefix}-detectDuplicatesJob`}
               />
             </Accordion.Body>
           </Accordion.Item>

@@ -137,4 +137,41 @@ describe("JobsTabComponent tests", () => {
       ).toBe(2),
     );
   });
+
+  test("clicking the Detect Duplicates Start button launches the job and refetches the job list", async () => {
+    axiosMock
+      .onGet("/api/jobs/project?projectId=1")
+      .reply(200, jobsFixtures.oneJob);
+    axiosMock
+      .onPost("/api/jobs/launch/detectDuplicates")
+      .reply(200, { id: 99, jobName: "DuplicateDetectionJob" });
+
+    renderTab();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("JobsTable-cell-row-0-col-jobName"),
+      ).toHaveTextContent("MembershipAuditJob");
+    });
+
+    fireEvent.click(
+      screen.getByTestId("JobsTabComponent-detectDuplicatesJob-job-submit"),
+    );
+
+    await waitFor(() =>
+      expect(
+        axiosMock.history.post.filter(
+          (r) => r.url === "/api/jobs/launch/detectDuplicates",
+        ).length,
+      ).toBe(1),
+    );
+
+    await waitFor(() =>
+      expect(
+        axiosMock.history.get.filter(
+          (r) => r.url === "/api/jobs/project?projectId=1",
+        ).length,
+      ).toBe(2),
+    );
+  });
 });

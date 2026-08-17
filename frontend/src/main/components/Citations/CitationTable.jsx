@@ -1,5 +1,5 @@
 import OurTable from "main/components/Common/OurTable";
-import { Button } from "react-bootstrap";
+import { Badge, Button } from "react-bootstrap";
 import { Link } from "react-router";
 import { useState } from "react";
 import { useBackendMutation } from "main/utils/useBackend";
@@ -7,11 +7,31 @@ import { toast } from "react-toastify";
 import Modal from "react-bootstrap/Modal";
 import BibTexEntryModal from "main/components/Citations/BibTexEntryModal";
 import { truncate } from "main/utils/truncate";
+import { getContrastTextColor } from "main/utils/colorUtils";
+import {
+  hasInvalidLinkFlag,
+  hasPossibleDuplicateFlag,
+} from "main/utils/duplicateFlags";
 
 const CITEKEY_MAX_LENGTH = 8;
 const AUTHOR_MAX_LENGTH = 15;
 const TITLE_MAX_LENGTH = 20;
-const WARNING_EMOJI = "\u26A0\uFE0F";
+const DUP_FLAG_COLOR = "#dc3545";
+const LINK_FLAG_COLOR = "#ffff00";
+
+function FlagBadge({ color, testId, children }) {
+  return (
+    <Badge
+      pill
+      bg={null}
+      style={{ backgroundColor: color, color: getContrastTextColor(color) }}
+      className="me-1"
+      data-testid={testId}
+    >
+      {children}
+    </Badge>
+  );
+}
 
 export default function CitationTable({
   citations,
@@ -62,6 +82,7 @@ export default function CitationTable({
     {
       header: "Cite Key",
       id: "citeKey",
+      accessorFn: (row) => row.citeKey ?? "",
       cell: ({ cell }) => (
         <Link
           to={`/project/${projectId}/bibtex/${cell.row.original.id}`}
@@ -72,13 +93,52 @@ export default function CitationTable({
       ),
     },
     {
+      // Debug/iteration aid (issue #68): flags entries the "Detect Duplicates" job has marked as
+      // possibly duplicating another entry, and entries the "Check Links" job has marked as
+      // having a broken DOI/URL. Not yet a finished UX — see issue #75 for the eventual
+      // duplicate-review workflow. Sortable (via accessorFn) so all flagged rows can be grouped
+      // to the top/bottom of the table.
+      header: "Flags",
+      id: "flags",
+      accessorFn: (row) =>
+        [
+          hasPossibleDuplicateFlag(row) ? "dup?" : null,
+          hasInvalidLinkFlag(row) ? "link?" : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      cell: ({ cell }) => {
+        const entry = cell.row.original;
+        return (
+          <>
+            {hasPossibleDuplicateFlag(entry) && (
+              <FlagBadge
+                color={DUP_FLAG_COLOR}
+                testId={`${testId}-cell-row-${cell.row.index}-col-flags-dup-badge`}
+              >
+                dup?
+              </FlagBadge>
+            )}
+            {hasInvalidLinkFlag(entry) && (
+              <FlagBadge
+                color={LINK_FLAG_COLOR}
+                testId={`${testId}-cell-row-${cell.row.index}-col-flags-link-badge`}
+              >
+                link?
+              </FlagBadge>
+            )}
+          </>
+        );
+      },
+    },
+    {
       header: "Link",
       id: "link",
+      accessorFn: (row) =>
+        row.keyValuePairs?.doi ? "doi" : row.keyValuePairs?.url ? "url" : "",
       cell: ({ cell }) => {
         const doi = cell.row.original.keyValuePairs?.doi;
         if (doi) {
-          const invalidDoi =
-            cell.row.original.keyValuePairs?.CITELINES_invalid_doi === "True";
           return (
             <a
               href={`https://doi.org/${doi}`}
@@ -86,14 +146,12 @@ export default function CitationTable({
               rel="noopener noreferrer"
               data-testid={`${testId}-cell-row-${cell.row.index}-col-doi-link`}
             >
-              doi{invalidDoi ? ` ${WARNING_EMOJI}` : ""}
+              doi
             </a>
           );
         }
         const url = cell.row.original.keyValuePairs?.url;
         if (url) {
-          const invalidUrl =
-            cell.row.original.keyValuePairs?.CITELINES_invalid_url === "True";
           return (
             <a
               href={url}
@@ -101,7 +159,7 @@ export default function CitationTable({
               rel="noopener noreferrer"
               data-testid={`${testId}-cell-row-${cell.row.index}-col-url-link`}
             >
-              url{invalidUrl ? ` ${WARNING_EMOJI}` : ""}
+              url
             </a>
           );
         }
