@@ -16,6 +16,7 @@ import {
 } from "react-bootstrap";
 import { toast } from "react-toastify";
 import CitationTable from "main/components/Citations/CitationTable";
+import AbstractEditModal from "main/components/Citations/AbstractEditModal";
 import BibTexEntryModal from "main/components/Citations/BibTexEntryModal";
 import BulkCitationUploadModal from "main/components/Citations/BulkCitationUploadModal";
 import BibTexEntryComments from "main/components/Citations/BibTexEntryComments";
@@ -32,11 +33,13 @@ import {
 
 const POSSIBLE_DUPLICATE_HEADER_COLOR = "#f8d7da";
 
-// The four independently-collapsible cards on this page (issue #38). Unlike a react-bootstrap
-// Accordion, any number of these may be open at once. `field` is the (lowercased, unprefixed)
+// The independently-collapsible cards on this page (issue #38, extended by issue #79). Unlike a
+// react-bootstrap Accordion, any number of these may be open at once. `field` is the (lowercased,
+// unprefixed)
 // preserved CITELINES_ field name used to persist each card's state onto the entry itself, e.g.
 // "card_bibtex" <-> CITELINES_card_bibtex = {Open|Closed}.
 const CARD_DEFS = [
+  { key: "abstract", field: "card_abstract", defaultOpen: false },
   { key: "bibtex", field: "card_bibtex", defaultOpen: true },
   { key: "comments", field: "card_comments", defaultOpen: false },
   { key: "references", field: "card_references", defaultOpen: false },
@@ -118,6 +121,7 @@ export default function BibTexEntryShowPage({
     useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showAbstractEditModal, setShowAbstractEditModal] = useState(false);
   // Debug-only card (issue #77): local, unpersisted state (unlike CARD_DEFS' cards) since this
   // is a temporary aid for actively developing/verifying backend schema changes, not a permanent
   // per-entry preference worth writing into CITELINES_ fields.
@@ -257,6 +261,11 @@ export default function BibTexEntryShowPage({
     (u) => u.direction === "citation",
   ).length;
 
+  const abstractText = entry?.keyValuePairs?.abstract ?? "";
+  const abstractWordCount = abstractText.trim()
+    ? abstractText.trim().split(/\s+/).length
+    : 0;
+
   const getReferencesMutation = useBackendMutation(
     () => ({
       url: "/api/jobs/launch/getReferences",
@@ -384,6 +393,14 @@ export default function BibTexEntryShowPage({
             projectId={projectId}
             entryToEdit={entry}
             mutationQueryKeys={[exportQueryKey, entryQueryKey]}
+          />
+          <AbstractEditModal
+            showModal={showAbstractEditModal}
+            toggleShowModal={setShowAbstractEditModal}
+            projectId={projectId}
+            entry={entry}
+            mutationQueryKeys={[entryQueryKey]}
+            testId={`${testId}-AbstractEditModal`}
           />
           <div className="d-flex justify-content-between align-items-start mb-3">
             <h1 data-testid={`${testId}-title`} className="h3 fw-semibold mb-0">
@@ -571,6 +588,25 @@ export default function BibTexEntryShowPage({
               </div>
             </Card.Body>
           </Card>
+
+          <CollapsibleCard
+            testId={`${testId}-AbstractCard`}
+            header={`Abstract (${abstractWordCount} words)`}
+            headerActions={
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={() => setShowAbstractEditModal(true)}
+                data-testid={`${testId}-abstract-edit-button`}
+              >
+                Edit
+              </Button>
+            }
+            isOpen={cardOpenState.abstract}
+            onToggle={() => toggleCard("abstract", "card_abstract")}
+          >
+            <div data-testid={`${testId}-abstract-text`}>{abstractText}</div>
+          </CollapsibleCard>
 
           <CollapsibleCard
             testId={`${testId}-BibtexCard`}
