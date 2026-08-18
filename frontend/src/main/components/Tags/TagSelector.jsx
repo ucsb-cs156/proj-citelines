@@ -1,5 +1,15 @@
-import { Badge, Dropdown, OverlayTrigger, Tooltip } from "react-bootstrap";
+import { useState } from "react";
+import {
+  Badge,
+  Button,
+  Dropdown,
+  OverlayTrigger,
+  Tooltip,
+} from "react-bootstrap";
+import { toast } from "react-toastify";
 import { getContrastTextColor } from "main/utils/colorUtils";
+import { useBackendMutation } from "main/utils/useBackend";
+import TagModal from "main/components/Tags/TagModal";
 
 const DEFAULT_TAG_COLOR = "#6c757d";
 
@@ -32,6 +42,38 @@ export default function TagSelector({
   const assignedIds = new Set(assignedTags.map((tag) => tag.id));
   const availableTags = allTags.filter((tag) => !assignedIds.has(tag.id));
 
+  const [showNewTagModal, setShowNewTagModal] = useState(false);
+
+  // Same query key TagsTabComponent uses for the project's tag list, so creating a tag here
+  // invalidates/refreshes it too, regardless of which page's useBackend call owns that query.
+  const tagsQueryKey = `/api/tags/project?projectId=${projectId}`;
+
+  const createTagMutation = useBackendMutation(
+    (tag) => ({
+      url: "/api/tags/post",
+      method: "POST",
+      params: {
+        projectId,
+        tag: tag.tag,
+        explanation: tag.explanation,
+        color: tag.color,
+      },
+    }),
+    {
+      onSuccess: () => {
+        toast("Tag successfully added.");
+        setShowNewTagModal(false);
+      },
+      onError: (error) => {
+        // Stryker disable next-line OptionalChaining : defensive coding for error shape
+        if (error.response?.data?.message)
+          toast(`Could not add tag:\n${error.response.data.message}`);
+        else toast(`Could not add tag:\n${error.message}`);
+      },
+    },
+    [tagsQueryKey],
+  );
+
   const withExplanationTooltip = (tag, tooltipId, children) => (
     <OverlayTrigger
       key={tag.id}
@@ -44,6 +86,12 @@ export default function TagSelector({
 
   return (
     <div data-testid={testId}>
+      <TagModal
+        showModal={showNewTagModal}
+        toggleShowModal={setShowNewTagModal}
+        onSubmitAction={(tag) => createTagMutation.mutate(tag)}
+        testId={`${testId}-TagModal`}
+      />
       <div
         className="d-flex flex-wrap align-items-center gap-2"
         data-testid={`${testId}-assigned-tags`}
@@ -121,6 +169,16 @@ export default function TagSelector({
               )}
             </Dropdown.Menu>
           </Dropdown>
+        )}
+        {canEdit && (
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            onClick={() => setShowNewTagModal(true)}
+            data-testid={`${testId}-new-tag-button`}
+          >
+            New Tag
+          </Button>
         )}
         <a
           href={`/project/${projectId}`}
