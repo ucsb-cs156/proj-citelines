@@ -119,8 +119,14 @@ public class TagsController extends ApiController {
     Tag tag =
         tagRepository.findById(id).orElseThrow(() -> new EntityNotFoundException(Tag.class, id));
 
-    tagRepository.delete(tag);
+    // Clean up the Mongo side first, then delete the Postgres row — not the other way around.
+    // @Transactional above only covers the Postgres delete (no MongoTransactionManager is
+    // configured, so it has no effect on the Mongo write below); if the Mongo cleanup failed
+    // *after* the tag was already deleted, BibTexEntry.tagIds could be left referencing a tag id
+    // that no longer exists. Doing the cleanup first means a failure there simply leaves the tag
+    // not-yet-deleted (safe to retry) instead of orphaning references (see issue #91).
     removeTagFromAllEntries(id, projectId);
+    tagRepository.delete(tag);
 
     return ResponseEntity.ok("Successfully deleted tag.");
   }
