@@ -25,9 +25,11 @@ import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
 import edu.ucsb.cs.citelines.config.ProjectSecurity;
 import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.entity.ProjectCollaborator;
+import edu.ucsb.cs.citelines.entity.Tag;
 import edu.ucsb.cs.citelines.errors.DoiNotFoundException;
 import edu.ucsb.cs.citelines.repository.ProjectCollaboratorRepository;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
+import edu.ucsb.cs.citelines.repository.TagRepository;
 import edu.ucsb.cs.citelines.services.BibTexConverterService;
 import edu.ucsb.cs.citelines.services.CitationGraphService;
 import edu.ucsb.cs.citelines.services.DOIService;
@@ -62,6 +64,7 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
   @MockitoBean CitationEdgeRepository citationEdgeRepository;
   @MockitoBean DoiToBibTexService doiToBibTexService;
   @MockitoBean CitationGraphService citationGraphService;
+  @MockitoBean TagRepository tagRepository;
 
   private static final String RAW_BIBTEX =
       """
@@ -1461,5 +1464,259 @@ public class BibTexEntriesControllerTests extends ControllerTestCase {
 
     verify(doiToBibTexService, never()).findExistingEntryForDoi(anyString(), anyInt());
     verify(citationEdgeRepository, never()).save(any());
+  }
+
+  // ---- Tags tests ----
+
+  @Test
+  public void logged_out_users_cannot_add_a_tag() throws Exception {
+    mockMvc
+        .perform(post("/api/bibtexentries/tags?id=abc123&projectId=1&tagId=5"))
+        .andExpect(status().is(403));
+  }
+
+  @Test
+  public void logged_out_users_cannot_remove_a_tag() throws Exception {
+    mockMvc
+        .perform(delete("/api/bibtexentries/tags?id=abc123&projectId=1&tagId=5"))
+        .andExpect(status().is(403));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_add_a_tag_to_an_entry_with_no_tagIds_yet() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    Tag tag = Tag.builder().id(5L).tag("method").project(project).build();
+    BibTexEntry existing = BibTexEntry.builder().id("abc123").projectId(1).citeKey("k").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+    when(tagRepository.findByIdAndProjectId(5L, 1L)).thenReturn(Optional.of(tag));
+    when(bibTexEntryRepository.save(any(BibTexEntry.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    MvcResult response =
+        mockMvc
+            .perform(post("/api/bibtexentries/tags?id=abc123&projectId=1&tagId=5").with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    org.mockito.ArgumentCaptor<BibTexEntry> captor =
+        org.mockito.ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository, times(1)).save(captor.capture());
+    assertEquals(List.of(5L), captor.getValue().getTagIds());
+
+    Map<String, Object> json = responseToJson(response);
+    assertEquals(List.of(5), json.get("tagIds"));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_add_a_second_tag_leaving_the_first_in_place() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    Tag tag = Tag.builder().id(7L).tag("results").project(project).build();
+    BibTexEntry existing =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .citeKey("k")
+            .tagIds(new java.util.ArrayList<>(List.of(5L)))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+    when(tagRepository.findByIdAndProjectId(7L, 1L)).thenReturn(Optional.of(tag));
+    when(bibTexEntryRepository.save(any(BibTexEntry.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(post("/api/bibtexentries/tags?id=abc123&projectId=1&tagId=7").with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<BibTexEntry> captor =
+        org.mockito.ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository, times(1)).save(captor.capture());
+    assertEquals(List.of(5L, 7L), captor.getValue().getTagIds());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void adding_a_tag_already_present_is_idempotent() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    Tag tag = Tag.builder().id(5L).tag("method").project(project).build();
+    BibTexEntry existing =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .citeKey("k")
+            .tagIds(new java.util.ArrayList<>(List.of(5L)))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+    when(tagRepository.findByIdAndProjectId(5L, 1L)).thenReturn(Optional.of(tag));
+    when(bibTexEntryRepository.save(any(BibTexEntry.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(post("/api/bibtexentries/tags?id=abc123&projectId=1&tagId=5").with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<BibTexEntry> captor =
+        org.mockito.ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository, times(1)).save(captor.capture());
+    assertEquals(List.of(5L), captor.getValue().getTagIds());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void add_tag_throws_not_found_for_nonexistent_entry() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("missing")).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(post("/api/bibtexentries/tags?id=missing&projectId=1&tagId=5").with(csrf()))
+        .andExpect(status().isNotFound());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void add_tag_throws_not_found_when_tag_does_not_belong_to_the_project() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existing = BibTexEntry.builder().id("abc123").projectId(1).citeKey("k").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+    when(tagRepository.findByIdAndProjectId(5L, 1L)).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(post("/api/bibtexentries/tags?id=abc123&projectId=1&tagId=5").with(csrf()))
+        .andExpect(status().isNotFound());
+
+    verify(bibTexEntryRepository, never()).save(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_remove_a_tag_from_an_entry() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existing =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .citeKey("k")
+            .tagIds(new java.util.ArrayList<>(List.of(5L, 7L)))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+    when(bibTexEntryRepository.save(any(BibTexEntry.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    MvcResult response =
+        mockMvc
+            .perform(delete("/api/bibtexentries/tags?id=abc123&projectId=1&tagId=5").with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    org.mockito.ArgumentCaptor<BibTexEntry> captor =
+        org.mockito.ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository, times(1)).save(captor.capture());
+    assertEquals(List.of(7L), captor.getValue().getTagIds());
+
+    Map<String, Object> json = responseToJson(response);
+    assertEquals(List.of(7), json.get("tagIds"));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void removing_a_tag_not_present_is_idempotent() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existing =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .citeKey("k")
+            .tagIds(new java.util.ArrayList<>(List.of(7L)))
+            .build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+    when(bibTexEntryRepository.save(any(BibTexEntry.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(delete("/api/bibtexentries/tags?id=abc123&projectId=1&tagId=5").with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<BibTexEntry> captor =
+        org.mockito.ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository, times(1)).save(captor.capture());
+    assertEquals(List.of(7L), captor.getValue().getTagIds());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void removing_a_tag_when_the_entry_has_no_tagIds_at_all_is_idempotent() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry existing = BibTexEntry.builder().id("abc123").projectId(1).citeKey("k").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("abc123")).thenReturn(Optional.of(existing));
+    when(bibTexEntryRepository.save(any(BibTexEntry.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(delete("/api/bibtexentries/tags?id=abc123&projectId=1&tagId=5").with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<BibTexEntry> captor =
+        org.mockito.ArgumentCaptor.forClass(BibTexEntry.class);
+    verify(bibTexEntryRepository, times(1)).save(captor.capture());
+    assertEquals(List.of(), captor.getValue().getTagIds());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void remove_tag_throws_not_found_for_nonexistent_entry() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findById("missing")).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(delete("/api/bibtexentries/tags?id=missing&projectId=1&tagId=5").with(csrf()))
+        .andExpect(status().isNotFound());
+  }
+
+  @WithMockUser(
+      username = "stranger",
+      roles = {"USER"})
+  @Test
+  public void a_stranger_cannot_add_or_remove_a_tag_for_a_project_they_dont_own_or_collaborate_on()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(projectCollaboratorRepository.findAllByEmail(any())).thenReturn(List.of());
+
+    mockMvc
+        .perform(post("/api/bibtexentries/tags?id=abc123&projectId=1&tagId=5").with(csrf()))
+        .andExpect(status().is(403));
+    mockMvc
+        .perform(delete("/api/bibtexentries/tags?id=abc123&projectId=1&tagId=5").with(csrf()))
+        .andExpect(status().is(403));
+
+    verify(bibTexEntryRepository, never()).save(any());
   }
 }

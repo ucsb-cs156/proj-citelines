@@ -1,5 +1,7 @@
 package edu.ucsb.cs.citelines.controller;
 
+import edu.ucsb.cs.citelines.collections.BibTexEntry;
+import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.entity.Tag;
 import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
@@ -7,6 +9,8 @@ import edu.ucsb.cs.citelines.repository.ProjectRepository;
 import edu.ucsb.cs.citelines.repository.TagRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +34,8 @@ public class TagsController extends ApiController {
   @Autowired private TagRepository tagRepository;
 
   @Autowired private ProjectRepository projectRepository;
+
+  @Autowired private BibTexEntryRepository bibTexEntryRepository;
 
   /**
    * This method adds a new tag to a project.
@@ -114,8 +120,28 @@ public class TagsController extends ApiController {
         tagRepository.findById(id).orElseThrow(() -> new EntityNotFoundException(Tag.class, id));
 
     tagRepository.delete(tag);
+    removeTagFromAllEntries(id, projectId);
 
     return ResponseEntity.ok("Successfully deleted tag.");
+  }
+
+  // MongoDB can't cascade-delete across the Postgres/Mongo boundary, so a deleted tag's id has to
+  // be explicitly stripped from every BibTexEntry.tagIds in the project that referenced it — the
+  // same kind of explicit cross-entity cleanup BibTexEntryCoalescingService performs elsewhere
+  // (see issue #71).
+  private void removeTagFromAllEntries(Long tagId, Long projectId) {
+    List<BibTexEntry> toUpdate = new ArrayList<>();
+    for (BibTexEntry entry : bibTexEntryRepository.findByProjectId(projectId.intValue())) {
+      if (entry.getTagIds() != null && entry.getTagIds().contains(tagId)) {
+        List<Long> tagIds = new ArrayList<>(entry.getTagIds());
+        tagIds.remove(tagId);
+        entry.setTagIds(tagIds);
+        toUpdate.add(entry);
+      }
+    }
+    if (!toUpdate.isEmpty()) {
+      bibTexEntryRepository.saveAll(toUpdate);
+    }
   }
 
   private void ensureTagIsUnique(Long projectId, String tag, Long idToIgnore) {

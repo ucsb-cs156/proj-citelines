@@ -5,8 +5,10 @@ import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs.citelines.collections.CitationEdge;
 import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
 import edu.ucsb.cs.citelines.entity.Project;
+import edu.ucsb.cs.citelines.entity.Tag;
 import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
+import edu.ucsb.cs.citelines.repository.TagRepository;
 import edu.ucsb.cs.citelines.services.BibTexConverterService;
 import edu.ucsb.cs.citelines.services.BibTexEntryCoalescingService;
 import edu.ucsb.cs.citelines.services.CitationFormattingService;
@@ -14,7 +16,6 @@ import edu.ucsb.cs.citelines.services.CitationGraphService;
 import edu.ucsb.cs.citelines.services.DoiToBibTexService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,7 +43,7 @@ import org.springframework.web.bind.annotation.RestController;
  * jointly manage other project content) — only managing the collaborator list itself is owner-only
  * (see ProjectCollaboratorsController).
  */
-@Tag(name = "BibTexEntries")
+@io.swagger.v3.oas.annotations.tags.Tag(name = "BibTexEntries")
 @RequestMapping("/api/bibtexentries")
 @RestController
 @Slf4j
@@ -63,6 +64,8 @@ public class BibTexEntriesController extends ApiController {
   @Autowired private DoiToBibTexService doiToBibTexService;
 
   @Autowired private CitationGraphService citationGraphService;
+
+  @Autowired private TagRepository tagRepository;
 
   /**
    * Parses pasted BibTeX text (which may contain more than one entry) and saves the resulting
@@ -468,6 +471,57 @@ public class BibTexEntriesController extends ApiController {
     return bibTexEntryRepository.save(entry);
   }
 
+  /**
+   * Associates a tag with a BibTeX entry, if not already associated (idempotent). The tag must
+   * belong to the same project as the entry (see issue #71).
+   *
+   * @param id the id of the entry to update
+   * @param projectId the project the entry (and tag) belong to
+   * @param tagId the id of the tag to add
+   * @return the updated entry
+   */
+  @Operation(summary = "Add a tag to a BibTeX entry")
+  @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
+  @PostMapping("/tags")
+  public BibTexEntry addTag(
+      @Parameter(name = "id") @RequestParam String id,
+      @Parameter(name = "projectId") @RequestParam Long projectId,
+      @Parameter(name = "tagId") @RequestParam Long tagId) {
+    BibTexEntry entry = findEntryOrThrow(id);
+    tagRepository
+        .findByIdAndProjectId(tagId, projectId)
+        .orElseThrow(() -> new EntityNotFoundException(Tag.class, tagId));
+
+    List<Long> tagIds = mutableTagIds(entry);
+    if (!tagIds.contains(tagId)) {
+      tagIds.add(tagId);
+    }
+    entry.setTagIds(tagIds);
+    return bibTexEntryRepository.save(entry);
+  }
+
+  /**
+   * Removes a tag from a BibTeX entry, if currently associated (idempotent).
+   *
+   * @param id the id of the entry to update
+   * @param projectId the project the entry belongs to
+   * @param tagId the id of the tag to remove
+   * @return the updated entry
+   */
+  @Operation(summary = "Remove a tag from a BibTeX entry")
+  @PreAuthorize("@ProjectSecurity.hasManagePermissions(#root, #projectId)")
+  @DeleteMapping("/tags")
+  public BibTexEntry removeTag(
+      @Parameter(name = "id") @RequestParam String id,
+      @Parameter(name = "projectId") @RequestParam Long projectId,
+      @Parameter(name = "tagId") @RequestParam Long tagId) {
+    BibTexEntry entry = findEntryOrThrow(id);
+    List<Long> tagIds = mutableTagIds(entry);
+    tagIds.remove(tagId);
+    entry.setTagIds(tagIds);
+    return bibTexEntryRepository.save(entry);
+  }
+
   private BibTexEntry findEntryOrThrow(String id) {
     return bibTexEntryRepository
         .findById(id)
@@ -480,6 +534,12 @@ public class BibTexEntriesController extends ApiController {
     return entry.getKeyValuePairs() == null
         ? new HashMap<>()
         : new HashMap<>(entry.getKeyValuePairs());
+  }
+
+  // A mutable copy of the entry's tagIds, so callers can add/remove ids without depending on
+  // whatever List implementation MongoDB's deserializer happened to produce.
+  private static List<Long> mutableTagIds(BibTexEntry entry) {
+    return entry.getTagIds() == null ? new ArrayList<>() : new ArrayList<>(entry.getTagIds());
   }
 
   /**

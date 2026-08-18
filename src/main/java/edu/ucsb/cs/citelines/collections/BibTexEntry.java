@@ -36,4 +36,10 @@ public class BibTexEntry {
   // empty for an entry not currently believed to be part of a duplicate group.
   private List<String> possibleDuplicateIds;
   private String possibleDuplicateReason;
+
+  // The ids of Tag entities (a Postgres entity, see entity/Tag.java) associated with this entry.
+  // Tag lives in Postgres and this in MongoDB, so this is a plain, unenforced cross-database
+  // reference — the same pattern already used by projectId above (see issue #71). Null/empty for
+  // an entry with no tags.
+  private List<Long> tagIds;
 }
