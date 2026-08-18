@@ -3,7 +3,7 @@ import { useBackend } from "main/utils/useBackend";
 
 import BasicLayout from "main/layouts/BasicLayout/BasicLayout";
 import { useCurrentUser, hasRole } from "main/utils/currentUser";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 
 import Modal from "react-bootstrap/Modal";
 import { Button, Tab, Tabs } from "react-bootstrap";
@@ -13,12 +13,24 @@ import JobsTabComponent from "main/components/Projects/TabComponent/JobsTabCompo
 import TagsTabComponent from "main/components/Tags/TabComponent/TagsTabComponent";
 import { GraphIcon } from "main/components/Common/Icons";
 
+// The tab names used both as react-bootstrap's Tab eventKeys and as the ?tab= query
+// parameter's value, e.g. /project/4?tab=Tags (see issue #86) — using the same string for both
+// means no separate name<->key mapping is needed.
+const TAB_NAMES = ["Citations", "Jobs", "Collaborators", "Tags"];
+const DEFAULT_TAB = "Citations";
+
 export default function ResearcherProjectShowPage({
   testId = "ResearcherProjectShowPage",
 }) {
   const currentUser = useCurrentUser();
   const projectId = useParams().id;
   const [showErrorModal, setShowErrorModal] = useState(false);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const activeTab = TAB_NAMES.includes(requestedTab)
+    ? requestedTab
+    : DEFAULT_TAB;
 
   const {
     data: project,
@@ -89,21 +101,28 @@ export default function ResearcherProjectShowPage({
             </p>
           </div>
 
-          <Tabs defaultActiveKey={"citations"}>
-            <Tab eventKey={"citations"} title={"Citations"} className="pt-2">
+          <Tabs
+            activeKey={activeTab}
+            onSelect={(tab) => {
+              if (tab) {
+                setSearchParams({ tab }, { replace: true });
+              }
+            }}
+          >
+            <Tab eventKey={"Citations"} title={"Citations"} className="pt-2">
               <CitationsTabComponent
                 projectId={projectId}
                 testIdPrefix={`${testId}-Citations`}
               />
             </Tab>
-            <Tab eventKey={"jobs"} title={"Jobs"} className="pt-2">
+            <Tab eventKey={"Jobs"} title={"Jobs"} className="pt-2">
               <JobsTabComponent
                 projectId={projectId}
                 testIdPrefix={`${testId}-Jobs`}
               />
             </Tab>
             <Tab
-              eventKey={"collaborators"}
+              eventKey={"Collaborators"}
               title={"Collaborators"}
               className="pt-2"
             >
@@ -113,7 +132,7 @@ export default function ResearcherProjectShowPage({
                 isOwner={isOwner}
               />
             </Tab>
-            <Tab eventKey={"tags"} title={"Tags"} className="pt-2">
+            <Tab eventKey={"Tags"} title={"Tags"} className="pt-2">
               <TagsTabComponent
                 projectId={projectId}
                 testIdPrefix={`${testId}-Tags`}

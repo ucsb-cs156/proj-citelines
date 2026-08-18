@@ -233,12 +233,12 @@ describe("TagSelector tests", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("manage tags link points to the project page and opens in a new tab", () => {
+  test("manage tags link points to the project page's Tags tab and opens in a new tab", () => {
     renderTagSelector({ allTags, assignedTags: [], projectId: 17 });
 
     const link = screen.getByTestId("TagSelector-manage-tags-link");
     expect(link).toHaveTextContent("Manage Tags");
-    expect(link).toHaveAttribute("href", "/project/17");
+    expect(link).toHaveAttribute("href", "/project/17?tab=Tags");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
