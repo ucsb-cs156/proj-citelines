@@ -316,6 +316,47 @@ describe("BibTexEntryShowPage tests", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("shows tags as pill badges in the References and Citations read-only tables", async () => {
+    axiosMock.reset();
+    axiosMock
+      .onGet("/api/bibtexentries/entry")
+      .reply(200, bibTexEntriesFixtures.oneEntry);
+    axiosMock
+      .onGet("/api/bibtexentries/export")
+      .reply(200, "@article{smith2020,\n  title = {A Very Long Title}\n}\n");
+    axiosMock.onGet("/api/citationedges/references").reply(200, [
+      {
+        ...bibTexEntriesFixtures.threeEntries[1],
+        tagIds: [tagsFixtures.threeTags[0].id],
+      },
+    ]);
+    axiosMock.onGet("/api/citationedges/citations").reply(200, [
+      {
+        ...bibTexEntriesFixtures.threeEntries[2],
+        tagIds: [tagsFixtures.threeTags[1].id],
+      },
+    ]);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
+    axiosMock
+      .onGet("/api/tags/project?projectId=1")
+      .reply(200, tagsFixtures.threeTags);
+
+    renderAtSmith2020();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          `BibTexEntryShowPage-ReferencesTable-cell-row-0-col-tags-${tagsFixtures.threeTags[0].id}-badge`,
+        ),
+      ).toHaveTextContent(tagsFixtures.threeTags[0].tag);
+    });
+    expect(
+      screen.getByTestId(
+        `BibTexEntryShowPage-CitationsTable-cell-row-0-col-tags-${tagsFixtures.threeTags[1].id}-badge`,
+      ),
+    ).toHaveTextContent(tagsFixtures.threeTags[1].tag);
+  });
+
   test("shows no unresolved badge when there are no unresolved citations", async () => {
     renderAtSmith2020();
 

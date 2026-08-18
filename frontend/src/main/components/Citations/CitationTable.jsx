@@ -18,6 +18,7 @@ const AUTHOR_MAX_LENGTH = 15;
 const TITLE_MAX_LENGTH = 20;
 const DUP_FLAG_COLOR = "#dc3545";
 const LINK_FLAG_COLOR = "#ffff00";
+const DEFAULT_TAG_COLOR = "#6c757d";
 
 function FlagBadge({ color, testId, children }) {
   return (
@@ -33,11 +34,28 @@ function FlagBadge({ color, testId, children }) {
   );
 }
 
+// Matches TagSelector's TagPill exactly (issue #87) — tags are shown the same way everywhere.
+function TagPill({ tag, testId }) {
+  const color = tag.color || DEFAULT_TAG_COLOR;
+  return (
+    <Badge
+      pill
+      bg={null}
+      style={{ backgroundColor: color, color: getContrastTextColor(color) }}
+      className="me-1"
+      data-testid={testId}
+    >
+      {tag.tag}
+    </Badge>
+  );
+}
+
 export default function CitationTable({
   citations,
   projectId,
   testId = "CitationTable",
   readOnly = false,
+  allTags = [],
   mutationQueryKeys = [`/api/bibtexentries/project?projectId=${projectId}`],
 }) {
   const [showEditModal, setShowEditModal] = useState(false);
@@ -127,6 +145,28 @@ export default function CitationTable({
                 link?
               </FlagBadge>
             )}
+          </>
+        );
+      },
+    },
+    {
+      header: "Tags",
+      id: "tags",
+      cell: ({ cell }) => {
+        const entry = cell.row.original;
+        const assignedTagIds = new Set(entry.tagIds ?? []);
+        const assignedTags = allTags.filter((tag) =>
+          assignedTagIds.has(tag.id),
+        );
+        return (
+          <>
+            {assignedTags.map((tag) => (
+              <TagPill
+                key={tag.id}
+                tag={tag}
+                testId={`${testId}-cell-row-${cell.row.index}-col-tags-${tag.id}-badge`}
+              />
+            ))}
           </>
         );
       },
