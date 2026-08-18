@@ -181,7 +181,7 @@ export default function TagSelector({
           </Button>
         )}
         <a
-          href={`/project/${projectId}`}
+          href={`/project/${projectId}?tab=Tags`}
           target="_blank"
           rel="noopener noreferrer"
           data-testid={`${testId}-manage-tags-link`}

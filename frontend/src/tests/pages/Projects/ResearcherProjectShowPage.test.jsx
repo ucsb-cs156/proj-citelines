@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router";
 import axios from "axios";
@@ -13,16 +13,38 @@ import bibTexEntriesFixtures from "fixtures/bibTexEntriesFixtures";
 import { jobsFixtures } from "fixtures/jobsFixtures";
 import { tagsFixtures } from "fixtures/tagsFixtures";
 
-function renderAtProject1(queryClient = new QueryClient()) {
+function renderAtProject1(
+  queryClient = new QueryClient(),
+  initialPath = "/project/1",
+) {
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/project/1"]}>
+      <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
           <Route path="/project/:id" element={<ResearcherProjectShowPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
+}
+
+function mockAllProjectTabData(axiosMock) {
+  axiosMock
+    .onGet("/api/currentUser")
+    .reply(200, apiCurrentUserFixtures.researcherUser);
+  axiosMock.onGet("/api/projects/1").reply(200, projectsFixtures.oneProject);
+  axiosMock
+    .onGet("/api/projectcollaborators/project?projectId=1")
+    .reply(200, projectCollaboratorsFixtures.threeCollaborators);
+  axiosMock
+    .onGet("/api/bibtexentries/project?projectId=1")
+    .reply(200, bibTexEntriesFixtures.threeEntries);
+  axiosMock
+    .onGet("/api/jobs/project?projectId=1")
+    .reply(200, jobsFixtures.threeJobs);
+  axiosMock
+    .onGet("/api/tags/project?projectId=1")
+    .reply(200, tagsFixtures.threeTags);
 }
 
 describe("ResearcherProjectShowPage tests", () => {
@@ -156,5 +178,89 @@ describe("ResearcherProjectShowPage tests", () => {
     await waitFor(() => {
       expect(screen.getByText("Project Not Found")).toBeInTheDocument();
     });
+  });
+
+  test("opening the page with ?tab=Tags shows the Tags tab as active", async () => {
+    mockAllProjectTabData(axiosMock);
+
+    renderAtProject1(new QueryClient(), "/project/1?tab=Tags");
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Tags" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+    });
+    expect(screen.getByRole("tab", { name: "Citations" })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
+  });
+
+  test("opening the page with ?tab=Jobs shows the Jobs tab as active", async () => {
+    mockAllProjectTabData(axiosMock);
+
+    renderAtProject1(new QueryClient(), "/project/1?tab=Jobs");
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Jobs" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+    });
+    expect(
+      screen.getByTestId("ResearcherProjectShowPage-Jobs-refresh-button"),
+    ).toBeInTheDocument();
+  });
+
+  test("opening the page with ?tab=Collaborators shows the Collaborators tab as active", async () => {
+    mockAllProjectTabData(axiosMock);
+
+    renderAtProject1(new QueryClient(), "/project/1?tab=Collaborators");
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("tab", { name: "Collaborators" }),
+      ).toHaveAttribute("aria-selected", "true");
+    });
+  });
+
+  test("an unrecognized ?tab= value falls back to the default Citations tab", async () => {
+    mockAllProjectTabData(axiosMock);
+
+    renderAtProject1(new QueryClient(), "/project/1?tab=Bogus");
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Citations" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+    });
+  });
+
+  test("clicking a tab makes it active (and, per issue #86, updates the ?tab= query parameter)", async () => {
+    mockAllProjectTabData(axiosMock);
+
+    renderAtProject1();
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Citations" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+    });
+
+    fireEvent.click(screen.getByRole("tab", { name: "Tags" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("tab", { name: "Tags" })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+    });
+    expect(screen.getByRole("tab", { name: "Citations" })).toHaveAttribute(
+      "aria-selected",
+      "false",
+    );
   });
 });
