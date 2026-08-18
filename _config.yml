@@ -20,4 +20,4 @@ repo_name: "TBD"
 repo: ucsb-cs156/proj-citelines
 owner: ucsb-cs156
 repo_name: proj-citelines
-pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue91-tag-delete-ordering","number":92,"title":"Ensure a failed tag delete never orphans BibTexEntry.tagIds (issue #91)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/92"},{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue86-tab-navigation","number":89,"title":"Allow deep-linking to a tab on ResearcherProjectShowPage (issue #86)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/89"}]
+pull_requests: []
