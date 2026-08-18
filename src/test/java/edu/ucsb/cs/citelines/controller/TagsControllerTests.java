@@ -355,6 +355,38 @@ public class TagsControllerTests extends ControllerTestCase {
       username = "phtcon",
       roles = {"RESEARCHER"})
   @Test
+  public void a_failure_cleaning_up_mongo_references_leaves_the_tag_undeleted() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    Tag tag = Tag.builder().id(5L).tag("method").explanation("desc").project(project).build();
+    BibTexEntry taggedEntry =
+        BibTexEntry.builder()
+            .id("abc123")
+            .projectId(1)
+            .citeKey("k1")
+            .tagIds(new java.util.ArrayList<>(List.of(5L)))
+            .build();
+    when(tagRepository.findById(5L)).thenReturn(Optional.of(tag));
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(taggedEntry));
+    when(bibTexEntryRepository.saveAll(any())).thenThrow(new RuntimeException("Mongo is down"));
+
+    // No @ExceptionHandler covers a generic RuntimeException, so it propagates out of MockMvc as
+    // a ServletException wrapping it, rather than becoming a response with a status to assert on.
+    jakarta.servlet.ServletException thrown =
+        org.junit.jupiter.api.Assertions.assertThrows(
+            jakarta.servlet.ServletException.class,
+            () -> mockMvc.perform(delete("/api/tags/delete?id=5&projectId=1").with(csrf())));
+    assertEquals("Mongo is down", thrown.getCause().getMessage());
+
+    // The whole point of doing Mongo cleanup before the Postgres delete (see issue #91): if the
+    // cleanup fails, the tag must NOT be deleted, so no BibTexEntry.tagIds is ever left
+    // referencing a tag id that no longer exists.
+    verify(tagRepository, never()).delete(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
   public void delete_throws_not_found_for_nonexistent_tag() throws Exception {
     when(tagRepository.findById(999L)).thenReturn(Optional.empty());
 
