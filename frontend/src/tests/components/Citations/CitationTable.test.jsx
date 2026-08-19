@@ -7,6 +7,7 @@ import AxiosMockAdapter from "axios-mock-adapter";
 
 import CitationTable from "main/components/Citations/CitationTable";
 import bibTexEntriesFixtures from "fixtures/bibTexEntriesFixtures";
+import { tagsFixtures } from "fixtures/tagsFixtures";
 
 const mockToast = vi.fn();
 vi.mock("react-toastify", async (importOriginal) => {
@@ -46,6 +47,7 @@ describe("CitationTable tests", () => {
     [
       "citeKey",
       "flags",
+      "tags",
       "link",
       "year",
       "author",
@@ -177,6 +179,63 @@ describe("CitationTable tests", () => {
     expect(
       screen.getByTestId("CitationTable-cell-row-0-col-flags-link-badge"),
     ).toBeInTheDocument();
+  });
+
+  test("the Tags column is empty when the entry has no tagIds", () => {
+    renderTable({
+      citations: [bibTexEntriesFixtures.threeEntries[0]],
+      allTags: tagsFixtures.threeTags,
+    });
+
+    expect(
+      screen.queryByTestId(
+        `CitationTable-cell-row-0-col-tags-${tagsFixtures.threeTags[0].id}-badge`,
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the Tags column shows a pill badge, in the assigned color, for each assigned tag", () => {
+    const taggedEntry = {
+      ...bibTexEntriesFixtures.threeEntries[0],
+      tagIds: [tagsFixtures.threeTags[0].id, tagsFixtures.threeTags[2].id],
+    };
+    renderTable({
+      citations: [taggedEntry],
+      allTags: tagsFixtures.threeTags,
+    });
+
+    const badge0 = screen.getByTestId(
+      `CitationTable-cell-row-0-col-tags-${tagsFixtures.threeTags[0].id}-badge`,
+    );
+    expect(badge0).toHaveTextContent(tagsFixtures.threeTags[0].tag);
+    expect(badge0).toHaveStyle(
+      `background-color: ${tagsFixtures.threeTags[0].color}`,
+    );
+
+    const badge2 = screen.getByTestId(
+      `CitationTable-cell-row-0-col-tags-${tagsFixtures.threeTags[2].id}-badge`,
+    );
+    expect(badge2).toHaveTextContent(tagsFixtures.threeTags[2].tag);
+
+    expect(
+      screen.queryByTestId(
+        `CitationTable-cell-row-0-col-tags-${tagsFixtures.threeTags[1].id}-badge`,
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the Tags column is empty when allTags is not provided, even if the entry has tagIds", () => {
+    const taggedEntry = {
+      ...bibTexEntriesFixtures.threeEntries[0],
+      tagIds: [tagsFixtures.threeTags[0].id],
+    };
+    renderTable({ citations: [taggedEntry] });
+
+    expect(
+      screen.queryByTestId(
+        `CitationTable-cell-row-0-col-tags-${tagsFixtures.threeTags[0].id}-badge`,
+      ),
+    ).not.toBeInTheDocument();
   });
 
   test("the Link column no longer shows a warning emoji for an invalid doi", () => {

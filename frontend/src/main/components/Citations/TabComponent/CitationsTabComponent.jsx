@@ -22,6 +22,15 @@ export default function CitationsTabComponent({
     true,
   );
 
+  const tagsQueryKey = `/api/tags/project?projectId=${projectId}`;
+  const { data: allTags } = useBackend(
+    [tagsQueryKey],
+    // Stryker disable next-line StringLiteral : GET and empty string are equivalent
+    { method: "GET", url: tagsQueryKey },
+    [],
+    true,
+  );
+
   return (
     <div
       data-testid={`${testIdPrefix}-CitationsTabComponent`}
@@ -60,6 +69,7 @@ export default function CitationsTabComponent({
           citations={citations}
           projectId={projectId}
           testId={`${testIdPrefix}-CitationTable`}
+          allTags={allTags}
           mutationQueryKeys={[queryKey]}
         />
       </Row>

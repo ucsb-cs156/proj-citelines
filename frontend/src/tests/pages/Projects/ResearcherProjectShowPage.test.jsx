@@ -124,7 +124,7 @@ describe("ResearcherProjectShowPage tests", () => {
       ).toHaveTextContent("MembershipAuditJob");
     });
 
-    expect(screen.getByText("Tags")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Tags" })).toBeInTheDocument();
     await waitFor(() => {
       expect(
         screen.getByTestId(

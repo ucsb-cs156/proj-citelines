@@ -7,6 +7,7 @@ import AxiosMockAdapter from "axios-mock-adapter";
 
 import CitationsTabComponent from "main/components/Citations/TabComponent/CitationsTabComponent";
 import bibTexEntriesFixtures from "fixtures/bibTexEntriesFixtures";
+import { tagsFixtures } from "fixtures/tagsFixtures";
 
 const mockToast = vi.fn();
 vi.mock("react-toastify", async (importOriginal) => {
@@ -37,6 +38,7 @@ describe("CitationsTabComponent tests", () => {
     axiosMock
       .onGet("/api/bibtexentries/project?projectId=1")
       .reply(200, bibTexEntriesFixtures.threeEntries);
+    axiosMock.onGet("/api/tags/project?projectId=1").reply(200, []);
   });
 
   test("renders the Add Citation via BibTex and Add Citation via DOI buttons, and the citation table", async () => {
@@ -55,6 +57,28 @@ describe("CitationsTabComponent tests", () => {
           "CitationsTabComponent-CitationTable-cell-row-0-col-citeKey",
         ),
       ).toHaveTextContent("smith202...");
+    });
+  });
+
+  test("fetches the project's tags and shows them as pill badges in the CitationTable", async () => {
+    axiosMock.onGet("/api/bibtexentries/project?projectId=1").reply(200, [
+      {
+        ...bibTexEntriesFixtures.threeEntries[0],
+        tagIds: [tagsFixtures.threeTags[0].id],
+      },
+    ]);
+    axiosMock
+      .onGet("/api/tags/project?projectId=1")
+      .reply(200, tagsFixtures.threeTags);
+
+    renderTab();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          `CitationsTabComponent-CitationTable-cell-row-0-col-tags-${tagsFixtures.threeTags[0].id}-badge`,
+        ),
+      ).toHaveTextContent(tagsFixtures.threeTags[0].tag);
     });
   });
 

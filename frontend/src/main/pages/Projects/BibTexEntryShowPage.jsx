@@ -729,6 +729,7 @@ export default function BibTexEntryShowPage({
               citations={references}
               projectId={projectId}
               testId={`${testId}-ReferencesTable`}
+              allTags={allTags}
             />
           </CollapsibleCard>
 
@@ -755,6 +756,7 @@ export default function BibTexEntryShowPage({
               citations={citations}
               projectId={projectId}
               testId={`${testId}-CitationsTable`}
+              allTags={allTags}
             />
           </CollapsibleCard>
 
