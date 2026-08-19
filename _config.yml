@@ -20,4 +20,4 @@ repo_name: "TBD"
 repo: ucsb-cs156/proj-citelines
 owner: ucsb-cs156
 repo_name: proj-citelines
-pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue87-tags-column","number":93,"title":"Add a Tags column to CitationTable (issue #87)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/93"}]
+pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue88-optional-tag-tooltip","number":95,"title":"Make Tag description optional, and a tooltip everywhere a tag appears (issue #88)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/95"},{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue87-tags-column","number":93,"title":"Add a Tags column to CitationTable (issue #87)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/93"}]
