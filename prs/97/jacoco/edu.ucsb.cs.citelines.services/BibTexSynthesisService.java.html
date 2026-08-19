@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BibTexSynthesisService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">BibTexSynthesisService.java</span></div><h1>BibTexSynthesisService.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.springframework.stereotype.Service;
+
+/**
+ * Builds a raw BibTeX string from a {@link ResolvedWork}, so it can be fed through the existing,
+ * already-tested {@link BibTexConverterService#parseToEntries} rather than hand-building a {@link
+ * edu.ucsb.cs.citelines.collections.BibTexEntry} and duplicating its validation/normalization.
+ *
+ * &lt;p&gt;Field values are passed through {@link LaTeXNormalizationService} (some upstream bibliographic
+ * data — especially older ACM/IEEE deposits — carries literal LaTeX escapes like {@code
+ * Schr{\&quot;o}der} even in an otherwise-JSON API response) and any leftover stray {@code {}/{}}
+ * characters are stripped. See {@code docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md}.
+ */
+@Service
+public class BibTexSynthesisService {
+
+<span class="fc" id="L22">  private static final Map&lt;String, String&gt; ENTRY_TYPE_MAP =</span>
+<span class="fc" id="L23">      Map.of(</span>
+          &quot;article&quot;, &quot;article&quot;,
+          &quot;proceedings-article&quot;, &quot;inproceedings&quot;,
+          &quot;book-chapter&quot;, &quot;incollection&quot;,
+          &quot;book&quot;, &quot;book&quot;,
+          &quot;dissertation&quot;, &quot;phdthesis&quot;,
+          &quot;report&quot;, &quot;techreport&quot;);
+
+  // Which of the newly-synthesizable fields make sense for which entry type — e.g. an ISBN
+  // belongs to the book/proceedings volume an inproceedings paper appeared in, not to the paper
+  // itself, so it's never emitted for a plain article. An entry type not covered by one of these
+  // sets (including the &quot;misc&quot; fallback for anything ENTRY_TYPE_MAP doesn't recognize) simply
+  // never gets that field.
+<span class="fc" id="L36">  private static final Set&lt;String&gt; HAS_PAGES = Set.of(&quot;article&quot;, &quot;inproceedings&quot;, &quot;incollection&quot;);</span>
+<span class="fc" id="L37">  private static final Set&lt;String&gt; HAS_PUBLISHER_OR_ADDRESS =</span>
+<span class="fc" id="L38">      Set.of(&quot;inproceedings&quot;, &quot;book&quot;, &quot;incollection&quot;, &quot;techreport&quot;, &quot;phdthesis&quot;);</span>
+<span class="fc" id="L39">  private static final Set&lt;String&gt; HAS_ISBN_OR_SERIES =</span>
+<span class="fc" id="L40">      Set.of(&quot;inproceedings&quot;, &quot;book&quot;, &quot;incollection&quot;);</span>
+<span class="fc" id="L41">  private static final Set&lt;String&gt; HAS_VOLUME = Set.of(&quot;article&quot;, &quot;book&quot;, &quot;incollection&quot;);</span>
+<span class="fc" id="L42">  private static final Set&lt;String&gt; HAS_NUMBER = Set.of(&quot;article&quot;, &quot;techreport&quot;);</span>
+
+  private final LaTeXNormalizationService laTeXNormalizationService;
+
+<span class="fc" id="L46">  public BibTexSynthesisService(LaTeXNormalizationService laTeXNormalizationService) {</span>
+<span class="fc" id="L47">    this.laTeXNormalizationService = laTeXNormalizationService;</span>
+<span class="fc" id="L48">  }</span>
+
+  /**
+   * Builds a raw BibTeX string for the given work, using {@code citeKey} as its citation key.
+   *
+   * @throws IllegalArgumentException if the work has no title
+   */
+  public String synthesizeRawBibTex(ResolvedWork work, String citeKey) {
+<span class="fc bfc" id="L56" title="All 4 branches covered.">    if (work.title() == null || work.title().isBlank()) {</span>
+<span class="fc" id="L57">      throw new IllegalArgumentException(&quot;Cannot synthesize a BibTeX entry without a title.&quot;);</span>
+    }
+
+<span class="fc" id="L60">    String entryType = ENTRY_TYPE_MAP.getOrDefault(work.type(), &quot;misc&quot;);</span>
+
+<span class="fc" id="L62">    StringBuilder bibtex = new StringBuilder();</span>
+<span class="fc" id="L63">    bibtex.append(&quot;@&quot;).append(entryType).append(&quot;{&quot;).append(citeKey).append(&quot;,\n&quot;);</span>
+<span class="fc" id="L64">    bibtex.append(&quot;  title = {&quot;).append(sanitize(work.title())).append(&quot;},\n&quot;);</span>
+<span class="fc bfc" id="L65" title="All 4 branches covered.">    if (work.authorNames() != null &amp;&amp; !work.authorNames().isEmpty()) {</span>
+<span class="fc" id="L66">      bibtex.append(&quot;  author = {&quot;).append(formatAuthors(work.authorNames())).append(&quot;},\n&quot;);</span>
+    }
+<span class="fc bfc" id="L68" title="All 2 branches covered.">    if (work.year() != null) {</span>
+<span class="fc" id="L69">      bibtex.append(&quot;  year = {&quot;).append(work.year()).append(&quot;},\n&quot;);</span>
+    }
+<span class="fc bfc" id="L71" title="All 4 branches covered.">    if (work.venue() != null &amp;&amp; !work.venue().isBlank()) {</span>
+<span class="fc" id="L72">      bibtex</span>
+<span class="fc" id="L73">          .append(&quot;  &quot;)</span>
+<span class="fc" id="L74">          .append(venueFieldName(entryType))</span>
+<span class="fc" id="L75">          .append(&quot; = {&quot;)</span>
+<span class="fc" id="L76">          .append(sanitize(work.venue()))</span>
+<span class="fc" id="L77">          .append(&quot;},\n&quot;);</span>
+    }
+<span class="fc bfc" id="L79" title="All 4 branches covered.">    if (work.doi() != null &amp;&amp; !work.doi().isBlank()) {</span>
+<span class="fc" id="L80">      bibtex.append(&quot;  doi = {&quot;).append(work.doi()).append(&quot;},\n&quot;);</span>
+    }
+<span class="fc" id="L82">    appendField(bibtex, &quot;abstract&quot;, work.abstractText(), true);</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">    if (HAS_PUBLISHER_OR_ADDRESS.contains(entryType)) {</span>
+<span class="fc" id="L84">      appendField(bibtex, &quot;publisher&quot;, work.publisher(), true);</span>
+<span class="fc" id="L85">      appendField(bibtex, &quot;address&quot;, work.address(), true);</span>
+    }
+<span class="fc bfc" id="L87" title="All 2 branches covered.">    if (HAS_PAGES.contains(entryType)) {</span>
+<span class="fc" id="L88">      appendField(bibtex, &quot;pages&quot;, work.pages(), false);</span>
+    }
+<span class="fc bfc" id="L90" title="All 2 branches covered.">    if (HAS_ISBN_OR_SERIES.contains(entryType)) {</span>
+<span class="fc" id="L91">      appendField(bibtex, &quot;isbn&quot;, work.isbn(), false);</span>
+<span class="fc" id="L92">      appendField(bibtex, &quot;series&quot;, work.series(), true);</span>
+    }
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    if (HAS_VOLUME.contains(entryType)) {</span>
+<span class="fc" id="L95">      appendField(bibtex, &quot;volume&quot;, work.volume(), false);</span>
+    }
+<span class="fc bfc" id="L97" title="All 2 branches covered.">    if (HAS_NUMBER.contains(entryType)) {</span>
+<span class="fc" id="L98">      appendField(bibtex, &quot;number&quot;, work.number(), false);</span>
+    }
+<span class="fc" id="L100">    bibtex.append(&quot;}\n&quot;);</span>
+<span class="fc" id="L101">    return bibtex.toString();</span>
+  }
+
+  // Free-text fields (abstract/publisher/address/series) are passed through sanitize() the same
+  // as title/venue/author, since upstream data can carry the same LaTeX-escape/stray-brace issues
+  // those do. Fields that are closer to identifiers than prose (pages/isbn/volume/number) are
+  // written verbatim — sanitize()'s brace-stripping is unnecessary for them and LaTeX-escape
+  // normalization has no meaningful effect on e.g. a page range or an ISBN.
+  private void appendField(StringBuilder bibtex, String name, String value, boolean isFreeText) {
+<span class="fc bfc" id="L110" title="All 4 branches covered.">    if (value == null || value.isBlank()) {</span>
+<span class="fc" id="L111">      return;</span>
+    }
+<span class="fc" id="L113">    bibtex</span>
+<span class="fc" id="L114">        .append(&quot;  &quot;)</span>
+<span class="fc" id="L115">        .append(name)</span>
+<span class="fc" id="L116">        .append(&quot; = {&quot;)</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">        .append(isFreeText ? sanitize(value) : value)</span>
+<span class="fc" id="L118">        .append(&quot;},\n&quot;);</span>
+<span class="fc" id="L119">  }</span>
+
+  /**
+   * Generates a citeKey ({@code lastname+year}, e.g. {@code &quot;harris2020&quot;}) for the given work,
+   * disambiguated against {@code existingCiteKeys} by appending a letter (or, in the unlikely event
+   * all 26 are taken, a number) suffix.
+   */
+  public String generateUniqueCiteKey(ResolvedWork work, Set&lt;String&gt; existingCiteKeys) {
+<span class="fc" id="L127">    String base = citeKeyBase(work);</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">    if (!existingCiteKeys.contains(base)) {</span>
+<span class="fc" id="L129">      return base;</span>
+    }
+<span class="fc bfc" id="L131" title="All 2 branches covered.">    for (char suffix = 'a'; suffix &lt;= 'z'; suffix++) {</span>
+<span class="fc" id="L132">      String candidate = base + suffix;</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">      if (!existingCiteKeys.contains(candidate)) {</span>
+<span class="fc" id="L134">        return candidate;</span>
+      }
+    }
+<span class="fc" id="L137">    int counter = 2;</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">    while (existingCiteKeys.contains(base + counter)) {</span>
+<span class="fc" id="L139">      counter++;</span>
+    }
+<span class="fc" id="L141">    return base + counter;</span>
+  }
+
+  private String citeKeyBase(ResolvedWork work) {
+<span class="fc" id="L145">    String lastName = &quot;entry&quot;;</span>
+<span class="fc bfc" id="L146" title="All 4 branches covered.">    if (work.authorNames() != null &amp;&amp; !work.authorNames().isEmpty()) {</span>
+<span class="fc" id="L147">      String[] parts = sanitize(work.authorNames().get(0)).trim().split(&quot;\\s+&quot;);</span>
+<span class="fc" id="L148">      String candidate = parts[parts.length - 1].toLowerCase().replaceAll(&quot;[^a-z0-9]&quot;, &quot;&quot;);</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">      if (!candidate.isEmpty()) {</span>
+<span class="fc" id="L150">        lastName = candidate;</span>
+      }
+    }
+<span class="fc bfc" id="L153" title="All 2 branches covered.">    String yearPart = work.year() != null ? String.valueOf(work.year()) : &quot;&quot;;</span>
+<span class="fc" id="L154">    return lastName + yearPart;</span>
+  }
+
+  private static String venueFieldName(String entryType) {
+<span class="fc bfc" id="L158" title="All 2 branches covered.">    return switch (entryType) {</span>
+<span class="fc" id="L159">      case &quot;inproceedings&quot;, &quot;incollection&quot; -&gt; &quot;booktitle&quot;;</span>
+<span class="fc" id="L160">      default -&gt; &quot;journal&quot;;</span>
+    };
+  }
+
+  private String formatAuthors(List&lt;String&gt; names) {
+<span class="fc" id="L165">    return names.stream().map(this::formatAuthorName).collect(Collectors.joining(&quot; and &quot;));</span>
+  }
+
+  // Heuristic &quot;Last, First Middle&quot; reformatting; does not handle multi-word surnames/particles
+  // (e.g. &quot;van der Berg&quot;) specially.
+  private String formatAuthorName(String fullName) {
+<span class="fc" id="L171">    String trimmed = sanitize(fullName).trim();</span>
+<span class="fc" id="L172">    int lastSpace = trimmed.lastIndexOf(' ');</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">    if (lastSpace == -1) {</span>
+<span class="fc" id="L174">      return trimmed;</span>
+    }
+<span class="fc" id="L176">    return trimmed.substring(lastSpace + 1) + &quot;, &quot; + trimmed.substring(0, lastSpace);</span>
+  }
+
+  private String sanitize(String value) {
+<span class="fc" id="L180">    String normalized = laTeXNormalizationService.normalize(value);</span>
+<span class="fc" id="L181">    return normalized.replace(&quot;{&quot;, &quot;&quot;).replace(&quot;}&quot;, &quot;&quot;);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
