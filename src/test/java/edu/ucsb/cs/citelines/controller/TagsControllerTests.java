@@ -134,6 +134,26 @@ public class TagsControllerTests extends ControllerTestCase {
       username = "phtcon",
       roles = {"RESEARCHER"})
   @Test
+  public void owner_can_add_a_tag_with_no_explanation() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    Tag tag = Tag.builder().id(1L).tag("method").project(project).build();
+    when(projectRepository.findById(eq(1L))).thenReturn(Optional.of(project));
+    when(tagRepository.findByProjectIdAndTag(1L, "method")).thenReturn(Optional.empty());
+    when(tagRepository.save(any(Tag.class))).thenReturn(tag);
+
+    mockMvc
+        .perform(post("/api/tags/post?tag=method&projectId=1").with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<Tag> captor = org.mockito.ArgumentCaptor.forClass(Tag.class);
+    verify(tagRepository, times(1)).save(captor.capture());
+    assertEquals(null, captor.getValue().getExplanation());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
   public void post_throws_not_found_for_nonexistent_project() throws Exception {
     when(projectRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -224,6 +244,27 @@ public class TagsControllerTests extends ControllerTestCase {
     assertEquals("#00FF00", captor.getValue().getColor());
     String expectedJson = mapper.writeValueAsString(captor.getValue());
     assertEquals(expectedJson, response.getResponse().getContentAsString());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void owner_can_clear_the_explanation_when_updating_a_tag() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    Tag existingTag =
+        Tag.builder().id(1L).tag("method").explanation("old").project(project).build();
+    when(tagRepository.findById(1L)).thenReturn(Optional.of(existingTag));
+    when(tagRepository.findByProjectIdAndTag(1L, "method")).thenReturn(Optional.of(existingTag));
+    when(tagRepository.save(any(Tag.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+    mockMvc
+        .perform(put("/api/tags?id=1&projectId=1&tag=method").with(csrf()))
+        .andExpect(status().isOk());
+
+    org.mockito.ArgumentCaptor<Tag> captor = org.mockito.ArgumentCaptor.forClass(Tag.class);
+    verify(tagRepository, times(1)).save(captor.capture());
+    assertEquals(null, captor.getValue().getExplanation());
   }
 
   @WithMockUser(

@@ -64,6 +64,18 @@ describe("TagTable tests", () => {
     expect(badge.className).not.toMatch(/\bbg-\S+/);
   });
 
+  test("shows a tooltip with the explanation when hovering over a tag pill", async () => {
+    renderTable({ tags: tagsFixtures.threeTags, projectId: 1, testId: "TT" });
+
+    fireEvent.mouseOver(screen.getByTestId("TT-cell-row-0-col-tag-badge"));
+
+    await waitFor(() => {
+      expect(
+        document.getElementById("TT-cell-row-0-col-tag-badge-tooltip"),
+      ).toHaveTextContent(tagsFixtures.threeTags[0].explanation);
+    });
+  });
+
   test("shows edit/delete buttons when canEdit is true", () => {
     renderTable({
       tags: tagsFixtures.threeTags,

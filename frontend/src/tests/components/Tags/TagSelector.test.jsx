@@ -111,12 +111,12 @@ describe("TagSelector tests", () => {
       projectId: 1,
     });
 
-    fireEvent.mouseOver(screen.getByTestId("TagSelector-assigned-tag-1"));
+    fireEvent.mouseOver(screen.getByTestId("TagSelector-assigned-tag-1-badge"));
     await waitFor(() => {
       expect(screen.getByText(allTags[0].explanation)).toBeInTheDocument();
     });
     const tooltip = document.getElementById(
-      "TagSelector-assigned-tag-1-tooltip",
+      "TagSelector-assigned-tag-1-badge-tooltip",
     );
     expect(tooltip).toBeInTheDocument();
     expect(tooltip).toHaveTextContent(allTags[0].explanation);
@@ -151,12 +151,50 @@ describe("TagSelector tests", () => {
       screen.queryByTestId("TagSelector-no-available-tags"),
     ).not.toBeInTheDocument();
 
-    fireEvent.mouseOver(screen.getByTestId("TagSelector-available-tag-2"));
+    fireEvent.mouseOver(
+      screen.getByTestId("TagSelector-available-tag-2-badge"),
+    );
     await waitFor(() => {
       expect(
-        document.getElementById("TagSelector-available-tag-2-tooltip"),
+        document.getElementById("TagSelector-available-tag-2-badge-tooltip"),
       ).toBeInTheDocument();
     });
+  });
+
+  test("an assigned tag with no explanation shows no tooltip", async () => {
+    const tagWithoutExplanation = { id: 9, tag: "no-desc", color: "#123456" };
+    renderTagSelector({
+      allTags: [tagWithoutExplanation],
+      assignedTags: [tagWithoutExplanation],
+      projectId: 1,
+    });
+
+    fireEvent.mouseOver(screen.getByTestId("TagSelector-assigned-tag-9-badge"));
+    expect(
+      document.getElementById("TagSelector-assigned-tag-9-badge-tooltip"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("an available tag with no explanation shows no tooltip and no muted description text in the dropdown", async () => {
+    const tagWithoutExplanation = { id: 9, tag: "no-desc", color: "#123456" };
+    renderTagSelector({
+      allTags: [tagWithoutExplanation],
+      assignedTags: [],
+      projectId: 1,
+    });
+
+    fireEvent.click(screen.getByTestId("TagSelector-add-tag-dropdown"));
+
+    const item = await screen.findByTestId("TagSelector-available-tag-9");
+    expect(item).toHaveTextContent("no-desc");
+    expect(item.querySelector(".text-muted")).not.toBeInTheDocument();
+
+    fireEvent.mouseOver(
+      screen.getByTestId("TagSelector-available-tag-9-badge"),
+    );
+    expect(
+      document.getElementById("TagSelector-available-tag-9-badge-tooltip"),
+    ).not.toBeInTheDocument();
   });
 
   test("clicking an available tag calls onAddTag with the tag", async () => {

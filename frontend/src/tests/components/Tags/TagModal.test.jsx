@@ -3,7 +3,7 @@ import { vi } from "vitest";
 import TagModal from "main/components/Tags/TagModal";
 
 describe("TagModal tests", () => {
-  test("renders create form by default and validates required fields", async () => {
+  test("renders create form by default and validates the required Tag field", async () => {
     const onSubmitAction = vi.fn();
     const toggleShowModal = vi.fn();
 
@@ -16,14 +16,38 @@ describe("TagModal tests", () => {
     );
 
     expect(screen.getByText("Create Tag")).toBeInTheDocument();
+    expect(screen.getByText("Explanation (optional)")).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("TagModal-submit"));
 
     await waitFor(() => {
       expect(screen.getByText("Tag is required.")).toBeInTheDocument();
     });
-    expect(screen.getByText("Explanation is required.")).toBeInTheDocument();
     expect(onSubmitAction).not.toHaveBeenCalled();
+  });
+
+  test("submits successfully with the Explanation field left blank", async () => {
+    const onSubmitAction = vi.fn();
+
+    render(
+      <TagModal
+        showModal={true}
+        toggleShowModal={vi.fn()}
+        onSubmitAction={onSubmitAction}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId("TagModal-tag"), {
+      target: { value: "methodology" },
+    });
+    fireEvent.click(screen.getByTestId("TagModal-submit"));
+
+    await waitFor(() => expect(onSubmitAction).toHaveBeenCalled());
+    expect(onSubmitAction.mock.calls[0][0]).toEqual({
+      tag: "methodology",
+      explanation: "",
+      color: "",
+    });
   });
 
   test("submits with entered values", async () => {

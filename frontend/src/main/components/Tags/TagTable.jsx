@@ -1,11 +1,11 @@
 import OurTable from "main/components/Common/OurTable";
-import { Button, Badge } from "react-bootstrap";
+import { Button } from "react-bootstrap";
 import { useState } from "react";
 import { useBackendMutation } from "main/utils/useBackend";
 import { toast } from "react-toastify";
 import Modal from "react-bootstrap/Modal";
 import TagModal from "main/components/Tags/TagModal";
-import { getContrastTextColor } from "main/utils/colorUtils";
+import TagPill from "main/components/Tags/TagPill";
 
 export default function TagTable({
   tags,
@@ -95,23 +95,12 @@ export default function TagTable({
     {
       header: "Tag",
       accessorKey: "tag",
-      cell: ({ cell }) => {
-        const tag = cell.row.original;
-        const color = tag.color || "#6c757d";
-        return (
-          <Badge
-            pill
-            bg={null}
-            style={{
-              backgroundColor: color,
-              color: getContrastTextColor(color),
-            }}
-            data-testid={`${testId}-cell-row-${cell.row.index}-col-tag-badge`}
-          >
-            {tag.tag}
-          </Badge>
-        );
-      },
+      cell: ({ cell }) => (
+        <TagPill
+          tag={cell.row.original}
+          testId={`${testId}-cell-row-${cell.row.index}-col-tag-badge`}
+        />
+      ),
     },
     {
       header: "Explanation",
