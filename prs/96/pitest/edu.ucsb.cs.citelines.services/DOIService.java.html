@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>DOIService.java</h1>
+
+<table class="src">
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package edu.ucsb.cs.citelines.services;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.regex.Matcher;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.regex.Pattern;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.stereotype.Service;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Recognizes a DOI (Digital Object Identifier) expressed in any of several common formats and</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * normalizes it to its canonical bare form (ANSI/NISO Z39.84), e.g. {@code</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * 10.1038/s41586-020-2649-2}.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;p&#62;Recognized formats include:</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;ul&#62;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *   &#60;li&#62;Actionable web URLs, e.g. {@code https://doi.org/10.1038/s41586-020-2649-2} or the</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *       deprecated {@code http://dx.doi.org/10.1038/s41586-020-2649-2}</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *   &#60;li&#62;shortDOI URLs, e.g. {@code https://doi.org/c234} or {@code https://doi.org/10/c234}</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *   &#60;li&#62;Plain/bare DOI strings, e.g. {@code 10.1038/s41586-020-2649-2}</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_19'/>
+19
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_19'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *   &#60;li&#62;The {@code doi:} prefix, e.g. {@code doi:10.1038/s41586-020-2649-2}</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *   &#60;li&#62;The {@code urn:doi:} namespace, e.g. {@code urn:doi:10.1038/s41586-020-2649-2}</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *   &#60;li&#62;The (deprecated) {@code info:doi/} URI scheme, e.g. {@code</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_22'/>
+22
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_22'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *       info:doi/10.1038/s41586-020-2649-2}</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_23'/>
+23
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_23'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;/ul&#62;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_24'/>
+24
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_24'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_25'/>
+25
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_25'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>@Service</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_26'/>
+26
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_26'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>public class DOIService {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_27'/>
+27
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_27'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_28'/>
+28
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_28'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // Matches a bare/canonical DOI, wherever it appears within a larger string (e.g. embedded in a</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_29'/>
+29
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_29'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // URL, an HTML anchor, or a doi:/urn:doi:/info:doi/ prefixed identifier).</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_30'/>
+30
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_30'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  private static final Pattern DOI_PATTERN =</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_31'/>
+31
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_31'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      Pattern.compile(&#34;\\b10\\.\\d{4,}(?:\\.\\d+)*/[^\\s&#60;&#62;\&#34;]+&#34;, Pattern.CASE_INSENSITIVE);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_32'/>
+32
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_32'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_33'/>
+33
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_33'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // Matches a shortDOI, either as a bare &#34;10/xxxx&#34; identifier or as a doi.org URL, with or</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_34'/>
+34
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_34'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // without the leading &#34;10/&#34; segment (e.g. &#34;10/c234&#34;, &#34;https://doi.org/c234&#34;, or</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_35'/>
+35
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_35'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // &#34;https://doi.org/10/c234&#34;).</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_36'/>
+36
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_36'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  private static final Pattern SHORT_DOI_PATTERN =</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_37'/>
+37
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_37'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      Pattern.compile(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_38'/>
+38
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_38'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;^(?:https?://(?:dx\\.)?doi\\.org/(?:10/)?|10/)([a-zA-Z0-9]+)$&#34;,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_39'/>
+39
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_39'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          Pattern.CASE_INSENSITIVE);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_40'/>
+40
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_40'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_41'/>
+41
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_41'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_42'/>
+42
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_42'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * Normalizes a DOI given in any of the recognized formats to its canonical bare form.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_43'/>
+43
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_43'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_44'/>
+44
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_44'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param rawDoi the DOI, in any recognized format</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_45'/>
+45
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_45'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @return the canonical, lower-cased, bare DOI (e.g. {@code 10.1038/s41586-020-2649-2})</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_46'/>
+46
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_46'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @throws IllegalArgumentException if {@code rawDoi} cannot be recognized as a DOI in any of the</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_47'/>
+47
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_47'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *     supported formats</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_48'/>
+48
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_48'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_49'/>
+49
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_49'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public String normalizeRawDOI(String rawDoi) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_50'/>
+50
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_50'>1</a>
+<span>
+1. normalizeRawDOI : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (rawDoi != null) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_51'/>
+51
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_51'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      String trimmed = rawDoi.trim();</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_52'/>
+52
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_52'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_53'/>
+53
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_53'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      Matcher shortDoiMatcher = SHORT_DOI_PATTERN.matcher(trimmed);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_54'/>
+54
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_54'>1</a>
+<span>
+1. normalizeRawDOI : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      if (shortDoiMatcher.matches()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_55'/>
+55
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_55'>1</a>
+<span>
+1. normalizeRawDOI : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/DOIService::normalizeRawDOI &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        return &#34;10/&#34; + shortDoiMatcher.group(1).toLowerCase();</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_56'/>
+56
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_56'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_57'/>
+57
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_57'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_58'/>
+58
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_58'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      Matcher doiMatcher = DOI_PATTERN.matcher(trimmed);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_59'/>
+59
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_59'>1</a>
+<span>
+1. normalizeRawDOI : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      if (doiMatcher.find()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_60'/>
+60
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_60'>1</a>
+<span>
+1. normalizeRawDOI : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/DOIService::normalizeRawDOI &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        return doiMatcher.group().toLowerCase();</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_61'/>
+61
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_61'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_62'/>
+62
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_62'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_63'/>
+63
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_63'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_64'/>
+64
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_64'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    throw new IllegalArgumentException(&#34;Argument cannot be recognized as a DOI: &#34; + rawDoi);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_65'/>
+65
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_65'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_66'/>
+66
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_66'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_50'>50</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_50'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>normalizeRawDOI<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:a_bare_shortdoi_is_normalized()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_54'>54</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_54'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>normalizeRawDOI<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:a_bare_shortdoi_is_normalized()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_55'>55</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_55'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>normalizeRawDOI<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:a_bare_shortdoi_is_normalized()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/DOIService::normalizeRawDOI &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_59'>59</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_59'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>normalizeRawDOI<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:an_info_doi_uri_is_normalized()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@38ddd7d0_60'>60</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@38ddd7d0_60'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>normalizeRawDOI<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:an_info_doi_uri_is_normalized()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/DOIService::normalizeRawDOI &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+<li class='mutator'>EMPTY_RETURNS</li>
+<li class='mutator'>FALSE_RETURNS</li>
+<li class='mutator'>INCREMENTS</li>
+<li class='mutator'>INVERT_NEGS</li>
+<li class='mutator'>MATH</li>
+<li class='mutator'>NEGATE_CONDITIONALS</li>
+<li class='mutator'>NULL_RETURNS</li>
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+<li class='mutator'>TRUE_RETURNS</li>
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:a_bare_shortdoi_is_normalized()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:an_info_doi_uri_is_normalized()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:an_html_anchor_around_a_doi_org_url_is_normalized()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:a_legacy_dx_doi_org_url_is_normalized()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:a_null_argument_throws_an_illegal_argument_exception()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:a_urn_doi_string_is_normalized()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:a_shortdoi_url_with_10_prefix_is_normalized()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:a_bare_doi_with_mixed_case_is_lower_cased()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:a_bare_doi_is_returned_unchanged()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:a_shortdoi_url_without_10_prefix_is_normalized()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:surrounding_whitespace_is_ignored()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:a_doi_colon_prefixed_string_is_normalized()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:an_https_doi_org_url_is_normalized()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:an_empty_string_throws_an_illegal_argument_exception()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DOIServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DOIServiceTests]/[method:an_unrecognizable_string_throws_an_illegal_argument_exception()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:returns_empty_without_consulting_the_project_when_the_string_is_not_a_recognizable_doi()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:throws_DoiNotFoundException_when_the_string_is_not_a_recognizable_doi()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:returns_empty_when_no_existing_entry_matches_the_doi()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:throws_DoiNotFoundException_when_no_resolver_has_a_record()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:processEntry_returns_error_when_the_doi_line_does_not_parse_as_a_doi()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexConverterServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexConverterServiceTests]/[method:leaves_an_unrecognizable_doi_field_value_unchanged()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:finds_an_existing_entry_for_a_doi_already_in_the_project()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexConverterServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexConverterServiceTests]/[method:normalizes_a_recognizable_doi_field()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:processEntry_returns_error_when_the_extracted_doi_does_not_parse()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:processEntry_returns_error_when_the_doi_cannot_be_resolved()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:throws_DoiNotFoundException_when_a_resolver_returns_a_work_with_a_blank_title()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:processEntry_returns_error_when_the_doi_cannot_be_resolved()] (4 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:processEntry_returns_error_when_no_title_is_available()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:a_missing_references_field_parses_as_an_empty_list()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:processEntry_returns_added_for_a_newly_created_entry()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_unparseable_doi_is_dropped_rather_than_kept_raw()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:a_missing_year_anywhere_parses_as_null()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:bulkUpload_flags_an_entry_whose_doi_cannot_be_resolved_by_any_provider()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:processEntry_returns_error_when_the_title_does_not_match_the_reference()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:a_completely_missing_title_field_parses_as_null()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:an_abstract_with_no_xml_tags_at_all_is_left_unchanged()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.OpenAlexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.OpenAlexServiceTests]/[method:an_unparseable_doi_field_is_dropped_rather_than_kept_raw()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:falls_back_to_published_online_when_published_print_is_absent()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:a_missing_type_parses_as_null()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:passes_through_an_unmapped_type_unchanged()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:references_and_citations_null_for_a_publisher_restricted_paper_parse_as_empty_lists()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:an_explicit_json_null_title_array_item_parses_as_null()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:processEntry_returns_error_when_it_resolves_to_the_current_paper_itself()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests]/[method:two_entries_with_different_dois_are_not_grouped_together()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:an_unparseable_doi_is_dropped_rather_than_kept_raw()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:translates_monograph_to_book()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:an_author_with_only_a_given_name_uses_just_that()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests]/[method:a_single_entry_with_a_doi_is_not_flagged()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:an_author_with_only_a_family_name_uses_just_that()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:processEntry_returns_linked_for_an_existing_entry()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:bulkUpload_flags_an_entry_whose_doi_cannot_be_resolved_by_any_provider()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:an_author_with_neither_a_given_nor_a_family_name_is_skipped()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:bulkUpload_flags_an_entry_whose_doi_line_does_not_parse_as_a_doi()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests]/[method:an_entry_no_longer_part_of_a_group_has_its_stale_mark_cleared()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:processEntry_returns_linked_for_an_existing_entry()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:fields_with_no_data_in_the_response_parse_as_null()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:translates_journal_article_to_article()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:an_explicit_json_null_type_parses_as_null()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:processEntry_returns_error_when_it_resolves_to_the_current_paper_itself()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests]/[method:an_entry_with_a_doi_is_never_grouped_by_title_even_if_titles_match()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:processEntry_returns_error_when_no_title_is_available()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:processEntry_returns_added_for_a_newly_created_entry()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests]/[method:doi_matching_is_normalized_across_different_representations()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:a_reference_with_a_non_numeric_year_string_parses_as_null()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests]/[method:a_still_valid_mark_does_not_count_as_cleared()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests]/[method:entries_with_an_unparseable_doi_fall_back_to_title_based_grouping()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests]/[method:three_entries_sharing_a_doi_each_list_the_other_two()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.OpenAlexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.OpenAlexServiceTests]/[method:mailto_is_appended_when_configured()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.OpenAlexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.OpenAlexServiceTests]/[method:getCitations_parses_a_results_list_and_caps_per_page()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:getReferences_caps_to_maxResults()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.OpenAlexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.OpenAlexServiceTests]/[method:getReferences_caps_referenced_work_ids_to_maxResults()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.OpenAlexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.OpenAlexServiceTests]/[method:getReferences_makes_exactly_one_request_for_exactly_50_ids()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.OpenAlexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.OpenAlexServiceTests]/[method:the_batch_id_filters_pipe_delimiter_is_never_percent_encoded()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:getReferences_returns_the_embedded_references_with_no_extra_network_call()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:bulkUpload_flags_an_entry_whose_resolved_work_has_no_recoverable_title()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_embedded_reference_with_no_doi_still_parses_its_other_fields()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:mailto_is_appended_when_configured()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:getCitations_returns_the_embedded_citations_with_no_extra_network_call()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:an_embedded_citation_parses_correctly()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DuplicateDetectionServiceTests]/[method:two_entries_with_the_same_doi_are_flagged_as_same_doi_duplicates()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.OpenAlexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.OpenAlexServiceTests]/[method:the_citing_works_filter_url_is_never_percent_encoded()] (3 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:a_null_mailto_is_treated_the_same_as_a_blank_one()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:the_second_embedded_reference_is_structured_with_no_doi()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:a_reference_with_a_json_integer_year_parses_correctly()] (3 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:bulkUpload_flags_an_entry_whose_resolved_work_has_a_null_title_and_no_recovery()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:the_first_embedded_reference_is_a_doi_only_stub()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:the_third_embedded_reference_is_an_unstructured_only_stub()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.OpenAlexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.OpenAlexServiceTests]/[method:a_null_mailto_is_treated_the_same_as_a_blank_one()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:bulkUpload_flags_an_entry_whose_resolved_work_has_a_null_title_and_no_recovery()] (3 ms)</li><li>edu.ucsb.cs.citelines.services.OpenAlexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.OpenAlexServiceTests]/[method:getReferences_batches_requests_of_more_than_50_ids()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:a_reference_years_string_value_parses_as_an_integer()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:bulkUpload_truncates_reference_text_over_eighty_characters_but_not_exactly_eighty()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:bulkUpload_links_to_an_existing_entry_and_still_creates_a_citation_edge()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:bulkUpload_links_to_an_existing_entry_and_still_creates_a_citation_edge()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:bulkUpload_skips_the_title_match_check_when_there_is_no_reference_text()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:bulkUpload_flags_an_entry_that_resolves_to_the_current_paper_itself()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:bulkUpload_flags_an_entry_whose_resolved_title_normalizes_to_nothing()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:bulkUpload_flags_an_entry_whose_resolved_work_has_no_recoverable_title()] (3 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:bulkUpload_logs_a_correct_summary_with_mixed_outcomes()] (3 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:bulkUpload_flags_an_entry_that_resolves_to_the_current_paper_itself()] (4 ms)</li><li>edu.ucsb.cs.citelines.services.SemanticScholarResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.SemanticScholarResolverTests]/[method:resolveByDoi_parses_the_work_with_both_embedded_directions()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CrossrefResolverTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CrossrefResolverTests]/[method:resolveByDoi_parses_the_work_and_its_embedded_references()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:omits_the_CITELINES_relevance_field_when_relevance_is_an_empty_string()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:bulkUpload_flags_an_entry_whose_resolved_title_does_not_match_the_pasted_reference()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:synthesizes_a_bibtex_string_that_the_real_converter_can_parse_back()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.OpenAlexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.OpenAlexServiceTests]/[method:resolveByDoi_parses_a_full_work()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:bulkUpload_adds_a_new_entry_and_saves_a_citation_edge_from_the_current_paper()] (4 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:escapes_brace_characters_in_a_provided_relevance_value()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:resolves_a_doi_found_by_the_first_resolver()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:includes_a_CITELINES_relevance_field_when_relevance_is_provided()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:falls_back_to_later_resolvers_when_earlier_ones_have_no_record()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:bulkUpload_recovers_a_missing_title_via_another_resolver()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:bulkUpload_adds_a_new_entry_and_links_a_citation_edge()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:bulkUpload_recovers_a_missing_title_via_another_resolver()] (4 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:falls_back_to_dblp_when_the_other_three_have_no_record()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllServiceTests]/[method:bulkUpload_logs_a_correct_summary_with_mixed_outcomes()] (3 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:generates_a_citeKey_that_does_not_collide_with_an_existing_one()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:resolveOrCreateEntry_indexes_a_new_entry_by_doi_so_a_later_call_with_the_same_doi_links_to_it()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests]/[method:upgradeEntry_does_not_treat_misc_resolving_to_misc_as_an_entryType_upgrade()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests]/[method:upgradeEntry_never_overwrites_an_entryType_that_is_not_misc()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests]/[method:upgradeEntry_never_changes_citeKey()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests]/[method:upgradeEntry_returns_already_complete_when_nothing_new_is_available()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests]/[method:upgradeEntry_never_touches_CITELINES_fields()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests]/[method:upgradeEntry_treats_a_blank_existing_value_the_same_as_a_missing_one()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests]/[method:upgradeEntry_counts_as_improved_when_only_the_entryType_changes()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests]/[method:upgradeEntry_upgrades_entryType_from_misc_to_a_more_specific_resolved_type()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests]/[method:upgradeEntry_never_overwrites_an_existing_non_blank_value()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests]/[method:upgradeEntry_fills_in_missing_fields_and_saves()] (1 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_with_a_doi_not_matching_any_existing_entry_is_saved_as_new()] (7 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_whose_doi_matches_an_existing_entry_still_links_it_when_relatedEntryId_is_given()] (14 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_whose_doi_matches_an_existing_entry_under_a_different_citekey_reuses_it_instead_of_creating_a_duplicate()] (19 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchCitations_fetches_via_the_discovery_resolver_and_links_edges_in_the_other_direction()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_falls_back_to_dblp_when_the_other_three_have_no_record()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_uses_crossref_as_a_last_resort_discovery_resolver()] (4 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_falls_back_to_semantic_scholar_when_openalex_has_no_record()] (4 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_recovers_a_missing_title_via_a_fallback_resolver()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_adds_new_entries_and_links_edges()] (2 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_records_unresolved_when_no_resolver_can_find_a_referenced_work()] (4 ms)</li><li>edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLServiceTests]/[method:bulkUpload_flags_an_entry_whose_extracted_doi_does_not_parse_as_a_doi()] (51 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryUpgradeServiceTests]/[method:upgradeEntries_logs_a_correct_summary_with_mixed_outcomes()] (72 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.17.0
+
+</body>
+</html>
