@@ -95,12 +95,17 @@ public class JobsControllerTests extends ControllerTestCase {
       roles = {"RESEARCHER"})
   @Test
   public void owner_can_list_jobs_for_their_project() throws Exception {
+    // arrange: log is @Transient (job_logs, not a jobs column) since lib-jobs v0.2.0, so
+    // jobsRepository's freshly-fetched entities have log == null; the controller must populate it
+    // per job via jobService.getJobLogPreview before serializing, same as the library's own
+    // /all and /paginated endpoints do
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
     Job job =
         Job.builder().id(9L).jobName("GetReferencesJob").scopeType("project").scopeId(1L).build();
     when(jobsRepository.findByScopeTypeAndScopeIdOrderByIdDesc("project", 1L))
         .thenReturn(List.of(job));
+    when(jobService.getJobLogPreview(9L)).thenReturn("job log preview");
 
     MvcResult response =
         mockMvc
@@ -108,8 +113,18 @@ public class JobsControllerTests extends ControllerTestCase {
             .andExpect(status().isOk())
             .andReturn();
 
+    verify(jobService).getJobLogPreview(9L);
+    Job expectedJob =
+        Job.builder()
+            .id(9L)
+            .jobName("GetReferencesJob")
+            .scopeType("project")
+            .scopeId(1L)
+            .log("job log preview")
+            .build();
     assertEquals(
-        mapper.writeValueAsString(List.of(job)), response.getResponse().getContentAsString());
+        mapper.writeValueAsString(List.of(expectedJob)),
+        response.getResponse().getContentAsString());
   }
 
   @WithMockUser(
