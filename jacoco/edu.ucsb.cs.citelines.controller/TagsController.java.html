@@ -47,7 +47,7 @@ import org.springframework.web.bind.annotation.RestController;
   @PostMapping(&quot;/post&quot;)
   public Tag postTag(
       @Parameter(name = &quot;tag&quot;) @RequestParam String tag,
-      @Parameter(name = &quot;explanation&quot;) @RequestParam String explanation,
+      @Parameter(name = &quot;explanation&quot;) @RequestParam(required = false) String explanation,
       @Parameter(name = &quot;color&quot;) @RequestParam(required = false) String color,
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId)
       throws EntityNotFoundException {
@@ -93,7 +93,7 @@ import org.springframework.web.bind.annotation.RestController;
       @Parameter(name = &quot;id&quot;) @RequestParam Long id,
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;tag&quot;) @RequestParam String tag,
-      @Parameter(name = &quot;explanation&quot;) @RequestParam String explanation,
+      @Parameter(name = &quot;explanation&quot;) @RequestParam(required = false) String explanation,
       @Parameter(name = &quot;color&quot;) @RequestParam(required = false) String color)
       throws EntityNotFoundException {
 <span class="fc" id="L99">    Tag existingTag =</span>
