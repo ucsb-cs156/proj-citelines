@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BibTexEntryUpgradeService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">BibTexEntryUpgradeService.java</span></div><h1>BibTexEntryUpgradeService.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import edu.ucsb.cs.citelines.collections.BibTexEntry;
+import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
+import edu.ucsb.cs156.jobs.services.JobContext;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.springframework.stereotype.Service;
+
+/**
+ * Re-resolves each of a project's {@link BibTexEntry} records that has a DOI against the
+ * citation-metadata resolver waterfall (see {@link CitationGraphService}), filling in whatever
+ * fields the entry is currently missing that a resolver now reports — e.g. {@code abstract}/{@code
+ * publisher}/{@code pages}/{@code isbn}/{@code series}/{@code address}/{@code volume}/{@code
+ * number}, none of which earlier versions of this app's resolvers extracted at all (see issue #66).
+ *
+ * &lt;p&gt;Never overwrites a field the entry already has a non-blank value for, even if a resolver now
+ * reports a different one for it — an existing value may already have been reviewed or hand-edited,
+ * and this job has no way to distinguish &quot;reviewed and correct&quot; from &quot;just never updated.&quot; {@code
+ * citeKey} is likewise never touched. {@code entryType} is the one exception: an entry currently
+ * typed {@code misc} (the fallback used whenever a resolver's own type couldn't be mapped to a more
+ * specific BibTeX type — see {@code BibTexSynthesisService#ENTRY_TYPE_MAP}) is upgraded to whatever
+ * more specific type the resolver now reports, since {@code misc} was never a deliberate choice to
+ * begin with, unlike a hand-set/reviewed field value.
+ */
+@Service
+public class BibTexEntryUpgradeService {
+
+  private final BibTexEntryRepository bibTexEntryRepository;
+  private final CitationGraphService citationGraphService;
+  private final BibTexSynthesisService bibTexSynthesisService;
+  private final BibTexConverterService bibTexConverterService;
+
+  public BibTexEntryUpgradeService(
+      BibTexEntryRepository bibTexEntryRepository,
+      CitationGraphService citationGraphService,
+      BibTexSynthesisService bibTexSynthesisService,
+<span class="fc" id="L41">      BibTexConverterService bibTexConverterService) {</span>
+<span class="fc" id="L42">    this.bibTexEntryRepository = bibTexEntryRepository;</span>
+<span class="fc" id="L43">    this.citationGraphService = citationGraphService;</span>
+<span class="fc" id="L44">    this.bibTexSynthesisService = bibTexSynthesisService;</span>
+<span class="fc" id="L45">    this.bibTexConverterService = bibTexConverterService;</span>
+<span class="fc" id="L46">  }</span>
+
+  // Package-visible so tests can assert upgradeEntry's exact return value per branch directly,
+  // same as BulkCitationUploadFromACMDLViewAllService.Outcome.
+<span class="fc" id="L50">  enum Outcome {</span>
+<span class="fc" id="L51">    IMPROVED,</span>
+<span class="fc" id="L52">    ALREADY_COMPLETE,</span>
+<span class="fc" id="L53">    SKIPPED_NO_DOI,</span>
+<span class="fc" id="L54">    UNRESOLVED</span>
+  }
+
+  public void upgradeEntries(int projectId, JobContext ctx) {
+<span class="fc" id="L58">    List&lt;BibTexEntry&gt; entries = bibTexEntryRepository.findByProjectId(projectId);</span>
+<span class="fc" id="L59">    ctx.log(</span>
+        &quot;Checking %d entries in project %d for upgradable metadata.&quot;
+<span class="fc" id="L61">            .formatted(entries.size(), projectId));</span>
+
+<span class="fc" id="L63">    int improved = 0;</span>
+<span class="fc" id="L64">    int alreadyComplete = 0;</span>
+<span class="fc" id="L65">    int skippedNoDoi = 0;</span>
+<span class="fc" id="L66">    int unresolved = 0;</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">    for (BibTexEntry entry : entries) {</span>
+<span class="fc" id="L68">      Outcome outcome = upgradeEntry(entry, projectId, ctx);</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">      if (outcome == Outcome.IMPROVED) {</span>
+<span class="fc" id="L70">        improved++;</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">      } else if (outcome == Outcome.ALREADY_COMPLETE) {</span>
+<span class="fc" id="L72">        alreadyComplete++;</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">      } else if (outcome == Outcome.SKIPPED_NO_DOI) {</span>
+<span class="fc" id="L74">        skippedNoDoi++;</span>
+      } else {
+<span class="fc" id="L76">        unresolved++;</span>
+      }
+<span class="fc" id="L78">    }</span>
+
+<span class="fc" id="L80">    ctx.log(</span>
+        (&quot;Done: checked %d entr%s, %d improved, %d already complete, %d skipped (no DOI), %d&quot;
+                + &quot; unresolved.&quot;)
+<span class="fc" id="L83">            .formatted(</span>
+<span class="fc" id="L84">                entries.size(),</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">                entries.size() == 1 ? &quot;y&quot; : &quot;ies&quot;,</span>
+<span class="fc" id="L86">                improved,</span>
+<span class="fc" id="L87">                alreadyComplete,</span>
+<span class="fc" id="L88">                skippedNoDoi,</span>
+<span class="fc" id="L89">                unresolved));</span>
+<span class="fc" id="L90">  }</span>
+
+  Outcome upgradeEntry(BibTexEntry entry, int projectId, JobContext ctx) {
+<span class="fc" id="L93">    Map&lt;String, String&gt; keyValuePairs = entry.getKeyValuePairs();</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">    String doi = keyValuePairs != null ? keyValuePairs.get(&quot;doi&quot;) : null;</span>
+<span class="fc bfc" id="L95" title="All 4 branches covered.">    if (doi == null || doi.isBlank()) {</span>
+<span class="fc" id="L96">      return Outcome.SKIPPED_NO_DOI;</span>
+    }
+
+<span class="fc" id="L99">    Optional&lt;CitationGraphService.ResolverResult&gt; resolved =</span>
+<span class="fc" id="L100">        citationGraphService.tryResolveByDoi(doi);</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">    if (resolved.isEmpty()) {</span>
+<span class="fc" id="L102">      ctx.log(</span>
+          &quot;Could not re-resolve %s (DOI %s): no provider has a record.&quot;
+<span class="fc" id="L104">              .formatted(entry.getCiteKey(), doi));</span>
+<span class="fc" id="L105">      return Outcome.UNRESOLVED;</span>
+    }
+
+<span class="fc" id="L108">    ResolvedWork work = resolved.get().work();</span>
+<span class="fc bfc" id="L109" title="All 4 branches covered.">    if (work.title() == null || work.title().isBlank()) {</span>
+<span class="fc" id="L110">      ctx.log(</span>
+          &quot;Could not re-resolve %s (DOI %s): resolved, but no title is available.&quot;
+<span class="fc" id="L112">              .formatted(entry.getCiteKey(), doi));</span>
+<span class="fc" id="L113">      return Outcome.UNRESOLVED;</span>
+    }
+
+<span class="fc" id="L116">    String candidateBibtex = bibTexSynthesisService.synthesizeRawBibTex(work, entry.getCiteKey());</span>
+<span class="fc" id="L117">    BibTexEntry candidate =</span>
+<span class="fc" id="L118">        bibTexConverterService.parseToEntries(candidateBibtex, projectId).get(0);</span>
+
+<span class="fc" id="L120">    List&lt;String&gt; addedFields = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L121" title="All 4 branches covered.">    if (&quot;misc&quot;.equals(entry.getEntryType()) &amp;&amp; !&quot;misc&quot;.equals(candidate.getEntryType())) {</span>
+<span class="fc" id="L122">      addedFields.add(&quot;entryType (misc → %s)&quot;.formatted(candidate.getEntryType()));</span>
+<span class="fc" id="L123">      entry.setEntryType(candidate.getEntryType());</span>
+    }
+
+<span class="fc" id="L126">    Map&lt;String, String&gt; merged = new HashMap&lt;&gt;(keyValuePairs);</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">    for (Map.Entry&lt;String, String&gt; field : candidate.getKeyValuePairs().entrySet()) {</span>
+<span class="fc" id="L128">      String currentValue = merged.get(field.getKey());</span>
+<span class="fc bfc" id="L129" title="All 4 branches covered.">      if (currentValue == null || currentValue.isBlank()) {</span>
+<span class="fc" id="L130">        merged.put(field.getKey(), field.getValue());</span>
+<span class="fc" id="L131">        addedFields.add(field.getKey());</span>
+      }
+<span class="fc" id="L133">    }</span>
+
+<span class="fc bfc" id="L135" title="All 2 branches covered.">    if (addedFields.isEmpty()) {</span>
+<span class="fc" id="L136">      return Outcome.ALREADY_COMPLETE;</span>
+    }
+
+<span class="fc" id="L139">    entry.setKeyValuePairs(merged);</span>
+<span class="fc" id="L140">    bibTexEntryRepository.save(entry);</span>
+<span class="fc" id="L141">    ctx.log(&quot;Improved %s: added %s.&quot;.formatted(entry.getCiteKey(), String.join(&quot;, &quot;, addedFields)));</span>
+<span class="fc" id="L142">    return Outcome.IMPROVED;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

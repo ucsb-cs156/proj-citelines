@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BulkReferenceUploadFromACMDLService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">BulkReferenceUploadFromACMDLService.java</span></div><h1>BulkReferenceUploadFromACMDLService.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import edu.ucsb.cs.citelines.collections.BibTexEntry;
+import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
+import edu.ucsb.cs156.jobs.services.JobContext;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.springframework.stereotype.Service;
+
+/**
+ * Parses the HTML of an ACM Digital Library paper's References section (specifically, the inner
+ * HTML of the node containing {@code &lt;section id=&quot;bibliography&quot;&gt;}) and, for each entry a DOI can be
+ * extracted from, resolves full metadata and adds a new {@link BibTexEntry} recording the current
+ * paper as citing it — so a user can paste a paper's whole References list at once instead of
+ * adding each reference one at a time. See issue #80.
+ *
+ * &lt;p&gt;Within {@code &lt;section id=&quot;bibliography&quot;&gt;}, each {@code &lt;div class=&quot;biblioentry&quot;&gt;} is one
+ * reference. Its DOI is looked for, in order, within its {@code &lt;div class=&quot;external-links&quot;&gt;}:
+ *
+ * &lt;ol&gt;
+ *   &lt;li&gt;a {@code &lt;div class=&quot;core-xlink-digital-library&quot;&gt;}'s link, e.g. {@code &lt;a
+ *       href=&quot;/doi/10.1145/1404520.1404522&quot;&gt;}
+ *   &lt;li&gt;failing that, a {@code &lt;div class=&quot;core-xlink-crossref&quot;&gt;}'s link, e.g. {@code &lt;a
+ *       href=&quot;https://doi.org/10.1080/...&quot;&gt;Crossref&lt;/a&gt;}
+ *   &lt;li&gt;failing that, a {@code &lt;div class=&quot;core-xlink-google-scholar&quot;&gt;}'s link, whose {@code doi}
+ *       query parameter is URL-encoded and must be decoded first, e.g. {@code
+ *       ...scholar_lookup?doi=10.1145%2F1404520.1404522}
+ * &lt;/ol&gt;
+ *
+ * &lt;p&gt;Resolve-or-create-then-link reuses the same {@link CitationGraphService} logic {@link
+ * BulkCitationUploadFromACMDLViewAllService} uses, just with the edge direction reversed — the
+ * *current* paper cites each newly-added reference, rather than each newly-added entry citing the
+ * current paper.
+ */
+@Service
+public class BulkReferenceUploadFromACMDLService {
+
+<span class="fc" id="L45">  private static final Pattern GOOGLE_SCHOLAR_DOI_PARAM = Pattern.compile(&quot;[?&amp;]doi=([^&amp;]+)&quot;);</span>
+
+  private final BibTexEntryRepository bibTexEntryRepository;
+  private final CitationGraphService citationGraphService;
+  private final DOIService doiService;
+
+  public BulkReferenceUploadFromACMDLService(
+      BibTexEntryRepository bibTexEntryRepository,
+      CitationGraphService citationGraphService,
+<span class="fc" id="L54">      DOIService doiService) {</span>
+<span class="fc" id="L55">    this.bibTexEntryRepository = bibTexEntryRepository;</span>
+<span class="fc" id="L56">    this.citationGraphService = citationGraphService;</span>
+<span class="fc" id="L57">    this.doiService = doiService;</span>
+<span class="fc" id="L58">  }</span>
+
+  // Package-visible so tests can assert processEntry's exact return value per branch directly,
+  // same as BulkCitationUploadFromACMDLViewAllService.Outcome.
+<span class="fc" id="L62">  enum Outcome {</span>
+<span class="fc" id="L63">    ADDED,</span>
+<span class="fc" id="L64">    LINKED,</span>
+<span class="fc" id="L65">    ERROR</span>
+  }
+
+  /**
+   * Extracts each {@code &lt;div class=&quot;biblioentry&quot;&gt;} within {@code &lt;section id=&quot;bibliography&quot;&gt;}, in
+   * document order (an empty list if no bibliography section is present). Package-visible for
+   * direct unit testing.
+   */
+  static List&lt;Element&gt; parseBiblioEntries(String rawHtml) {
+<span class="fc" id="L74">    Document doc = Jsoup.parse(rawHtml);</span>
+<span class="fc" id="L75">    Element bibliography = doc.selectFirst(&quot;section#bibliography&quot;);</span>
+<span class="fc bfc" id="L76" title="All 2 branches covered.">    if (bibliography == null) {</span>
+<span class="fc" id="L77">      return List.of();</span>
+    }
+<span class="fc" id="L79">    return bibliography.select(&quot;div.biblioentry&quot;);</span>
+  }
+
+  /**
+   * Extracts the DOI for a single {@code &lt;div class=&quot;biblioentry&quot;&gt;}, per the priority order
+   * documented on the class, or {@code null} if none of the three known link types is present (or
+   * the entry has no {@code &lt;div class=&quot;external-links&quot;&gt;} at all). The returned value is the raw
+   * extracted text, not yet validated/normalized as a DOI — see {@link DOIService#normalizeRawDOI}.
+   * Package-visible for direct unit testing.
+   */
+  static String extractRawDoi(Element biblioEntry) {
+<span class="fc" id="L90">    Element externalLinks = biblioEntry.selectFirst(&quot;div.external-links&quot;);</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (externalLinks == null) {</span>
+<span class="fc" id="L92">      return null;</span>
+    }
+
+<span class="fc" id="L95">    Element digitalLibrary = externalLinks.selectFirst(&quot;div.core-xlink-digital-library a[href]&quot;);</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">    if (digitalLibrary != null) {</span>
+<span class="fc" id="L97">      return digitalLibrary.attr(&quot;href&quot;).replaceFirst(&quot;^/doi/&quot;, &quot;&quot;);</span>
+    }
+
+<span class="fc" id="L100">    Element crossref = externalLinks.selectFirst(&quot;div.core-xlink-crossref a[href]&quot;);</span>
+<span class="fc bfc" id="L101" title="All 2 branches covered.">    if (crossref != null) {</span>
+<span class="fc" id="L102">      return crossref.attr(&quot;href&quot;);</span>
+    }
+
+<span class="fc" id="L105">    Element googleScholar = externalLinks.selectFirst(&quot;div.core-xlink-google-scholar a[href]&quot;);</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">    if (googleScholar != null) {</span>
+<span class="fc" id="L107">      return decodeGoogleScholarDoi(googleScholar.attr(&quot;href&quot;));</span>
+    }
+
+<span class="fc" id="L110">    return null;</span>
+  }
+
+  private static String decodeGoogleScholarDoi(String href) {
+<span class="fc" id="L114">    Matcher matcher = GOOGLE_SCHOLAR_DOI_PARAM.matcher(href);</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">    if (!matcher.find()) {</span>
+<span class="fc" id="L116">      return null;</span>
+    }
+<span class="fc" id="L118">    return URLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8);</span>
+  }
+
+  public void bulkUpload(
+      int projectId, String currentPaperCiteKey, String rawHtml, JobContext ctx) {
+<span class="fc" id="L123">    ctx.log(</span>
+        &quot;Starting Bulk Reference Upload from ACM DL for %s in project %d&quot;
+<span class="fc" id="L125">            .formatted(currentPaperCiteKey, projectId));</span>
+<span class="fc" id="L126">    BibTexEntry currentPaper =</span>
+        bibTexEntryRepository
+<span class="fc" id="L128">            .findByProjectIdAndCiteKey(projectId, currentPaperCiteKey)</span>
+<span class="fc" id="L129">            .orElseThrow(</span>
+                () -&gt; {
+<span class="fc" id="L131">                  ctx.log(&quot;Entry not found: &quot; + currentPaperCiteKey);</span>
+<span class="fc" id="L132">                  return new IllegalStateException(&quot;Entry not found: &quot; + currentPaperCiteKey);</span>
+                });
+
+<span class="fc" id="L135">    List&lt;Element&gt; biblioEntries = parseBiblioEntries(rawHtml);</span>
+<span class="fc" id="L136">    CitationGraphService.ExistingEntries existing =</span>
+<span class="fc" id="L137">        citationGraphService.loadExistingEntries(projectId);</span>
+
+<span class="fc" id="L139">    int added = 0;</span>
+<span class="fc" id="L140">    int linked = 0;</span>
+<span class="fc" id="L141">    int errors = 0;</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">    for (Element biblioEntry : biblioEntries) {</span>
+<span class="fc" id="L143">      Outcome outcome = processEntry(biblioEntry, projectId, currentPaper, existing, ctx);</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">      if (outcome == Outcome.ADDED) {</span>
+<span class="fc" id="L145">        added++;</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">      } else if (outcome == Outcome.LINKED) {</span>
+<span class="fc" id="L147">        linked++;</span>
+      } else {
+<span class="fc" id="L149">        errors++;</span>
+      }
+<span class="fc" id="L151">    }</span>
+
+<span class="fc" id="L153">    ctx.log(</span>
+        &quot;Done: checked %d entr%s, %d added, %d linked to existing entries, %d errors.&quot;
+<span class="fc" id="L155">            .formatted(</span>
+<span class="fc" id="L156">                biblioEntries.size(),</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">                biblioEntries.size() == 1 ? &quot;y&quot; : &quot;ies&quot;,</span>
+<span class="fc" id="L158">                added,</span>
+<span class="fc" id="L159">                linked,</span>
+<span class="fc" id="L160">                errors));</span>
+<span class="fc" id="L161">  }</span>
+
+  // Package-visible so tests can assert the exact returned Outcome per branch directly — needed
+  // to distinguish a genuine Outcome.ERROR from a null return (a real Pitest mutation) when
+  // bulkUpload's tally loop treats both identically via its trailing catch-all else.
+  Outcome processEntry(
+      Element biblioEntry,
+      int projectId,
+      BibTexEntry currentPaper,
+      CitationGraphService.ExistingEntries existing,
+      JobContext ctx) {
+<span class="fc" id="L172">    String description = describeEntry(biblioEntry);</span>
+
+<span class="fc" id="L174">    String rawDoi = extractRawDoi(biblioEntry);</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">    if (rawDoi == null) {</span>
+<span class="fc" id="L176">      ctx.log(&quot;Skipping %s: no DOI found in this entry's external links.&quot;.formatted(description));</span>
+<span class="fc" id="L177">      return Outcome.ERROR;</span>
+    }
+
+    String doi;
+    try {
+<span class="fc" id="L182">      doi = doiService.normalizeRawDOI(rawDoi);</span>
+<span class="fc" id="L183">    } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L184">      ctx.log(&quot;Skipping %s: %s is not a recognizable DOI.&quot;.formatted(description, rawDoi));</span>
+<span class="fc" id="L185">      return Outcome.ERROR;</span>
+<span class="fc" id="L186">    }</span>
+
+<span class="fc" id="L188">    Optional&lt;CitationGraphService.ResolverResult&gt; resolved =</span>
+<span class="fc" id="L189">        citationGraphService.tryResolveByDoi(doi);</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">    if (resolved.isEmpty()) {</span>
+<span class="fc" id="L191">      ctx.log(</span>
+<span class="fc" id="L192">          &quot;Skipping %s: DOI %s could not be resolved by any provider.&quot;.formatted(description, doi));</span>
+<span class="fc" id="L193">      return Outcome.ERROR;</span>
+    }
+
+<span class="fc" id="L196">    CitationGraphService.ResolverResult resolverResult = resolved.get();</span>
+<span class="fc" id="L197">    ResolvedWork work = resolverResult.work();</span>
+<span class="fc bfc" id="L198" title="All 2 branches covered.">    if (isBlank(work.title())) {</span>
+<span class="fc" id="L199">      ResolvedWork recovered =</span>
+<span class="fc" id="L200">          citationGraphService.tryRecoverMissingTitle(work, resolverResult.resolver(), ctx);</span>
+<span class="fc bfc" id="L201" title="All 2 branches covered.">      if (recovered != null) {</span>
+<span class="fc" id="L202">        work = recovered;</span>
+      }
+    }
+<span class="fc bfc" id="L205" title="All 2 branches covered.">    if (isBlank(work.title())) {</span>
+<span class="fc" id="L206">      ctx.log(</span>
+          &quot;Skipping %s: DOI %s resolved, but no title is available from any provider.&quot;
+<span class="fc" id="L208">              .formatted(description, doi));</span>
+<span class="fc" id="L209">      return Outcome.ERROR;</span>
+    }
+
+<span class="fc" id="L212">    CitationGraphService.ResolveOrCreateResult result =</span>
+<span class="fc" id="L213">        citationGraphService.resolveOrCreateEntry(work, projectId, existing);</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">    if (result.entryId().equals(currentPaper.getId())) {</span>
+<span class="fc" id="L215">      ctx.log(</span>
+<span class="fc" id="L216">          &quot;Skipping %s: DOI %s resolves to the current paper itself.&quot;.formatted(description, doi));</span>
+<span class="fc" id="L217">      return Outcome.ERROR;</span>
+    }
+
+    // Reversed from BulkCitationUploadFromACMDLViewAllService: the current paper cites this
+    // reference, not the other way around.
+<span class="fc" id="L222">    citationGraphService.saveCitationEdge(projectId, currentPaper.getId(), result.entryId());</span>
+<span class="fc bfc" id="L223" title="All 2 branches covered.">    if (result.created()) {</span>
+<span class="fc" id="L224">      ctx.log(&quot;Added new entry %s: %s&quot;.formatted(result.citeKey(), work.title()));</span>
+<span class="fc" id="L225">      return Outcome.ADDED;</span>
+    }
+<span class="fc" id="L227">    ctx.log(&quot;Linking to existing entry %s: %s&quot;.formatted(result.citeKey(), work.title()));</span>
+<span class="fc" id="L228">    return Outcome.LINKED;</span>
+  }
+
+  private static boolean isBlank(String value) {
+<span class="fc bfc" id="L232" title="All 4 branches covered.">    return value == null || value.isBlank();</span>
+  }
+
+  private static String describeEntry(Element biblioEntry) {
+<span class="fc" id="L236">    return &quot;\&quot;%s\&quot;&quot;.formatted(truncate(biblioEntry.text(), 80));</span>
+  }
+
+  private static String truncate(String value, int maxLength) {
+<span class="fc bfc" id="L240" title="All 2 branches covered.">    return value.length() &lt;= maxLength ? value : value.substring(0, maxLength) + &quot;...&quot;;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
