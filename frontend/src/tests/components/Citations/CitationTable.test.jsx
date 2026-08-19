@@ -224,6 +224,31 @@ describe("CitationTable tests", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("the Tags column shows a tooltip with the explanation when hovering over a tag pill", async () => {
+    const taggedEntry = {
+      ...bibTexEntriesFixtures.threeEntries[0],
+      tagIds: [tagsFixtures.threeTags[0].id],
+    };
+    renderTable({
+      citations: [taggedEntry],
+      allTags: tagsFixtures.threeTags,
+    });
+
+    fireEvent.mouseOver(
+      screen.getByTestId(
+        `CitationTable-cell-row-0-col-tags-${tagsFixtures.threeTags[0].id}-badge`,
+      ),
+    );
+
+    await waitFor(() => {
+      expect(
+        document.getElementById(
+          `CitationTable-cell-row-0-col-tags-${tagsFixtures.threeTags[0].id}-badge-tooltip`,
+        ),
+      ).toHaveTextContent(tagsFixtures.threeTags[0].explanation);
+    });
+  });
+
   test("the Tags column is empty when allTags is not provided, even if the entry has tagIds", () => {
     const taggedEntry = {
       ...bibTexEntriesFixtures.threeEntries[0],

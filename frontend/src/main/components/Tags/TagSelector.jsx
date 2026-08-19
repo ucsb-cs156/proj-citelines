@@ -1,34 +1,9 @@
 import { useState } from "react";
-import {
-  Badge,
-  Button,
-  Dropdown,
-  OverlayTrigger,
-  Tooltip,
-} from "react-bootstrap";
+import { Button, Dropdown } from "react-bootstrap";
 import { toast } from "react-toastify";
-import { getContrastTextColor } from "main/utils/colorUtils";
 import { useBackendMutation } from "main/utils/useBackend";
 import TagModal from "main/components/Tags/TagModal";
-
-const DEFAULT_TAG_COLOR = "#6c757d";
-
-function TagPill({ tag, testId }) {
-  const color = tag.color || DEFAULT_TAG_COLOR;
-  return (
-    <Badge
-      pill
-      bg={null}
-      style={{
-        backgroundColor: color,
-        color: getContrastTextColor(color),
-      }}
-      data-testid={testId}
-    >
-      {tag.tag}
-    </Badge>
-  );
-}
+import TagPill from "main/components/Tags/TagPill";
 
 export default function TagSelector({
   allTags = [],
@@ -74,16 +49,6 @@ export default function TagSelector({
     [tagsQueryKey],
   );
 
-  const withExplanationTooltip = (tag, tooltipId, children) => (
-    <OverlayTrigger
-      key={tag.id}
-      placement="top"
-      overlay={<Tooltip id={tooltipId}>{tag.explanation}</Tooltip>}
-    >
-      {children}
-    </OverlayTrigger>
-  );
-
   return (
     <div data-testid={testId}>
       <TagModal
@@ -101,32 +66,29 @@ export default function TagSelector({
             No tags assigned
           </span>
         )}
-        {assignedTags.map((tag) =>
-          withExplanationTooltip(
-            tag,
-            `${testId}-assigned-tag-${tag.id}-tooltip`,
-            <span
-              className="d-inline-flex align-items-center"
-              data-testid={`${testId}-assigned-tag-${tag.id}`}
-            >
-              <TagPill
-                tag={tag}
-                testId={`${testId}-assigned-tag-${tag.id}-badge`}
-              />
-              {canEdit && (
-                <button
-                  type="button"
-                  className="btn btn-link btn-sm p-0 ms-1 text-decoration-none"
-                  aria-label={`Remove tag ${tag.tag}`}
-                  data-testid={`${testId}-remove-tag-${tag.id}`}
-                  onClick={() => onRemoveTag(tag)}
-                >
-                  &times;
-                </button>
-              )}
-            </span>,
-          ),
-        )}
+        {assignedTags.map((tag) => (
+          <span
+            key={tag.id}
+            className="d-inline-flex align-items-center"
+            data-testid={`${testId}-assigned-tag-${tag.id}`}
+          >
+            <TagPill
+              tag={tag}
+              testId={`${testId}-assigned-tag-${tag.id}-badge`}
+            />
+            {canEdit && (
+              <button
+                type="button"
+                className="btn btn-link btn-sm p-0 ms-1 text-decoration-none"
+                aria-label={`Remove tag ${tag.tag}`}
+                data-testid={`${testId}-remove-tag-${tag.id}`}
+                onClick={() => onRemoveTag(tag)}
+              >
+                &times;
+              </button>
+            )}
+          </span>
+        ))}
       </div>
       <div className="d-flex align-items-center gap-3 mt-2">
         {canEdit && (
@@ -147,26 +109,25 @@ export default function TagSelector({
                   No more tags available
                 </Dropdown.Item>
               )}
-              {availableTags.map((tag) =>
-                withExplanationTooltip(
-                  tag,
-                  `${testId}-available-tag-${tag.id}-tooltip`,
-                  <Dropdown.Item
-                    as="button"
-                    type="button"
-                    data-testid={`${testId}-available-tag-${tag.id}`}
-                    onClick={() => onAddTag(tag)}
-                  >
-                    <TagPill
-                      tag={tag}
-                      testId={`${testId}-available-tag-${tag.id}-badge`}
-                    />
+              {availableTags.map((tag) => (
+                <Dropdown.Item
+                  key={tag.id}
+                  as="button"
+                  type="button"
+                  data-testid={`${testId}-available-tag-${tag.id}`}
+                  onClick={() => onAddTag(tag)}
+                >
+                  <TagPill
+                    tag={tag}
+                    testId={`${testId}-available-tag-${tag.id}-badge`}
+                  />
+                  {tag.explanation && (
                     <span className="ms-2 small text-muted">
                       {tag.explanation}
                     </span>
-                  </Dropdown.Item>,
-                ),
-              )}
+                  )}
+                </Dropdown.Item>
+              ))}
             </Dropdown.Menu>
           </Dropdown>
         )}

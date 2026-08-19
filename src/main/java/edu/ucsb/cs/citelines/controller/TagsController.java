@@ -47,7 +47,7 @@ public class TagsController extends ApiController {
   @PostMapping("/post")
   public Tag postTag(
       @Parameter(name = "tag") @RequestParam String tag,
-      @Parameter(name = "explanation") @RequestParam String explanation,
+      @Parameter(name = "explanation") @RequestParam(required = false) String explanation,
       @Parameter(name = "color") @RequestParam(required = false) String color,
       @Parameter(name = "projectId") @RequestParam Long projectId)
       throws EntityNotFoundException {
@@ -93,7 +93,7 @@ public class TagsController extends ApiController {
       @Parameter(name = "id") @RequestParam Long id,
       @Parameter(name = "projectId") @RequestParam Long projectId,
       @Parameter(name = "tag") @RequestParam String tag,
-      @Parameter(name = "explanation") @RequestParam String explanation,
+      @Parameter(name = "explanation") @RequestParam(required = false) String explanation,
       @Parameter(name = "color") @RequestParam(required = false) String color)
       throws EntityNotFoundException {
     Tag existingTag =

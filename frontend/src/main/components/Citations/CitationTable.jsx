@@ -6,6 +6,7 @@ import { useBackendMutation } from "main/utils/useBackend";
 import { toast } from "react-toastify";
 import Modal from "react-bootstrap/Modal";
 import BibTexEntryModal from "main/components/Citations/BibTexEntryModal";
+import TagPill from "main/components/Tags/TagPill";
 import { truncate } from "main/utils/truncate";
 import { getContrastTextColor } from "main/utils/colorUtils";
 import {
@@ -18,7 +19,6 @@ const AUTHOR_MAX_LENGTH = 15;
 const TITLE_MAX_LENGTH = 20;
 const DUP_FLAG_COLOR = "#dc3545";
 const LINK_FLAG_COLOR = "#ffff00";
-const DEFAULT_TAG_COLOR = "#6c757d";
 
 function FlagBadge({ color, testId, children }) {
   return (
@@ -30,22 +30,6 @@ function FlagBadge({ color, testId, children }) {
       data-testid={testId}
     >
       {children}
-    </Badge>
-  );
-}
-
-// Matches TagSelector's TagPill exactly (issue #87) — tags are shown the same way everywhere.
-function TagPill({ tag, testId }) {
-  const color = tag.color || DEFAULT_TAG_COLOR;
-  return (
-    <Badge
-      pill
-      bg={null}
-      style={{ backgroundColor: color, color: getContrastTextColor(color) }}
-      className="me-1"
-      data-testid={testId}
-    >
-      {tag.tag}
     </Badge>
   );
 }

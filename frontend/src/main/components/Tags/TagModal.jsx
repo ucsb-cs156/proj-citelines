@@ -65,20 +65,16 @@ export default function TagModal({
             </Form.Control.Feedback>
           </Form.Group>
           <Form.Group>
-            <Form.Label htmlFor="explanation">Explanation</Form.Label>
+            <Form.Label htmlFor="explanation">
+              Explanation (optional)
+            </Form.Label>
             <Form.Control
               data-testid={`${testId}-explanation`}
               id="explanation"
               as="textarea"
               rows={3}
-              isInvalid={Boolean(errors.explanation)}
-              {...register("explanation", {
-                required: "Explanation is required.",
-              })}
+              {...register("explanation")}
             />
-            <Form.Control.Feedback type="invalid">
-              {errors.explanation?.message}
-            </Form.Control.Feedback>
           </Form.Group>
           <Form.Group>
             <Form.Label>Color</Form.Label>
