@@ -20,4 +20,4 @@ repo_name: "TBD"
 repo: ucsb-cs156/proj-citelines
 owner: ucsb-cs156
 repo_name: proj-citelines
-pull_requests: []
+pull_requests: [{"author":{"is_bot":true,"login":"app/copilot-swe-agent"},"headRefName":"copilot/refactor-hrefs-to-navigates","number":98,"title":"[WIP] Refactor hrefs to navigates for internal links","url":"https://github.com/ucsb-cs156/proj-citelines/pull/98"}]
