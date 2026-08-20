@@ -67,7 +67,16 @@ import org.springframework.web.bind.annotation.RestController;
 <span class="fc" id="L67">    projectRepository</span>
 <span class="fc" id="L68">        .findById(projectId)</span>
 <span class="fc" id="L69">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
-<span class="fc" id="L70">    return jobsRepository.findByScopeTypeAndScopeIdOrderByIdDesc(&quot;project&quot;, projectId);</span>
+<span class="fc" id="L70">    Iterable&lt;Job&gt; jobs =</span>
+<span class="fc" id="L71">        jobsRepository.findByScopeTypeAndScopeIdOrderByIdDesc(&quot;project&quot;, projectId);</span>
+    /*
+     * Since lib-jobs v0.2.0, Job.log is @Transient (see job_logs) and is no
+     * longer populated automatically by JPA; callers that return Job entities
+     * directly must set it explicitly, same as the library's own controller
+     * does for /all and /paginated.
+     */
+<span class="fc" id="L78">    jobs.forEach(job -&gt; job.setLog(jobService.getJobLogPreview(job.getId())));</span>
+<span class="fc" id="L79">    return jobs;</span>
   }
 
   @Operation(summary = &quot;Launch a job to fetch the papers a BibTeX entry cites&quot;)
@@ -76,13 +85,13 @@ import org.springframework.web.bind.annotation.RestController;
   public Job launchGetReferences(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;citeKey&quot;) @RequestParam String citeKey) {
-<span class="fc" id="L79">    requireEntry(projectId, citeKey);</span>
-<span class="fc" id="L80">    return jobService.runAsJob(</span>
-<span class="fc" id="L81">        GetReferencesJob.builder()</span>
-<span class="fc" id="L82">            .projectId(projectId.intValue())</span>
-<span class="fc" id="L83">            .citeKey(citeKey)</span>
-<span class="fc" id="L84">            .citationGraphService(citationGraphService)</span>
-<span class="fc" id="L85">            .build());</span>
+<span class="fc" id="L88">    requireEntry(projectId, citeKey);</span>
+<span class="fc" id="L89">    return jobService.runAsJob(</span>
+<span class="fc" id="L90">        GetReferencesJob.builder()</span>
+<span class="fc" id="L91">            .projectId(projectId.intValue())</span>
+<span class="fc" id="L92">            .citeKey(citeKey)</span>
+<span class="fc" id="L93">            .citationGraphService(citationGraphService)</span>
+<span class="fc" id="L94">            .build());</span>
   }
 
   @Operation(summary = &quot;Launch a job to fetch the papers that cite a BibTeX entry&quot;)
@@ -91,27 +100,27 @@ import org.springframework.web.bind.annotation.RestController;
   public Job launchGetCitations(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;citeKey&quot;) @RequestParam String citeKey) {
-<span class="fc" id="L94">    requireEntry(projectId, citeKey);</span>
-<span class="fc" id="L95">    return jobService.runAsJob(</span>
-<span class="fc" id="L96">        GetCitationsJob.builder()</span>
-<span class="fc" id="L97">            .projectId(projectId.intValue())</span>
-<span class="fc" id="L98">            .citeKey(citeKey)</span>
-<span class="fc" id="L99">            .citationGraphService(citationGraphService)</span>
-<span class="fc" id="L100">            .build());</span>
+<span class="fc" id="L103">    requireEntry(projectId, citeKey);</span>
+<span class="fc" id="L104">    return jobService.runAsJob(</span>
+<span class="fc" id="L105">        GetCitationsJob.builder()</span>
+<span class="fc" id="L106">            .projectId(projectId.intValue())</span>
+<span class="fc" id="L107">            .citeKey(citeKey)</span>
+<span class="fc" id="L108">            .citationGraphService(citationGraphService)</span>
+<span class="fc" id="L109">            .build());</span>
   }
 
   @Operation(summary = &quot;Launch a job to check DOI/URL links for a project's BibTeX entries&quot;)
   @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
   @PostMapping(&quot;/launch/checkLinks&quot;)
   public Job launchCheckLinks(@Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) {
-<span class="fc" id="L107">    projectRepository</span>
-<span class="fc" id="L108">        .findById(projectId)</span>
-<span class="fc" id="L109">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
-<span class="fc" id="L110">    return jobService.runAsJob(</span>
-<span class="fc" id="L111">        CheckLinksJob.builder()</span>
-<span class="fc" id="L112">            .projectId(projectId.intValue())</span>
-<span class="fc" id="L113">            .checkLinksService(checkLinksService)</span>
-<span class="fc" id="L114">            .build());</span>
+<span class="fc" id="L116">    projectRepository</span>
+<span class="fc" id="L117">        .findById(projectId)</span>
+<span class="fc" id="L118">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L119">    return jobService.runAsJob(</span>
+<span class="fc" id="L120">        CheckLinksJob.builder()</span>
+<span class="fc" id="L121">            .projectId(projectId.intValue())</span>
+<span class="fc" id="L122">            .checkLinksService(checkLinksService)</span>
+<span class="fc" id="L123">            .build());</span>
   }
 
   @Operation(
@@ -121,14 +130,14 @@ import org.springframework.web.bind.annotation.RestController;
   @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
   @PostMapping(&quot;/launch/detectDuplicates&quot;)
   public Job launchDetectDuplicates(@Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) {
-<span class="fc" id="L124">    projectRepository</span>
-<span class="fc" id="L125">        .findById(projectId)</span>
-<span class="fc" id="L126">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
-<span class="fc" id="L127">    return jobService.runAsJob(</span>
-<span class="fc" id="L128">        DuplicateDetectionJob.builder()</span>
-<span class="fc" id="L129">            .projectId(projectId.intValue())</span>
-<span class="fc" id="L130">            .duplicateDetectionService(duplicateDetectionService)</span>
-<span class="fc" id="L131">            .build());</span>
+<span class="fc" id="L133">    projectRepository</span>
+<span class="fc" id="L134">        .findById(projectId)</span>
+<span class="fc" id="L135">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L136">    return jobService.runAsJob(</span>
+<span class="fc" id="L137">        DuplicateDetectionJob.builder()</span>
+<span class="fc" id="L138">            .projectId(projectId.intValue())</span>
+<span class="fc" id="L139">            .duplicateDetectionService(duplicateDetectionService)</span>
+<span class="fc" id="L140">            .build());</span>
   }
 
   @Operation(
@@ -139,14 +148,14 @@ import org.springframework.web.bind.annotation.RestController;
   @PostMapping(&quot;/launch/upgradeBibTexEntries&quot;)
   public Job launchUpgradeBibTexEntries(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId) {
-<span class="fc" id="L142">    projectRepository</span>
-<span class="fc" id="L143">        .findById(projectId)</span>
-<span class="fc" id="L144">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
-<span class="fc" id="L145">    return jobService.runAsJob(</span>
-<span class="fc" id="L146">        BibTexEntryUpgradeJob.builder()</span>
-<span class="fc" id="L147">            .projectId(projectId.intValue())</span>
-<span class="fc" id="L148">            .bibTexEntryUpgradeService(bibTexEntryUpgradeService)</span>
-<span class="fc" id="L149">            .build());</span>
+<span class="fc" id="L151">    projectRepository</span>
+<span class="fc" id="L152">        .findById(projectId)</span>
+<span class="fc" id="L153">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L154">    return jobService.runAsJob(</span>
+<span class="fc" id="L155">        BibTexEntryUpgradeJob.builder()</span>
+<span class="fc" id="L156">            .projectId(projectId.intValue())</span>
+<span class="fc" id="L157">            .bibTexEntryUpgradeService(bibTexEntryUpgradeService)</span>
+<span class="fc" id="L158">            .build());</span>
   }
 
   @Operation(
@@ -159,14 +168,14 @@ import org.springframework.web.bind.annotation.RestController;
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;citeKey&quot;) @RequestParam String citeKey,
       @RequestBody String rawText) {
-<span class="fc" id="L162">    requireEntry(projectId, citeKey);</span>
-<span class="fc" id="L163">    return jobService.runAsJob(</span>
-<span class="fc" id="L164">        BulkCitationUploadFromACMDLViewAllJob.builder()</span>
-<span class="fc" id="L165">            .projectId(projectId.intValue())</span>
-<span class="fc" id="L166">            .citeKey(citeKey)</span>
-<span class="fc" id="L167">            .rawText(rawText)</span>
-<span class="fc" id="L168">            .bulkCitationUploadFromACMDLViewAllService(bulkCitationUploadFromACMDLViewAllService)</span>
-<span class="fc" id="L169">            .build());</span>
+<span class="fc" id="L171">    requireEntry(projectId, citeKey);</span>
+<span class="fc" id="L172">    return jobService.runAsJob(</span>
+<span class="fc" id="L173">        BulkCitationUploadFromACMDLViewAllJob.builder()</span>
+<span class="fc" id="L174">            .projectId(projectId.intValue())</span>
+<span class="fc" id="L175">            .citeKey(citeKey)</span>
+<span class="fc" id="L176">            .rawText(rawText)</span>
+<span class="fc" id="L177">            .bulkCitationUploadFromACMDLViewAllService(bulkCitationUploadFromACMDLViewAllService)</span>
+<span class="fc" id="L178">            .build());</span>
   }
 
   @Operation(
@@ -179,22 +188,22 @@ import org.springframework.web.bind.annotation.RestController;
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;citeKey&quot;) @RequestParam String citeKey,
       @RequestBody String rawHtml) {
-<span class="fc" id="L182">    requireEntry(projectId, citeKey);</span>
-<span class="fc" id="L183">    return jobService.runAsJob(</span>
-<span class="fc" id="L184">        BulkReferenceUploadFromACMDLJob.builder()</span>
-<span class="fc" id="L185">            .projectId(projectId.intValue())</span>
-<span class="fc" id="L186">            .citeKey(citeKey)</span>
-<span class="fc" id="L187">            .rawHtml(rawHtml)</span>
-<span class="fc" id="L188">            .bulkReferenceUploadFromACMDLService(bulkReferenceUploadFromACMDLService)</span>
-<span class="fc" id="L189">            .build());</span>
+<span class="fc" id="L191">    requireEntry(projectId, citeKey);</span>
+<span class="fc" id="L192">    return jobService.runAsJob(</span>
+<span class="fc" id="L193">        BulkReferenceUploadFromACMDLJob.builder()</span>
+<span class="fc" id="L194">            .projectId(projectId.intValue())</span>
+<span class="fc" id="L195">            .citeKey(citeKey)</span>
+<span class="fc" id="L196">            .rawHtml(rawHtml)</span>
+<span class="fc" id="L197">            .bulkReferenceUploadFromACMDLService(bulkReferenceUploadFromACMDLService)</span>
+<span class="fc" id="L198">            .build());</span>
   }
 
   private void requireEntry(Long projectId, String citeKey) {
-<span class="fc" id="L193">    BibTexEntry entry =</span>
-<span class="fc" id="L194">        bibTexEntryRepository.findByProjectIdAndCiteKey(projectId.intValue(), citeKey).orElse(null);</span>
-<span class="fc bfc" id="L195" title="All 2 branches covered.">    if (entry == null) {</span>
-<span class="fc" id="L196">      throw new EntityNotFoundException(BibTexEntry.class, citeKey);</span>
+<span class="fc" id="L202">    BibTexEntry entry =</span>
+<span class="fc" id="L203">        bibTexEntryRepository.findByProjectIdAndCiteKey(projectId.intValue(), citeKey).orElse(null);</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">    if (entry == null) {</span>
+<span class="fc" id="L205">      throw new EntityNotFoundException(BibTexEntry.class, citeKey);</span>
     }
-<span class="fc" id="L198">  }</span>
+<span class="fc" id="L207">  }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

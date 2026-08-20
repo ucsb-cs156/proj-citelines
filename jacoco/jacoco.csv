@@ -17,7 +17,7 @@ citelines,edu.ucsb.cs.citelines.controller,ApiController,0,50,0,0,0,14,0,8,0,8
 citelines,edu.ucsb.cs.citelines.controller,ProjectCollaboratorsController,0,81,0,0,0,21,0,8,0,8
 citelines,edu.ucsb.cs.citelines.controller,ResearchersController,0,65,0,2,0,14,0,6,0,5
 citelines,edu.ucsb.cs.citelines.controller,SystemInfoController,0,7,0,0,0,2,0,2,0,2
-citelines,edu.ucsb.cs.citelines.controller,JobsController,0,200,0,2,0,65,0,16,0,15
+citelines,edu.ucsb.cs.citelines.controller,JobsController,0,215,0,2,0,68,0,17,0,16
 citelines,edu.ucsb.cs.citelines.controller,TagsController,0,206,0,12,0,40,0,18,0,12
 citelines,edu.ucsb.cs.citelines.services,SystemInfoServiceImpl,0,58,0,4,0,15,0,5,0,3
 citelines,edu.ucsb.cs.citelines.services,CitationGraphService.ExistingEntries,0,9,0,0,0,1,0,1,0,1
