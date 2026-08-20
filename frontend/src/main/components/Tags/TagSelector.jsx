@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button, Dropdown } from "react-bootstrap";
+import { Link } from "react-router";
 import { toast } from "react-toastify";
 import { useBackendMutation } from "main/utils/useBackend";
 import TagModal from "main/components/Tags/TagModal";
@@ -141,14 +142,14 @@ export default function TagSelector({
             New Tag
           </Button>
         )}
-        <a
-          href={`/project/${projectId}?tab=Tags`}
+        <Link
+          to={`/project/${projectId}?tab=Tags`}
           target="_blank"
           rel="noopener noreferrer"
           data-testid={`${testId}-manage-tags-link`}
         >
           Manage Tags
-        </a>
+        </Link>
       </div>
     </div>
   );
