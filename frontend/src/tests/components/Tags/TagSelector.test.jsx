@@ -1,5 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router";
 import { vi } from "vitest";
 import axios from "axios";
 import AxiosMockAdapter from "axios-mock-adapter";
@@ -20,7 +21,9 @@ vi.mock("react-toastify", async (importOriginal) => {
 function renderTagSelector(props, queryClient = new QueryClient()) {
   return render(
     <QueryClientProvider client={queryClient}>
-      <TagSelector {...props} />
+      <MemoryRouter>
+        <TagSelector {...props} />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -42,7 +45,9 @@ function renderTagSelectorWithActiveTagsQuery(
 ) {
   return render(
     <QueryClientProvider client={queryClient}>
-      <TagSelectorWithActiveTagsQuery {...props} />
+      <MemoryRouter>
+        <TagSelectorWithActiveTagsQuery {...props} />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
