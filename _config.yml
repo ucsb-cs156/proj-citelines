@@ -20,4 +20,4 @@ repo_name: "TBD"
 repo: ucsb-cs156/proj-citelines
 owner: ucsb-cs156
 repo_name: proj-citelines
-pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-lib-jobs-v0.2.0","number":97,"title":"Bump lib-jobs to v0.2.0: job_logs table, /paginated filtering, log tailing","url":"https://github.com/ucsb-cs156/proj-citelines/pull/97"}]
+pull_requests: []
