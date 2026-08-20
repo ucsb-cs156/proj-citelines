@@ -67,7 +67,16 @@ public class JobsController extends ApiController {
     projectRepository
         .findById(projectId)
         .orElseThrow(() -> new EntityNotFoundException(Project.class, projectId));
-    return jobsRepository.findByScopeTypeAndScopeIdOrderByIdDesc("project", projectId);
+    Iterable<Job> jobs =
+        jobsRepository.findByScopeTypeAndScopeIdOrderByIdDesc("project", projectId);
+    /*
+     * Since lib-jobs v0.2.0, Job.log is @Transient (see job_logs) and is no
+     * longer populated automatically by JPA; callers that return Job entities
+     * directly must set it explicitly, same as the library's own controller
+     * does for /all and /paginated.
+     */
+    jobs.forEach(job -> job.setLog(jobService.getJobLogPreview(job.getId())));
+    return jobs;
   }
 
   @Operation(summary = "Launch a job to fetch the papers a BibTeX entry cites")
