@@ -406,6 +406,46 @@ describe("BibTexEntryShowPage tests", () => {
     });
   });
 
+  test("hovering an unresolved badge shows a tooltip explaining what it means", async () => {
+    axiosMock.reset();
+    axiosMock
+      .onGet("/api/bibtexentries/entry")
+      .reply(200, bibTexEntriesFixtures.oneEntry);
+    axiosMock
+      .onGet("/api/bibtexentries/export")
+      .reply(200, "@article{smith2020,\n  title = {A Very Long Title}\n}\n");
+    axiosMock.onGet("/api/citationedges/references").reply(200, []);
+    axiosMock.onGet("/api/citationedges/citations").reply(200, []);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, [
+      { id: "u1", direction: "reference", reason: "missing_title" },
+      { id: "u3", direction: "citation", reason: "not_found_by_any_resolver" },
+    ]);
+
+    renderAtSmith2020();
+
+    await screen.findByTestId(
+      "BibTexEntryShowPage-references-unresolved-badge",
+    );
+
+    fireEvent.mouseOver(
+      screen.getByTestId("BibTexEntryShowPage-references-unresolved-badge"),
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByText(/but can't fully identify it/),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.mouseOver(
+      screen.getByTestId("BibTexEntryShowPage-citations-unresolved-badge"),
+    );
+    await waitFor(() => {
+      expect(
+        screen.getAllByText(/but can't fully identify it/).length,
+      ).toBeGreaterThan(0);
+    });
+  });
+
   test("shows an error modal and returns to the project page when the entry cannot be fetched", async () => {
     axiosMock.onGet("/api/bibtexentries/entry").reply(404, {});
 

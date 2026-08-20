@@ -35,6 +35,16 @@ import {
 
 const POSSIBLE_DUPLICATE_HEADER_COLOR = "#f8d7da";
 
+const UNRESOLVED_COUNT_TOOLTIP =
+  `Whenever "Get References"/"Get Citations" learns a related paper exists ` +
+  `but can't fully identify it, that gap is recorded rather than silently ` +
+  `dropped, so this count doesn't quietly hide references we know about but ` +
+  `couldn't add. This can happen when: a resolver names a related work but ` +
+  `it doesn't actually resolve to anything when fetched; a related work ` +
+  `resolves but no title could be found for it from any provider; or a ` +
+  `related work was added successfully but has no DOI, so it can't itself ` +
+  `be used to keep expanding the citation graph further.`;
+
 // The independently-collapsible cards on this page (issue #38, extended by issue #79). Unlike a
 // react-bootstrap Accordion, any number of these may be open at once. `field` is the (lowercased,
 // unprefixed)
@@ -712,12 +722,21 @@ export default function BibTexEntryShowPage({
               <span data-testid={`${testId}-references-heading`}>
                 References ({references.length})
                 {unresolvedReferencesCount > 0 && (
-                  <span
-                    className="text-warning ms-2"
-                    data-testid={`${testId}-references-unresolved-badge`}
+                  <OverlayTrigger
+                    placement="top"
+                    overlay={
+                      <Tooltip id={`${testId}-references-unresolved-tooltip`}>
+                        {UNRESOLVED_COUNT_TOOLTIP}
+                      </Tooltip>
+                    }
                   >
-                    — {unresolvedReferencesCount} unresolved
-                  </span>
+                    <span
+                      className="text-warning ms-2"
+                      data-testid={`${testId}-references-unresolved-badge`}
+                    >
+                      — {unresolvedReferencesCount} unresolved
+                    </span>
+                  </OverlayTrigger>
                 )}
               </span>
             }
@@ -739,12 +758,21 @@ export default function BibTexEntryShowPage({
               <span data-testid={`${testId}-citations-heading`}>
                 Citations ({citations.length})
                 {unresolvedCitationsCount > 0 && (
-                  <span
-                    className="text-warning ms-2"
-                    data-testid={`${testId}-citations-unresolved-badge`}
+                  <OverlayTrigger
+                    placement="top"
+                    overlay={
+                      <Tooltip id={`${testId}-citations-unresolved-tooltip`}>
+                        {UNRESOLVED_COUNT_TOOLTIP}
+                      </Tooltip>
+                    }
                   >
-                    — {unresolvedCitationsCount} unresolved
-                  </span>
+                    <span
+                      className="text-warning ms-2"
+                      data-testid={`${testId}-citations-unresolved-badge`}
+                    >
+                      — {unresolvedCitationsCount} unresolved
+                    </span>
+                  </OverlayTrigger>
                 )}
               </span>
             }
