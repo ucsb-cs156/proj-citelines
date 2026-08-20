@@ -21,7 +21,12 @@ export const RELEVANCE_OPTIONS = [
 export const DEFAULT_RELEVANCE = "Unreviewed";
 
 const CITELINES_PREFIX = "citelines_";
-const RELEVANCE_FIELD_NAME = `${CITELINES_PREFIX}relevance`;
+// Exported so other code that reads relevance straight off entry.keyValuePairs (rather than
+// parsing raw BibTeX text) can key on the same lowercase name the backend actually persists it
+// under — BibTexConverterService.toBibTexEntry lowercases every field name when it parses
+// pasted/edited BibTeX text, so "CITELINES_relevance" as written in source text always ends up
+// stored as "citelines_relevance".
+export const RELEVANCE_FIELD_NAME = `${CITELINES_PREFIX}relevance`;
 
 /**
  * Splits `text` on top-level occurrences of `splitChar` — i.e. not inside a `{...}` (which may

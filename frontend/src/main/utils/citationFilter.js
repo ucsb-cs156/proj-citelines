@@ -1,6 +1,7 @@
 import {
   RELEVANCE_OPTIONS,
   DEFAULT_RELEVANCE,
+  RELEVANCE_FIELD_NAME,
 } from "main/utils/citelinesFields";
 import {
   hasInvalidLinkFlag,
@@ -33,11 +34,14 @@ export const DEFAULT_CITATION_FILTER = {
   tagMode: "or",
 };
 
-// Relevance is stored directly on keyValuePairs (the same raw CITELINES_-prefixed key used
-// throughout this codebase, e.g. hasInvalidLinkFlag's CITELINES_invalid_doi/url) — not parsed
-// from raw BibTeX text the way extractCitelinesFields does for the edit-modal flow.
+// Relevance is stored directly on keyValuePairs, but — unlike CITELINES_invalid_doi/url, which
+// are written straight into an already-parsed entry — it's only ever set by writing a
+// "CITELINES_relevance = {...}" field into raw BibTeX text and re-parsing it. That parse step
+// (BibTexConverterService.toBibTexEntry) lowercases every field name, so the key actually
+// persisted is "citelines_relevance". RELEVANCE_FIELD_NAME is the same constant
+// extractCitelinesFields uses when parsing raw BibTeX text, so both stay in sync.
 export function getEntryRelevance(entry) {
-  return entry.keyValuePairs?.CITELINES_relevance ?? DEFAULT_RELEVANCE;
+  return entry.keyValuePairs?.[RELEVANCE_FIELD_NAME] ?? DEFAULT_RELEVANCE;
 }
 
 // Matches CitationTable's Link column exactly: a doi takes precedence over a url when an entry

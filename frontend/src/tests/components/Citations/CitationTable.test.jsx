@@ -96,7 +96,7 @@ describe("CitationTable tests", () => {
       ...bibTexEntriesFixtures.threeEntries[0],
       keyValuePairs: {
         ...bibTexEntriesFixtures.threeEntries[0].keyValuePairs,
-        CITELINES_relevance: "High",
+        citelines_relevance: "High",
       },
     };
     renderTable({
@@ -109,7 +109,7 @@ describe("CitationTable tests", () => {
     expect(highBadge).toHaveTextContent("High");
     expect(highBadge).toHaveClass("relevance-badge", "relevance-high");
 
-    // No CITELINES_relevance set on threeEntries[1] -> defaults to Unreviewed.
+    // No citelines_relevance set on threeEntries[1] -> defaults to Unreviewed.
     const unreviewedBadge = screen.getByTestId(
       "CitationTable-cell-row-1-col-relevance-badge",
     );
@@ -128,21 +128,21 @@ describe("CitationTable tests", () => {
       ...bibTexEntriesFixtures.threeEntries[0],
       keyValuePairs: {
         ...bibTexEntriesFixtures.threeEntries[0].keyValuePairs,
-        CITELINES_relevance: "High",
+        citelines_relevance: "High",
       },
     };
     const mediumEntry = {
       ...bibTexEntriesFixtures.threeEntries[1],
       keyValuePairs: {
         ...bibTexEntriesFixtures.threeEntries[1].keyValuePairs,
-        CITELINES_relevance: "Medium",
+        citelines_relevance: "Medium",
       },
     };
     const lowEntry = {
       ...bibTexEntriesFixtures.threeEntries[2],
       keyValuePairs: {
         ...bibTexEntriesFixtures.threeEntries[2].keyValuePairs,
-        CITELINES_relevance: "Low",
+        citelines_relevance: "Low",
       },
     };
     renderTable({ citations: [lowEntry, mediumEntry, highEntry] });
