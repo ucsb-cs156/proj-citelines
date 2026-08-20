@@ -61,6 +61,31 @@ const bibTexEntriesFixtures = {
       doi: "10.1145/3770762.3772609",
     },
   },
+  // Exercises every optional field BibTexEntryShowPage renders something for: an abstract, a
+  // relevance rating, assigned tags, published comments, and a possible-duplicate flag pointing
+  // back at `oneEntry` — see BibTexEntryShowPage.stories.jsx.
+  fullyFeaturedEntry: {
+    id: "64f1b2c3d4e5f6a7b8c9d0e9",
+    projectId: 1,
+    entryType: "article",
+    citeKey: "fullyfeatured2024",
+    tagIds: [1, 2],
+    possibleDuplicateIds: ["64f1b2c3d4e5f6a7b8c9d0e1"],
+    possibleDuplicateReason: "SIMILAR_TITLE",
+    keyValuePairs: {
+      author: "Alex Fully and Jordan Featured",
+      title: "A Fully Featured Example Paper, for the Storybook Demo",
+      year: "2024",
+      doi: "10.1145/9999999.9999999",
+      abstract:
+        "This is a sample abstract used to demonstrate the Abstract card, " +
+        "including its word count and edit modal, in the BibTexEntryShowPage " +
+        "Storybook story.",
+      CITELINES_relevance: "High",
+      CITELINES_comments:
+        "These are some **published** comments in _Markdown_.",
+    },
+  },
 };
 
 export default bibTexEntriesFixtures;
