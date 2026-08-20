@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { vi } from "vitest";
@@ -600,6 +606,27 @@ describe("BibTexEntryShowPage tests", () => {
         screen.getByTestId("BibTexEntryShowPage-relevance-select"),
       ).toHaveValue("Unreviewed");
     });
+  });
+
+  test("colors each Relevance dropdown option per issue #54's central relevance CSS classes", async () => {
+    renderAtSmith2020();
+
+    const select = await screen.findByTestId(
+      "BibTexEntryShowPage-relevance-select",
+    );
+    const options = within(select).getAllByRole("option");
+    expect(options.map((o) => o.value)).toEqual([
+      "High",
+      "Medium",
+      "Low",
+      "None",
+      "Unreviewed",
+    ]);
+    expect(options[0]).toHaveClass("relevance-high");
+    expect(options[1]).toHaveClass("relevance-medium");
+    expect(options[2]).toHaveClass("relevance-low");
+    expect(options[3]).toHaveClass("relevance-none");
+    expect(options[4]).toHaveClass("relevance-unreviewed");
   });
 
   test("shows the entry's current relevance in the dropdown, and updating it PUTs the new value", async () => {

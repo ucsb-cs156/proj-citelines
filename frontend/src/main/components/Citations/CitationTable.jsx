@@ -13,6 +13,12 @@ import {
   hasInvalidLinkFlag,
   hasPossibleDuplicateFlag,
 } from "main/utils/duplicateFlags";
+import { getEntryRelevance } from "main/utils/citationFilter";
+import {
+  relevanceClassName,
+  relevanceLabel,
+  relevanceRank,
+} from "main/utils/relevance";
 
 const CITEKEY_MAX_LENGTH = 8;
 const AUTHOR_MAX_LENGTH = 15;
@@ -93,6 +99,24 @@ export default function CitationTable({
           {truncate(cell.row.original.citeKey, CITEKEY_MAX_LENGTH)}
         </Link>
       ),
+    },
+    {
+      // Sortable by priority (High down to Unreviewed), not alphabetically — see
+      // main/utils/relevance.js. The colors are defined once, in index.css (issue #54).
+      header: "Relevance",
+      id: "relevance",
+      accessorFn: (row) => relevanceRank(getEntryRelevance(row)),
+      cell: ({ cell }) => {
+        const relevance = getEntryRelevance(cell.row.original);
+        return (
+          <span
+            className={`relevance-badge ${relevanceClassName(relevance)}`}
+            data-testid={`${testId}-cell-row-${cell.row.index}-col-relevance-badge`}
+          >
+            {relevanceLabel(relevance)}
+          </span>
+        );
+      },
     },
     {
       // Debug/iteration aid (issue #68): flags entries the "Detect Duplicates" job has marked as
