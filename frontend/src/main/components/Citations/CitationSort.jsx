@@ -197,7 +197,7 @@ export default function CitationSort({
           <div className="border rounded-3 p-3 mb-3">
             <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
               <div className="row">
-                <div className="col-6">
+                <div className="col-12 col-md-6 mb-3 mb-md-0">
                   <div className="fw-semibold mb-1">Available</div>
                   <DroppableList
                     id={AVAILABLE_CONTAINER_ID}
@@ -222,7 +222,7 @@ export default function CitationSort({
                     ))}
                   </DroppableList>
                 </div>
-                <div className="col-6">
+                <div className="col-12 col-md-6 mb-3 mb-md-0">
                   <div className="fw-semibold mb-1">Sort By (in order)</div>
                   <DroppableList
                     id={SELECTED_CONTAINER_ID}
