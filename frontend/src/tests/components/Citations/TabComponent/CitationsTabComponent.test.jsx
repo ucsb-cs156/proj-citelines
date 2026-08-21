@@ -60,6 +60,78 @@ describe("CitationsTabComponent tests", () => {
     });
   });
 
+  test("renders a CitationFilter panel above the table, expanded by default", async () => {
+    renderTab();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          "CitationsTabComponent-CitationTable-cell-row-0-col-citeKey",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByTestId("CitationsTabComponent-CitationFilter-header"),
+    ).toHaveTextContent("Citation Filters");
+  });
+
+  test("typing in the CitationFilter search box narrows what the CitationTable shows", async () => {
+    renderTab();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          "CitationsTabComponent-CitationTable-cell-row-2-col-citeKey",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.change(
+      screen.getByTestId("CitationsTabComponent-CitationFilter-search"),
+      { target: { value: "jones" } },
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId(
+          "CitationsTabComponent-CitationTable-cell-row-1-col-citeKey",
+        ),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId(
+        "CitationsTabComponent-CitationTable-cell-row-0-col-citeKey",
+      ),
+    ).toHaveTextContent("jones201...");
+  });
+
+  test("deselecting Unreviewed relevance hides every fixture entry (none have a relevance set)", async () => {
+    renderTab();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          "CitationsTabComponent-CitationTable-cell-row-0-col-citeKey",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(
+      screen.getByTestId(
+        "CitationsTabComponent-CitationFilter-relevance-Unreviewed",
+      ),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId(
+          "CitationsTabComponent-CitationTable-cell-row-0-col-citeKey",
+        ),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   test("fetches the project's tags and shows them as pill badges in the CitationTable", async () => {
     axiosMock.onGet("/api/bibtexentries/project?projectId=1").reply(200, [
       {

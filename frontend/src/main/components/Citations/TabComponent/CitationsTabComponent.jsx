@@ -2,8 +2,13 @@ import { useBackend } from "main/utils/useBackend";
 import { useState } from "react";
 import { Button, Row } from "react-bootstrap";
 import CitationTable from "main/components/Citations/CitationTable";
+import CitationFilter from "main/components/Citations/CitationFilter";
 import BibTexEntryModal from "main/components/Citations/BibTexEntryModal";
 import DoiEntryModal from "main/components/Citations/DoiEntryModal";
+import {
+  DEFAULT_CITATION_FILTER,
+  matchesCitationFilter,
+} from "main/utils/citationFilter";
 
 export default function CitationsTabComponent({
   projectId,
@@ -11,6 +16,7 @@ export default function CitationsTabComponent({
 }) {
   const [postModal, showPostModal] = useState(false);
   const [doiModal, showDoiModal] = useState(false);
+  const [filter, setFilter] = useState(DEFAULT_CITATION_FILTER);
 
   const queryKey = `/api/bibtexentries/project?projectId=${projectId}`;
 
@@ -29,6 +35,14 @@ export default function CitationsTabComponent({
     { method: "GET", url: tagsQueryKey },
     [],
     true,
+  );
+
+  // Filtering (issue #106) happens entirely client-side, over the project's full entry list
+  // already fetched above — see docs/design/sort-filter-design.md for why no backend change is
+  // needed. CitationTable itself is left knowing nothing about filtering; it just renders
+  // whatever array it's handed.
+  const filteredCitations = citations.filter((entry) =>
+    matchesCitationFilter(entry, filter),
   );
 
   return (
@@ -65,8 +79,16 @@ export default function CitationsTabComponent({
         </div>
       </Row>
       <Row>
+        <CitationFilter
+          filter={filter}
+          onChange={setFilter}
+          allTags={allTags}
+          testId={`${testIdPrefix}-CitationFilter`}
+        />
+      </Row>
+      <Row>
         <CitationTable
-          citations={citations}
+          citations={filteredCitations}
           projectId={projectId}
           testId={`${testIdPrefix}-CitationTable`}
           allTags={allTags}
