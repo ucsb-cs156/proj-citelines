@@ -198,6 +198,31 @@ export default function CitationSort({
             <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
               <div className="row">
                 <div className="col-6">
+                  <div className="fw-semibold mb-1">Available</div>
+                  <DroppableList
+                    id={AVAILABLE_CONTAINER_ID}
+                    items={available}
+                    testId={`${testId}-available-list`}
+                  >
+                    {available.length === 0 && (
+                      <li
+                        className="text-muted small p-2"
+                        data-testid={`${testId}-available-list-empty`}
+                      >
+                        All criteria selected
+                      </li>
+                    )}
+                    {available.map((criterion) => (
+                      <AvailableItem
+                        key={criterion}
+                        criterion={criterion}
+                        testId={testId}
+                        onAdd={(c) => onChange(addCriterion(sortCriteria, c))}
+                      />
+                    ))}
+                  </DroppableList>
+                </div>
+                <div className="col-6">
                   <div className="fw-semibold mb-1">Sort By (in order)</div>
                   <DroppableList
                     id={SELECTED_CONTAINER_ID}
@@ -225,31 +250,6 @@ export default function CitationSort({
                         onMove={(c, direction) =>
                           onChange(moveCriterion(sortCriteria, c, direction))
                         }
-                      />
-                    ))}
-                  </DroppableList>
-                </div>
-                <div className="col-6">
-                  <div className="fw-semibold mb-1">Available</div>
-                  <DroppableList
-                    id={AVAILABLE_CONTAINER_ID}
-                    items={available}
-                    testId={`${testId}-available-list`}
-                  >
-                    {available.length === 0 && (
-                      <li
-                        className="text-muted small p-2"
-                        data-testid={`${testId}-available-list-empty`}
-                      >
-                        All criteria selected
-                      </li>
-                    )}
-                    {available.map((criterion) => (
-                      <AvailableItem
-                        key={criterion}
-                        criterion={criterion}
-                        testId={testId}
-                        onAdd={(c) => onChange(addCriterion(sortCriteria, c))}
                       />
                     ))}
                   </DroppableList>
