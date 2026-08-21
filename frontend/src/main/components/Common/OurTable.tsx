@@ -19,12 +19,14 @@ type OurTableProps<T extends object> = {
   data: T[];
   columns: LegacyColumn[];
   testid?: string;
+  enableSorting?: boolean;
 };
 
 export default function OurTable<T extends object>({
   data,
   columns,
   testid = "testid",
+  enableSorting = true,
 }: OurTableProps<T>): React.JSX.Element {
   const newColumns = convertOldStyleColumnsToNewStyle(columns);
   const memoizedData = useMemo(() => data, [data]);
@@ -39,6 +41,7 @@ export default function OurTable<T extends object>({
     columns: memoizedColumns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    enableSorting,
   });
 
   return (

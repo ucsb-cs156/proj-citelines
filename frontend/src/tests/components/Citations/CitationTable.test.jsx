@@ -394,6 +394,23 @@ describe("CitationTable tests", () => {
     ]);
   });
 
+  test("enableColumnSort={false} disables clicking a column header to sort", () => {
+    renderTable({
+      citations: bibTexEntriesFixtures.threeEntries,
+      enableColumnSort: false,
+    });
+
+    fireEvent.click(
+      screen.getByTestId("CitationTable-header-citeKey-sort-header"),
+    );
+
+    expect(citeKeyLinksInDomOrder()).toEqual([
+      "smith202...",
+      "jones201...",
+      "lee2021",
+    ]);
+  });
+
   test("clicking the Link column header sorts rows by doi/url/blank", () => {
     renderTable({ citations: bibTexEntriesFixtures.threeEntries });
 

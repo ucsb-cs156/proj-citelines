@@ -7,7 +7,12 @@ import {
   removeCriterion,
   moveCriterion,
   reorderAfterDrag,
+  sortCriteriaComparator,
 } from "main/utils/citationSort";
+
+function entry(overrides = {}) {
+  return { id: "e1", keyValuePairs: { ...overrides } };
+}
 
 describe("citationSort constants", () => {
   test("CITATION_SORT_OPTIONS lists the four sortable fields", () => {
@@ -151,5 +156,89 @@ describe("reorderAfterDrag", () => {
     expect(
       reorderAfterDrag(["Author"], "Title", AVAILABLE_CONTAINER_ID),
     ).toEqual(["Author"]);
+  });
+});
+
+describe("sortCriteriaComparator", () => {
+  test("an empty sortCriteria leaves the array's existing order untouched", () => {
+    const entries = [
+      entry({ author: "Zeta" }),
+      entry({ author: "Alpha" }),
+      entry({ author: "Mu" }),
+    ];
+    expect([...entries].sort(sortCriteriaComparator([]))).toEqual(entries);
+  });
+
+  test("Relevance sorts High to Unreviewed (descending rank)", () => {
+    const high = entry({ citelines_relevance: "High" });
+    const low = entry({ citelines_relevance: "Low" });
+    const unreviewed = entry({});
+    const sorted = [low, unreviewed, high].sort(
+      sortCriteriaComparator(["Relevance"]),
+    );
+    expect(sorted).toEqual([high, low, unreviewed]);
+  });
+
+  test("Year sorts ascending (oldest first), with a missing/non-numeric year sorting last", () => {
+    const y2020 = entry({ year: "2020" });
+    const y1990 = entry({ year: "1990" });
+    const noYear = entry({});
+    const sorted = [y2020, noYear, y1990].sort(
+      sortCriteriaComparator(["Year"]),
+    );
+    expect(sorted).toEqual([y1990, y2020, noYear]);
+  });
+
+  test("Author sorts case-insensitively", () => {
+    const bob = entry({ author: "bob" });
+    const Alice = entry({ author: "Alice" });
+    const sorted = [bob, Alice].sort(sortCriteriaComparator(["Author"]));
+    expect(sorted).toEqual([Alice, bob]);
+  });
+
+  test("Title sorts case-insensitively", () => {
+    const zebra = entry({ title: "zebra" });
+    const Apple = entry({ title: "Apple" });
+    const sorted = [zebra, Apple].sort(sortCriteriaComparator(["Title"]));
+    expect(sorted).toEqual([Apple, zebra]);
+  });
+
+  test("falls through to the next criterion only when the current one ties", () => {
+    const smithA = entry({ author: "Smith", title: "Banana" });
+    const smithB = entry({ author: "Smith", title: "Apple" });
+    const jones = entry({ author: "Jones", title: "Cherry" });
+    const sorted = [smithA, jones, smithB].sort(
+      sortCriteriaComparator(["Author", "Title"]),
+    );
+    expect(sorted).toEqual([jones, smithB, smithA]);
+  });
+
+  test("an entry with no author field sorts ahead of one that has an author", () => {
+    // The missing field falls back to "", which sorts first — not to some other placeholder
+    // string that would sort in the middle of the alphabet instead.
+    const noAuthor = entry({});
+    const adam = entry({ author: "Adam" });
+    const sorted = [adam, noAuthor].sort(sortCriteriaComparator(["Author"]));
+    expect(sorted).toEqual([noAuthor, adam]);
+  });
+
+  test("does not throw when an entry has no keyValuePairs at all", () => {
+    const bare = { id: "e1" };
+    const adam = entry({ author: "Adam" });
+    expect(() =>
+      [adam, bare].sort(sortCriteriaComparator(["Author", "Year"])),
+    ).not.toThrow();
+  });
+
+  test("Title comparison treats two spellings differing only in case as equal (a tie)", () => {
+    // Distinguishes the { sensitivity: "base" } localeCompare option from a bare compare: without
+    // it, same-word-different-case values wouldn't tie, and Author/Title's "falls through to the
+    // next criterion" behavior above wouldn't work correctly for a title that's a case variant.
+    expect(
+      sortCriteriaComparator(["Title"])(
+        entry({ title: "apple" }),
+        entry({ title: "APPLE" }),
+      ),
+    ).toBe(0);
   });
 });

@@ -1,3 +1,6 @@
+import { getEntryRelevance } from "main/utils/citationFilter";
+import { relevanceRank } from "main/utils/relevance";
+
 // Pure state-shape + reordering logic for CitationSort (issue #102). Kept separate from the
 // component, matching citationFilter.js's split, so the drag-and-drop drop-target resolution
 // logic is independently testable without simulating an actual pointer drag sequence.
@@ -77,4 +80,57 @@ export function reorderAfterDrag(sortCriteria, activeId, overId) {
   const next = [...sortCriteria];
   next.splice(insertIndex, 0, activeId);
   return next;
+}
+
+function fieldValue(entry, field) {
+  return entry.keyValuePairs?.[field] ?? "";
+}
+
+function compareLocale(entry1, entry2, field) {
+  return fieldValue(entry1, field).localeCompare(
+    fieldValue(entry2, field),
+    undefined,
+    {
+      sensitivity: "base",
+    },
+  );
+}
+
+// A missing/non-numeric year sorts last regardless of direction, rather than being treated as
+// "year 0" and sorting first.
+function numericYear(entry) {
+  const year = Number.parseInt(fieldValue(entry, "year"), 10);
+  return Number.isNaN(year) ? Infinity : year;
+}
+
+// One comparator per CITATION_SORT_OPTIONS entry, each already reflecting the fixed default
+// direction documented in docs/design/sort-filter-design.md: Relevance ranks High to Unreviewed
+// (descending), matching CitationTable's own Relevance column (issue #54); Year is oldest-first
+// (ascending); Author/Title are case-insensitive locale compares.
+const CRITERION_COMPARATORS = {
+  Relevance: (entry1, entry2) =>
+    relevanceRank(getEntryRelevance(entry2)) -
+    relevanceRank(getEntryRelevance(entry1)),
+  Year: (entry1, entry2) => numericYear(entry1) - numericYear(entry2),
+  Author: (entry1, entry2) => compareLocale(entry1, entry2, "author"),
+  Title: (entry1, entry2) => compareLocale(entry1, entry2, "title"),
+};
+
+/**
+ * Builds an Array.prototype.sort comparator from an ordered CitationSort criteria array (e.g.
+ * ["Author", "Title"]): two entries are compared by the first criterion, falling through to the
+ * next only when the current one ties. An empty sortCriteria is a valid input — every comparison
+ * is a tie (0), so sorting by it leaves the array's existing order untouched.
+ *
+ * @param {string[]} sortCriteria
+ * @returns {(entry1: object, entry2: object) => number}
+ */
+export function sortCriteriaComparator(sortCriteria) {
+  return (entry1, entry2) => {
+    for (const criterion of sortCriteria) {
+      const cmp = CRITERION_COMPARATORS[criterion](entry1, entry2);
+      if (cmp !== 0) return cmp;
+    }
+    return 0;
+  };
 }

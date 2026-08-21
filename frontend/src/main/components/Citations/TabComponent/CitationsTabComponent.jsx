@@ -3,12 +3,17 @@ import { useState } from "react";
 import { Button, Row } from "react-bootstrap";
 import CitationTable from "main/components/Citations/CitationTable";
 import CitationFilter from "main/components/Citations/CitationFilter";
+import CitationSort from "main/components/Citations/CitationSort";
 import BibTexEntryModal from "main/components/Citations/BibTexEntryModal";
 import DoiEntryModal from "main/components/Citations/DoiEntryModal";
 import {
   DEFAULT_CITATION_FILTER,
   matchesCitationFilter,
 } from "main/utils/citationFilter";
+import {
+  DEFAULT_CITATION_SORT,
+  sortCriteriaComparator,
+} from "main/utils/citationSort";
 
 export default function CitationsTabComponent({
   projectId,
@@ -17,6 +22,7 @@ export default function CitationsTabComponent({
   const [postModal, showPostModal] = useState(false);
   const [doiModal, showDoiModal] = useState(false);
   const [filter, setFilter] = useState(DEFAULT_CITATION_FILTER);
+  const [sortCriteria, setSortCriteria] = useState(DEFAULT_CITATION_SORT);
 
   const queryKey = `/api/bibtexentries/project?projectId=${projectId}`;
 
@@ -37,13 +43,15 @@ export default function CitationsTabComponent({
     true,
   );
 
-  // Filtering (issue #106) happens entirely client-side, over the project's full entry list
-  // already fetched above — see docs/design/sort-filter-design.md for why no backend change is
-  // needed. CitationTable itself is left knowing nothing about filtering; it just renders
-  // whatever array it's handed.
-  const filteredCitations = citations.filter((entry) =>
-    matchesCitationFilter(entry, filter),
-  );
+  // Filtering (issue #106) and sorting (issue #107) both happen entirely client-side, over the
+  // project's full entry list already fetched above — see docs/design/sort-filter-design.md for
+  // why no backend change is needed. CitationTable itself is left knowing nothing about either;
+  // it just renders whatever (already filtered/sorted) array it's handed, with its own
+  // column-header click-to-sort disabled below whenever sortCriteria isn't empty, so it can't
+  // silently desync the table from what CitationSort's own ordering shows.
+  const visibleCitations = citations
+    .filter((entry) => matchesCitationFilter(entry, filter))
+    .sort(sortCriteriaComparator(sortCriteria));
 
   return (
     <div
@@ -87,12 +95,20 @@ export default function CitationsTabComponent({
         />
       </Row>
       <Row>
+        <CitationSort
+          sortCriteria={sortCriteria}
+          onChange={setSortCriteria}
+          testId={`${testIdPrefix}-CitationSort`}
+        />
+      </Row>
+      <Row>
         <CitationTable
-          citations={filteredCitations}
+          citations={visibleCitations}
           projectId={projectId}
           testId={`${testIdPrefix}-CitationTable`}
           allTags={allTags}
           mutationQueryKeys={[queryKey]}
+          enableColumnSort={sortCriteria.length === 0}
         />
       </Row>
     </div>
