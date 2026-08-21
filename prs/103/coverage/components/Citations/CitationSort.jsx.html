@@ -542,6 +542,31 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">48x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">20x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -554,31 +579,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">48x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -790,7 +790,32 @@ export default function CitationSort({
           &lt;div className="border rounded-3 p-3 mb-3"&gt;
             &lt;DndContext sensors={sensors} onDragEnd={handleDragEnd}&gt;
               &lt;div className="row"&gt;
-                &lt;div className="col-6"&gt;
+                &lt;div className="col-12 col-md-6 mb-3 mb-md-0"&gt;
+                  &lt;div className="fw-semibold mb-1"&gt;Available&lt;/div&gt;
+                  &lt;DroppableList
+                    id={AVAILABLE_CONTAINER_ID}
+                    items={available}
+                    testId={`${testId}-available-list`}
+                  &gt;
+                    {available.length === 0 &amp;&amp; (
+                      &lt;li
+                        className="text-muted small p-2"
+                        data-testid={`${testId}-available-list-empty`}
+                      &gt;
+                        All criteria selected
+                      &lt;/li&gt;
+                    )}
+                    {available.map((criterion) =&gt; (
+                      &lt;AvailableItem
+                        key={criterion}
+                        criterion={criterion}
+                        testId={testId}
+                        onAdd={(c) =&gt; onChange(addCriterion(sortCriteria, c))}
+                      /&gt;
+                    ))}
+                  &lt;/DroppableList&gt;
+                &lt;/div&gt;
+                &lt;div className="col-12 col-md-6 mb-3 mb-md-0"&gt;
                   &lt;div className="fw-semibold mb-1"&gt;Sort By (in order)&lt;/div&gt;
                   &lt;DroppableList
                     id={SELECTED_CONTAINER_ID}
@@ -822,31 +847,6 @@ export default function CitationSort({
                     ))}
                   &lt;/DroppableList&gt;
                 &lt;/div&gt;
-                &lt;div className="col-6"&gt;
-                  &lt;div className="fw-semibold mb-1"&gt;Available&lt;/div&gt;
-                  &lt;DroppableList
-                    id={AVAILABLE_CONTAINER_ID}
-                    items={available}
-                    testId={`${testId}-available-list`}
-                  &gt;
-                    {available.length === 0 &amp;&amp; (
-                      &lt;li
-                        className="text-muted small p-2"
-                        data-testid={`${testId}-available-list-empty`}
-                      &gt;
-                        All criteria selected
-                      &lt;/li&gt;
-                    )}
-                    {available.map((criterion) =&gt; (
-                      &lt;AvailableItem
-                        key={criterion}
-                        criterion={criterion}
-                        testId={testId}
-                        onAdd={(c) =&gt; onChange(addCriterion(sortCriteria, c))}
-                      /&gt;
-                    ))}
-                  &lt;/DroppableList&gt;
-                &lt;/div&gt;
               &lt;/div&gt;
             &lt;/DndContext&gt;
           &lt;/div&gt;
@@ -862,7 +862,7 @@ export default function CitationSort({
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-08-21T17:04:10.655Z
+                at 2026-08-21T18:12:02.762Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
