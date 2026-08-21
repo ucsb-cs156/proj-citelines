@@ -32,7 +32,7 @@ const RAW_BIBTEX = `@${ENTRY.entryType}{${ENTRY.citeKey},
   title = {${ENTRY.keyValuePairs.title}},
   year = {${ENTRY.keyValuePairs.year}},
   doi = {${ENTRY.keyValuePairs.doi}},
-  citelines_relevance = {${ENTRY.keyValuePairs.CITELINES_relevance}},
+  citelines_relevance = {${ENTRY.keyValuePairs.citelines_relevance}},
   citelines_card_bibtex = {Open},
 }
 `;

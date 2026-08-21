@@ -32,6 +32,7 @@ import {
   formatDuplicateReason,
   hasPossibleDuplicateFlag,
 } from "main/utils/duplicateFlags";
+import { relevanceClassName } from "main/utils/relevance";
 
 const POSSIBLE_DUPLICATE_HEADER_COLOR = "#f8d7da";
 
@@ -496,7 +497,11 @@ export default function BibTexEntryShowPage({
               onChange={(e) => updateRelevanceMutation.mutate(e.target.value)}
             >
               {RELEVANCE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
+                <option
+                  key={option}
+                  value={option}
+                  className={relevanceClassName(option)}
+                >
                   {option}
                 </option>
               ))}

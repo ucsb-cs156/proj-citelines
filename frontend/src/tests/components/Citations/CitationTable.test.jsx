@@ -46,6 +46,7 @@ describe("CitationTable tests", () => {
 
     [
       "citeKey",
+      "relevance",
       "flags",
       "tags",
       "link",
@@ -88,6 +89,74 @@ describe("CitationTable tests", () => {
       "https://doi.org/10.1038/s41586-020-2649-2",
     );
     expect(doiLink).toHaveAttribute("target", "_blank");
+  });
+
+  test("the Relevance column shows the level's label and color class, defaulting to (unreviewed)", () => {
+    const highEntry = {
+      ...bibTexEntriesFixtures.threeEntries[0],
+      keyValuePairs: {
+        ...bibTexEntriesFixtures.threeEntries[0].keyValuePairs,
+        citelines_relevance: "High",
+      },
+    };
+    renderTable({
+      citations: [highEntry, bibTexEntriesFixtures.threeEntries[1]],
+    });
+
+    const highBadge = screen.getByTestId(
+      "CitationTable-cell-row-0-col-relevance-badge",
+    );
+    expect(highBadge).toHaveTextContent("High");
+    expect(highBadge).toHaveClass("relevance-badge", "relevance-high");
+
+    // No citelines_relevance set on threeEntries[1] -> defaults to Unreviewed.
+    const unreviewedBadge = screen.getByTestId(
+      "CitationTable-cell-row-1-col-relevance-badge",
+    );
+    expect(unreviewedBadge).toHaveTextContent("(unreviewed)");
+    expect(unreviewedBadge).toHaveClass(
+      "relevance-badge",
+      "relevance-unreviewed",
+    );
+  });
+
+  test("clicking the Relevance column header sorts by priority, not alphabetically", () => {
+    // Alphabetically, "High" < "Low" < "Medium". By priority, High (4) > Medium (3) > Low (2).
+    // These orderings genuinely disagree on where Low/Medium fall, so getting the priority order
+    // right here can't be explained away by an accidental alphabetical match.
+    const highEntry = {
+      ...bibTexEntriesFixtures.threeEntries[0],
+      keyValuePairs: {
+        ...bibTexEntriesFixtures.threeEntries[0].keyValuePairs,
+        citelines_relevance: "High",
+      },
+    };
+    const mediumEntry = {
+      ...bibTexEntriesFixtures.threeEntries[1],
+      keyValuePairs: {
+        ...bibTexEntriesFixtures.threeEntries[1].keyValuePairs,
+        citelines_relevance: "Medium",
+      },
+    };
+    const lowEntry = {
+      ...bibTexEntriesFixtures.threeEntries[2],
+      keyValuePairs: {
+        ...bibTexEntriesFixtures.threeEntries[2].keyValuePairs,
+        citelines_relevance: "Low",
+      },
+    };
+    renderTable({ citations: [lowEntry, mediumEntry, highEntry] });
+
+    fireEvent.click(
+      screen.getByTestId("CitationTable-header-relevance-sort-header"),
+    );
+
+    // Numeric columns in this table sort descending on the first click.
+    expect(citeKeyLinksInDomOrder()).toEqual([
+      "smith202...",
+      "jones201...",
+      "lee2021",
+    ]);
   });
 
   test("the Flags column is empty for an entry with no flagged fields set", () => {

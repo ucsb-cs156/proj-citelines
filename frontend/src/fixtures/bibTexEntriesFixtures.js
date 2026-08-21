@@ -81,7 +81,7 @@ const bibTexEntriesFixtures = {
         "This is a sample abstract used to demonstrate the Abstract card, " +
         "including its word count and edit modal, in the BibTexEntryShowPage " +
         "Storybook story.",
-      CITELINES_relevance: "High",
+      citelines_relevance: "High",
       CITELINES_comments:
         "These are some **published** comments in _Markdown_.",
     },

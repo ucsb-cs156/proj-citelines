@@ -47,10 +47,10 @@ describe("citationFilter constants", () => {
 });
 
 describe("getEntryRelevance", () => {
-  test("returns the CITELINES_relevance keyValuePair when present", () => {
+  test("returns the citelines_relevance keyValuePair when present", () => {
     expect(
       getEntryRelevance(
-        entry({ keyValuePairs: { CITELINES_relevance: "High" } }),
+        entry({ keyValuePairs: { citelines_relevance: "High" } }),
       ),
     ).toBe("High");
   });
@@ -74,13 +74,13 @@ describe("matchesCitationFilter", () => {
       const filter = { ...DEFAULT_CITATION_FILTER, relevance: ["High"] };
       expect(
         matchesCitationFilter(
-          entry({ keyValuePairs: { CITELINES_relevance: "High" } }),
+          entry({ keyValuePairs: { citelines_relevance: "High" } }),
           filter,
         ),
       ).toBe(true);
       expect(
         matchesCitationFilter(
-          entry({ keyValuePairs: { CITELINES_relevance: "Low" } }),
+          entry({ keyValuePairs: { citelines_relevance: "Low" } }),
           filter,
         ),
       ).toBe(false);
@@ -279,10 +279,10 @@ describe("matchesCitationFilter", () => {
       link: "doi",
     };
     const matchingEntry = entry({
-      keyValuePairs: { doi: "10.1/x", CITELINES_relevance: "High" },
+      keyValuePairs: { doi: "10.1/x", citelines_relevance: "High" },
     });
     const wrongRelevance = entry({
-      keyValuePairs: { doi: "10.1/x", CITELINES_relevance: "Low" },
+      keyValuePairs: { doi: "10.1/x", citelines_relevance: "Low" },
     });
     expect(matchesCitationFilter(matchingEntry, filter)).toBe(true);
     expect(matchesCitationFilter(wrongRelevance, filter)).toBe(false);
