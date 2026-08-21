@@ -79,6 +79,12 @@ describe("CitationSort tests", () => {
     render(<CitationSort sortCriteria={["Author", "Title"]} />);
 
     expect(
+      screen.getByTestId("CitationSort-selected-list"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("CitationSort-available-list"),
+    ).toBeInTheDocument();
+    expect(
       screen.getByTestId("CitationSort-selected-item-Author"),
     ).toHaveTextContent("1. Author");
     expect(
@@ -92,6 +98,12 @@ describe("CitationSort tests", () => {
       expect(
         screen.getByTestId(`CitationSort-available-item-${option}`),
       ).toBeInTheDocument();
+      expect(
+        screen.getByTestId(`CitationSort-available-item-${option}-handle`),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId(`CitationSort-available-item-${option}-add`),
+      ).toHaveAttribute("aria-label", `Add ${option}`);
     });
     expect(
       screen.queryByTestId("CitationSort-available-item-Author"),
@@ -218,6 +230,20 @@ describe("CitationSort tests", () => {
     });
 
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  test("the header and each drag handle show a grab/pointer cursor", () => {
+    render(<CitationSort sortCriteria={["Author"]} />);
+
+    expect(screen.getByTestId("CitationSort-header")).toHaveStyle({
+      cursor: "pointer",
+    });
+    expect(
+      screen.getByTestId("CitationSort-selected-item-Author-handle"),
+    ).toHaveStyle({ cursor: "grab" });
+    expect(
+      screen.getByTestId("CitationSort-available-item-Relevance-handle"),
+    ).toHaveStyle({ cursor: "grab" });
   });
 
   test("supports a custom testId", () => {

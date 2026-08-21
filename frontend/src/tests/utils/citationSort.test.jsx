@@ -133,6 +133,17 @@ describe("reorderAfterDrag", () => {
     );
   });
 
+  test("is a no-op when the last item is dropped on empty space in its own (selected) container", () => {
+    // activeId ("Title") and overId (the container itself) differ here, so this exercises the
+    // oldIndex === newIndex short-circuit via a genuinely different path than dropping an item
+    // on itself: the container's own droppable id resolves newIndex to sortCriteria.length - 1,
+    // which already equals the last item's current index.
+    const sortCriteria = ["Author", "Title"];
+    expect(reorderAfterDrag(sortCriteria, "Title", SELECTED_CONTAINER_ID)).toBe(
+      sortCriteria,
+    );
+  });
+
   test("dragging an available criterion that isn't dropped on anything selected-related does nothing new (still available)", () => {
     // Dropping one available item onto another available item: neither side changes, since
     // ordering within the available list carries no meaning (it's always CITATION_SORT_OPTIONS
