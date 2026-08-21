@@ -20,4 +20,4 @@ repo_name: "TBD"
 repo: ucsb-cs156/proj-citelines
 owner: ucsb-cs156
 repo_name: proj-citelines
-pull_requests: []
+pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue106-citationfilter-tab","number":109,"title":"Wire CitationFilter into the Citations tab (issue #106)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/109"}]
