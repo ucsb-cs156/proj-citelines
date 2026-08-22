@@ -71,6 +71,18 @@ function CollapsibleCard({
   onToggle,
   children,
 }) {
+  // react-bootstrap's Collapse always keeps its children mounted (just animates height), even
+  // while closed — fine for cheap content, but wasteful (and, for something like the Comments
+  // card's CodeMirror-based markdown editor, actively broken: initializing inside a zero-height
+  // hidden container is a well-known CodeMirror gotcha) for a card that defaults to closed and
+  // may never be opened. Mounting children lazily on first open — and leaving them mounted after
+  // that, rather than unmounting again on re-close — avoids the eager cost while still preserving
+  // in-progress state (e.g. an unsaved comment draft) across a collapse/expand.
+  const [hasOpened, setHasOpened] = useState(isOpen);
+  useEffect(() => {
+    if (isOpen) setHasOpened(true);
+  }, [isOpen]);
+
   return (
     <Card className="mb-3" data-testid={testId}>
       <Card.Header
@@ -91,7 +103,7 @@ function CollapsibleCard({
       </Card.Header>
       <Collapse in={isOpen}>
         <div data-testid={`${testId}-body`}>
-          <Card.Body>{children}</Card.Body>
+          <Card.Body>{hasOpened ? children : null}</Card.Body>
         </div>
       </Collapse>
     </Card>
