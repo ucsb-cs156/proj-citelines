@@ -20,4 +20,4 @@ repo_name: "TBD"
 repo: ucsb-cs156/proj-citelines
 owner: ucsb-cs156
 repo_name: proj-citelines
-pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue112-sort-direction-toggle","number":113,"title":"Replace CitationSort's move up/down buttons with a direction toggle (issue #112)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/113"},{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue107-citationsort-tab","number":111,"title":"Wire CitationSort into the Citations tab (issue #107)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/111"}]
+pull_requests: []
