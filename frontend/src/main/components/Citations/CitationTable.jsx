@@ -47,6 +47,10 @@ export default function CitationTable({
   readOnly = false,
   allTags = [],
   mutationQueryKeys = [`/api/bibtexentries/project?projectId=${projectId}`],
+  // A page with a CitationSort panel (issue #107) already pre-sorts `citations` before it gets
+  // here; set this to false there so a stray column-header click can't silently desync the table
+  // from what CitationSort's own ordering shows.
+  enableColumnSort = true,
 }) {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedEntryForEdit, setSelectedEntryForEdit] = useState(null);
@@ -320,7 +324,12 @@ export default function CitationTable({
         </>
       )}
 
-      <OurTable data={citations} columns={columns} testid={testId} />
+      <OurTable
+        data={citations}
+        columns={columns}
+        testid={testId}
+        enableSorting={enableColumnSort}
+      />
     </>
   );
 }

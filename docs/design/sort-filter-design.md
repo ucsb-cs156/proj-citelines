@@ -63,13 +63,19 @@ for when that conclusion should be revisited.
 
 ### 1. A sort comparator
 
-`main/utils/citationSort.js` needs a new function turning an ordered `sortCriteria` array into an
-`Array.prototype.sort`-compatible comparator:
+`main/utils/citationSort.js` needs a new function turning the ordered `sortCriteria` array into an
+`Array.prototype.sort`-compatible comparator.
+
+**Update (issue #112):** `sortCriteria` is an array of `{field, direction}` objects — not plain
+field-name strings as originally proposed here — because each selected criterion carries its own
+independently-toggleable ascending/descending direction (see the superseded non-goal below). Each
+field's comparator is defined once in its "ascending" sense and negated when that criterion's
+`direction` is `"desc"`:
 
 ```js
-// Single-criterion comparators, each (a, b) => negative | 0 | positive.
+// Single-criterion comparators, each (a, b) => negative | 0 | positive, defined ascending.
 const CRITERION_COMPARATORS = {
-  Relevance: (a, b) => relevanceRank(getEntryRelevance(b)) - relevanceRank(getEntryRelevance(a)),
+  Relevance: (a, b) => relevanceRank(getEntryRelevance(a)) - relevanceRank(getEntryRelevance(b)),
   Year: (a, b) => numericYear(a) - numericYear(b),
   Author: (a, b) => localeCompareField(a, b, "author"),
   Title: (a, b) => localeCompareField(a, b, "title"),
@@ -77,22 +83,23 @@ const CRITERION_COMPARATORS = {
 
 export function sortCriteriaComparator(sortCriteria) {
   return (a, b) => {
-    for (const criterion of sortCriteria) {
-      const cmp = CRITERION_COMPARATORS[criterion](a, b);
-      if (cmp !== 0) return cmp;
+    for (const { field, direction } of sortCriteria) {
+      const cmp = CRITERION_COMPARATORS[field](a, b);
+      if (cmp !== 0) return direction === "desc" ? -cmp : cmp;
     }
     return 0; // stable: Array.prototype.sort is spec-guaranteed stable in modern JS engines
   };
 }
 ```
 
-Proposed default direction per key (each is a single fixed direction — see **Non-goals** re: no
-per-key ascending/descending toggle):
+Default direction a newly-added criterion starts at (the user can toggle it from there):
 
-- **Relevance** — High → Unreviewed (descending rank), matching the existing default direction of
+- **Relevance** — descending (High → Unreviewed), matching the existing default direction of
   `CitationTable`'s own Relevance column (issue #54).
-- **Year** — ascending (oldest first); entries with a missing/non-numeric year sort last.
-- **Author** / **Title** — case-insensitive, locale-aware (`localeCompare`).
+- **Year** — ascending (oldest first); a missing/non-numeric year is treated as infinitely large,
+  so it sorts last ascending and first descending — the same way a spreadsheet column of numbers
+  with blanks behaves when you flip the sort direction.
+- **Author** / **Title** — ascending, case-insensitive, locale-aware (`localeCompare`).
 
 ### 2. Resolving the two sorting mechanisms
 
@@ -136,10 +143,15 @@ shared shape before seeing all three call sites risks getting the abstraction wr
   them. `ResearcherProjectShowPage` already has a precedent for this kind of thing (issue #86's
   `?tab=` query parameter), so it's a natural, low-risk future enhancement — just not part of this
   issue's scope.
-- **No per-criterion ascending/descending toggle.** `CitationSort`'s UI today only lets a user
-  pick *which* fields to sort by and in what *order of priority* — not the direction of each one.
-  Each field gets one fixed, sensible default direction (above). Adding a direction toggle would
-  be a `CitationSort` UI change, not something this issue's wiring work should sneak in.
+- ~~No per-criterion ascending/descending toggle.~~ **Superseded by issue #112.** The original
+  reasoning was that `CitationSort`'s move-up/move-down buttons already let a user reorder
+  criteria, and adding direction control too seemed like scope creep for the wiring work here.
+  In review, that reasoning didn't hold up: the move buttons were redundant with drag-and-drop
+  (which already reorders), so issue #112 repurposed them into a single ↑/↓ direction toggle per
+  chip instead — reordering stays drag's job, and the (no-longer-redundant) arrows now control
+  ascending/descending for that field. This is what makes "sort by any field, in any order, in
+  either direction" actually possible, rather than each field being stuck at one hardcoded
+  direction.
 - **No backend pagination/filtering.** Revisit only if real per-project entry counts turn out to
   make client-side filtering/sorting noticeably slow — nothing in the app's current usage suggests
   that's a risk yet.

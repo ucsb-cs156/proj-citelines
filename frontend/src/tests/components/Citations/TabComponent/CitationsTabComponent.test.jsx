@@ -132,6 +132,151 @@ describe("CitationsTabComponent tests", () => {
     });
   });
 
+  test("renders a CitationSort panel above the table, expanded by default", async () => {
+    renderTab();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          "CitationsTabComponent-CitationTable-cell-row-0-col-citeKey",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByTestId("CitationsTabComponent-CitationSort-header"),
+    ).toHaveTextContent("Citation Sort");
+  });
+
+  test("adding Author as a sort criterion re-sorts the table by author", async () => {
+    renderTab();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          "CitationsTabComponent-CitationTable-cell-row-2-col-citeKey",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(
+      screen.getByTestId(
+        "CitationsTabComponent-CitationSort-available-item-Author-add",
+      ),
+    );
+
+    // "Grace Lee" < "Jane Q. Smith and John Doe" < "Robert Jones"
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          "CitationsTabComponent-CitationTable-cell-row-0-col-citeKey",
+        ),
+      ).toHaveTextContent("lee2021");
+    });
+    expect(
+      screen.getByTestId(
+        "CitationsTabComponent-CitationTable-cell-row-1-col-citeKey",
+      ),
+    ).toHaveTextContent("smith202...");
+    expect(
+      screen.getByTestId(
+        "CitationsTabComponent-CitationTable-cell-row-2-col-citeKey",
+      ),
+    ).toHaveTextContent("jones201...");
+  });
+
+  // OurTable's cell/row testids are keyed by each row's ORIGINAL (pre-sort) index — not its
+  // current display position — so a testid like "cell-row-0-col-citeKey-link" doesn't reliably
+  // mean "the first visibly-displayed row" once anything has reordered the rows. getAllByTestId
+  // returns matches in DOM order, though, which does reflect the current visual order — the same
+  // pattern CitationTable.test.jsx's own citeKeyLinksInDomOrder() helper uses.
+  function citeKeyLinksInDomOrder() {
+    return screen
+      .getAllByTestId(
+        /^CitationsTabComponent-CitationTable-cell-row-\d+-col-citeKey-link$/,
+      )
+      .map((el) => el.textContent);
+  }
+
+  test("while a sort criterion is selected, clicking a CitationTable column header does not change the row order", async () => {
+    renderTab();
+
+    await waitFor(() => {
+      expect(citeKeyLinksInDomOrder()).toHaveLength(3);
+    });
+
+    fireEvent.click(
+      screen.getByTestId(
+        "CitationsTabComponent-CitationSort-available-item-Author-add",
+      ),
+    );
+    await waitFor(() => {
+      expect(citeKeyLinksInDomOrder()).toEqual([
+        "lee2021",
+        "smith202...",
+        "jones201...",
+      ]);
+    });
+
+    fireEvent.click(
+      screen.getByTestId(
+        "CitationsTabComponent-CitationTable-header-citeKey-sort-header",
+      ),
+    );
+
+    // enableColumnSort is false while a CitationSort criterion is selected, so the click above
+    // must be a no-op — the Author-sorted order from CitationSort must still hold.
+    expect(citeKeyLinksInDomOrder()).toEqual([
+      "lee2021",
+      "smith202...",
+      "jones201...",
+    ]);
+  });
+
+  test("once every sort criterion is removed, clicking a CitationTable column header sorts again", async () => {
+    renderTab();
+
+    await waitFor(() => {
+      expect(citeKeyLinksInDomOrder()).toHaveLength(3);
+    });
+
+    fireEvent.click(
+      screen.getByTestId(
+        "CitationsTabComponent-CitationSort-available-item-Author-add",
+      ),
+    );
+    await waitFor(() => {
+      expect(citeKeyLinksInDomOrder()[0]).toBe("lee2021");
+    });
+
+    fireEvent.click(
+      screen.getByTestId(
+        "CitationsTabComponent-CitationSort-selected-item-Author-remove",
+      ),
+    );
+    await waitFor(() => {
+      expect(citeKeyLinksInDomOrder()).toEqual([
+        "smith202...",
+        "jones201...",
+        "lee2021",
+      ]);
+    });
+
+    fireEvent.click(
+      screen.getByTestId(
+        "CitationsTabComponent-CitationTable-header-citeKey-sort-header",
+      ),
+    );
+
+    await waitFor(() => {
+      expect(citeKeyLinksInDomOrder()).toEqual([
+        "jones201...",
+        "lee2021",
+        "smith202...",
+      ]);
+    });
+  });
+
   test("fetches the project's tags and shows them as pill badges in the CitationTable", async () => {
     axiosMock.onGet("/api/bibtexentries/project?projectId=1").reply(200, [
       {

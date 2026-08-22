@@ -22,7 +22,7 @@ import {
   AVAILABLE_CONTAINER_ID,
   addCriterion,
   removeCriterion,
-  moveCriterion,
+  toggleDirection,
   reorderAfterDrag,
 } from "main/utils/citationSort";
 
@@ -45,17 +45,25 @@ function DroppableList({ id, items, testId, children }) {
   );
 }
 
-function SelectedItem({ criterion, index, total, testId, onRemove, onMove }) {
+function SelectedItem({
+  field,
+  direction,
+  index,
+  testId,
+  onRemove,
+  onToggleDirection,
+}) {
   const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: criterion });
+    useSortable({ id: field });
   const style = { transform: CSS.Transform.toString(transform), transition };
+  const isAscending = direction === "asc";
 
   return (
     <li
       ref={setNodeRef}
       style={style}
       className="d-flex align-items-center justify-content-between border rounded-2 p-2 mb-1 bg-white"
-      data-testid={`${testId}-selected-item-${criterion}`}
+      data-testid={`${testId}-selected-item-${field}`}
     >
       <span className="d-flex align-items-center">
         <span
@@ -63,41 +71,29 @@ function SelectedItem({ criterion, index, total, testId, onRemove, onMove }) {
           {...listeners}
           className="me-2"
           style={{ cursor: "grab" }}
-          data-testid={`${testId}-selected-item-${criterion}-handle`}
+          data-testid={`${testId}-selected-item-${field}-handle`}
         >
           ⠿
         </span>
-        {index + 1}. {criterion}
+        {index + 1}. {field}
       </span>
       <span>
         <Button
           size="sm"
           variant="outline-secondary"
           className="me-1"
-          disabled={index === 0}
-          aria-label={`Move ${criterion} up`}
-          data-testid={`${testId}-selected-item-${criterion}-up`}
-          onClick={() => onMove(criterion, -1)}
+          aria-label={`${field} sorts ${isAscending ? "ascending" : "descending"} — click to sort ${isAscending ? "descending" : "ascending"} instead`}
+          data-testid={`${testId}-selected-item-${field}-direction`}
+          onClick={() => onToggleDirection(field)}
         >
-          ↑
-        </Button>
-        <Button
-          size="sm"
-          variant="outline-secondary"
-          className="me-1"
-          disabled={index === total - 1}
-          aria-label={`Move ${criterion} down`}
-          data-testid={`${testId}-selected-item-${criterion}-down`}
-          onClick={() => onMove(criterion, 1)}
-        >
-          ↓
+          {isAscending ? "↑" : "↓"}
         </Button>
         <Button
           size="sm"
           variant="outline-danger"
-          aria-label={`Remove ${criterion}`}
-          data-testid={`${testId}-selected-item-${criterion}-remove`}
-          onClick={() => onRemove(criterion)}
+          aria-label={`Remove ${field}`}
+          data-testid={`${testId}-selected-item-${field}-remove`}
+          onClick={() => onRemove(field)}
         >
           &times;
         </Button>
@@ -147,15 +143,18 @@ function AvailableItem({ criterion, testId, onAdd }) {
 // sit alongside CitationFilter above the Citations tab's table / the References/Citations
 // tables. Like CitationFilter, this only renders the sort-criteria UI and reports the selected
 // (ordered) criteria via onChange — it does not sort anything itself. Whatever page renders it
-// owns the `sortCriteria` value (typically starting from DEFAULT_CITATION_SORT) and is
-// responsible for applying that ordered list of criteria names to its own entry array.
+// owns the `sortCriteria` value (typically starting from DEFAULT_CITATION_SORT, an array of
+// {field, direction} objects) and is responsible for applying it to its own entry array.
 //
-// Two lists share one DndContext: Available (every option not yet selected, drag or "Add >" to
-// select) and Sort By (the selected options in priority order, drag to reorder or move to
-// Available, or use the ↑/↓/× buttons — a keyboard/screen-reader-accessible alternative to
-// dragging, since drag-and-drop alone is not an accessible interaction: WCAG 2.5.7). The actual
-// drop-target resolution lives in main/utils/citationSort.js's reorderAfterDrag so it's testable
-// without simulating a real pointer drag.
+// Two lists share one DndContext: Available (every field not yet selected, drag or "Add >" to
+// select) and Sort By (the selected fields in priority order, drag to reorder or move back to
+// Available). Each Sort By chip has its own ↑/↓ direction toggle (issue #112) — reordering is
+// drag's job, so the arrows control ascending/descending for that field instead, which is what
+// makes it possible to sort by any field in any order with any direction. The ×/direction
+// buttons are also a keyboard/screen-reader-accessible alternative to dragging, since
+// drag-and-drop alone is not an accessible interaction (WCAG 2.5.7). The actual drop-target
+// resolution lives in main/utils/citationSort.js's reorderAfterDrag so it's testable without
+// simulating a real pointer drag.
 export default function CitationSort({
   sortCriteria = DEFAULT_CITATION_SORT,
   onChange = () => {},
@@ -169,8 +168,9 @@ export default function CitationSort({
     }),
   );
 
+  const selectedFields = sortCriteria.map((c) => c.field);
   const available = CITATION_SORT_OPTIONS.filter(
-    (option) => !sortCriteria.includes(option),
+    (option) => !selectedFields.includes(option),
   );
 
   const handleDragEnd = ({ active, over }) => {
@@ -226,7 +226,7 @@ export default function CitationSort({
                   <div className="fw-semibold mb-1">Sort By (in order)</div>
                   <DroppableList
                     id={SELECTED_CONTAINER_ID}
-                    items={sortCriteria}
+                    items={selectedFields}
                     testId={`${testId}-selected-list`}
                   >
                     {sortCriteria.length === 0 && (
@@ -237,18 +237,18 @@ export default function CitationSort({
                         No sort applied
                       </li>
                     )}
-                    {sortCriteria.map((criterion, index) => (
+                    {sortCriteria.map(({ field, direction }, index) => (
                       <SelectedItem
-                        key={criterion}
-                        criterion={criterion}
+                        key={field}
+                        field={field}
+                        direction={direction}
                         index={index}
-                        total={sortCriteria.length}
                         testId={testId}
-                        onRemove={(c) =>
-                          onChange(removeCriterion(sortCriteria, c))
+                        onRemove={(f) =>
+                          onChange(removeCriterion(sortCriteria, f))
                         }
-                        onMove={(c, direction) =>
-                          onChange(moveCriterion(sortCriteria, c, direction))
+                        onToggleDirection={(f) =>
+                          onChange(toggleDirection(sortCriteria, f))
                         }
                       />
                     ))}

@@ -107,6 +107,28 @@ describe("OurTable tests", () => {
       expect(col1Row0).toHaveTextContent("Hello");
     });
 
+    test("enableSorting={false} disables the click-to-sort cursor/handler on every header", async () => {
+      render(
+        <OurTable
+          columns={columns}
+          data={threeRows}
+          testid={"noSortTestId"}
+          enableSorting={false}
+        />,
+      );
+
+      await screen.findByTestId("noSortTestId-header-col1-sort-header");
+      const col1Header = screen.getByTestId(
+        "noSortTestId-header-col1-sort-header",
+      );
+      expect(col1Header).not.toHaveAttribute("style");
+
+      fireEvent.click(col1Header);
+      expect(
+        screen.getByTestId("noSortTestId-header-col1-sort-carets"),
+      ).toBeEmptyDOMElement();
+    });
+
     test("placeholder headers work properly", async () => {
       render(
         <OurTable
