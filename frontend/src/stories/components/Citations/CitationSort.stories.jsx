@@ -8,9 +8,9 @@ export default {
 };
 
 // CitationSort is a controlled component (value/onChange, like CitationFilter/ColorChooser) —
-// this Template wraps it in local state so the story is actually interactive (drag/drop and the
-// ↑/↓/×/Add buttons all work), rather than a static snapshot of whatever args.sortCriteria
-// happened to be.
+// this Template wraps it in local state so the story is actually interactive (drag/drop, the
+// direction toggle, and the ×/Add buttons all work), rather than a static snapshot of whatever
+// args.sortCriteria happened to be.
 const Template = (args) => {
   const [sortCriteria, setSortCriteria] = useState(
     args.sortCriteria ?? DEFAULT_CITATION_SORT,
@@ -31,15 +31,23 @@ NoSortSelected.args = {
 
 export const OneCriterionSelected = Template.bind({});
 OneCriterionSelected.args = {
-  sortCriteria: ["Relevance"],
+  sortCriteria: [{ field: "Relevance", direction: "desc" }],
 };
 
 export const MultipleCriteriaSelected = Template.bind({});
 MultipleCriteriaSelected.args = {
-  sortCriteria: ["Author", "Title"],
+  sortCriteria: [
+    { field: "Author", direction: "asc" },
+    { field: "Title", direction: "desc" },
+  ],
 };
 
 export const AllCriteriaSelected = Template.bind({});
 AllCriteriaSelected.args = {
-  sortCriteria: ["Relevance", "Year", "Author", "Title"],
+  sortCriteria: [
+    { field: "Relevance", direction: "desc" },
+    { field: "Year", direction: "asc" },
+    { field: "Author", direction: "asc" },
+    { field: "Title", direction: "asc" },
+  ],
 };

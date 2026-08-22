@@ -76,7 +76,14 @@ describe("CitationSort tests", () => {
   });
 
   test("shows selected criteria numbered in order, and only the remaining options as available", () => {
-    render(<CitationSort sortCriteria={["Author", "Title"]} />);
+    render(
+      <CitationSort
+        sortCriteria={[
+          { field: "Author", direction: "asc" },
+          { field: "Title", direction: "desc" },
+        ]}
+      />,
+    );
 
     expect(
       screen.getByTestId("CitationSort-selected-list"),
@@ -115,7 +122,14 @@ describe("CitationSort tests", () => {
 
   test("shows an 'All criteria selected' placeholder when every option has been selected", () => {
     render(
-      <CitationSort sortCriteria={["Relevance", "Year", "Author", "Title"]} />,
+      <CitationSort
+        sortCriteria={[
+          { field: "Relevance", direction: "desc" },
+          { field: "Year", direction: "asc" },
+          { field: "Author", direction: "asc" },
+          { field: "Title", direction: "asc" },
+        ]}
+      />,
     );
 
     expect(
@@ -123,11 +137,11 @@ describe("CitationSort tests", () => {
     ).toHaveTextContent("All criteria selected");
   });
 
-  test("clicking 'Add >' on an available item adds it to the end of sortCriteria via onChange", () => {
+  test("clicking 'Add >' on an available item adds it at its default direction via onChange", () => {
     const onChange = vi.fn();
     render(
       <CitationSort
-        sortCriteria={["Author"]}
+        sortCriteria={[{ field: "Author", direction: "asc" }]}
         onChange={onChange}
         testId="CitationSort"
       />,
@@ -137,63 +151,117 @@ describe("CitationSort tests", () => {
       screen.getByTestId("CitationSort-available-item-Title-add"),
     );
 
-    expect(onChange).toHaveBeenCalledWith(["Author", "Title"]);
+    expect(onChange).toHaveBeenCalledWith([
+      { field: "Author", direction: "asc" },
+      { field: "Title", direction: "asc" },
+    ]);
   });
 
   test("clicking the remove (×) button on a selected item removes it via onChange", () => {
     const onChange = vi.fn();
     render(
-      <CitationSort sortCriteria={["Author", "Title"]} onChange={onChange} />,
+      <CitationSort
+        sortCriteria={[
+          { field: "Author", direction: "asc" },
+          { field: "Title", direction: "asc" },
+        ]}
+        onChange={onChange}
+      />,
     );
+
+    expect(
+      screen.getByTestId("CitationSort-selected-item-Author-remove"),
+    ).toHaveAttribute("aria-label", "Remove Author");
 
     fireEvent.click(
       screen.getByTestId("CitationSort-selected-item-Author-remove"),
     );
 
-    expect(onChange).toHaveBeenCalledWith(["Title"]);
+    expect(onChange).toHaveBeenCalledWith([
+      { field: "Title", direction: "asc" },
+    ]);
   });
 
-  test("the ↑ button is disabled for the first item and moves any other item up via onChange", () => {
+  test("an ascending chip shows ↑ and toggles to descending via onChange", () => {
     const onChange = vi.fn();
     render(
       <CitationSort
-        sortCriteria={["Author", "Title", "Year"]}
+        sortCriteria={[{ field: "Author", direction: "asc" }]}
         onChange={onChange}
       />,
     );
 
-    expect(
-      screen.getByTestId("CitationSort-selected-item-Author-up"),
-    ).toBeDisabled();
+    const button = screen.getByTestId(
+      "CitationSort-selected-item-Author-direction",
+    );
+    expect(button).toHaveTextContent("↑");
+    expect(button).toHaveAttribute(
+      "aria-label",
+      "Author sorts ascending — click to sort descending instead",
+    );
 
-    fireEvent.click(screen.getByTestId("CitationSort-selected-item-Title-up"));
+    fireEvent.click(button);
 
-    expect(onChange).toHaveBeenCalledWith(["Title", "Author", "Year"]);
+    expect(onChange).toHaveBeenCalledWith([
+      { field: "Author", direction: "desc" },
+    ]);
   });
 
-  test("the ↓ button is disabled for the last item and moves any other item down via onChange", () => {
+  test("a descending chip shows ↓ and toggles to ascending via onChange", () => {
     const onChange = vi.fn();
     render(
       <CitationSort
-        sortCriteria={["Author", "Title", "Year"]}
+        sortCriteria={[{ field: "Author", direction: "desc" }]}
         onChange={onChange}
       />,
     );
 
-    expect(
-      screen.getByTestId("CitationSort-selected-item-Year-down"),
-    ).toBeDisabled();
+    const button = screen.getByTestId(
+      "CitationSort-selected-item-Author-direction",
+    );
+    expect(button).toHaveTextContent("↓");
+    expect(button).toHaveAttribute(
+      "aria-label",
+      "Author sorts descending — click to sort ascending instead",
+    );
+
+    fireEvent.click(button);
+
+    expect(onChange).toHaveBeenCalledWith([
+      { field: "Author", direction: "asc" },
+    ]);
+  });
+
+  test("toggling direction only affects the clicked chip, leaving others and their order untouched", () => {
+    const onChange = vi.fn();
+    render(
+      <CitationSort
+        sortCriteria={[
+          { field: "Author", direction: "asc" },
+          { field: "Title", direction: "desc" },
+        ]}
+        onChange={onChange}
+      />,
+    );
 
     fireEvent.click(
-      screen.getByTestId("CitationSort-selected-item-Title-down"),
+      screen.getByTestId("CitationSort-selected-item-Title-direction"),
     );
 
-    expect(onChange).toHaveBeenCalledWith(["Author", "Year", "Title"]);
+    expect(onChange).toHaveBeenCalledWith([
+      { field: "Author", direction: "asc" },
+      { field: "Title", direction: "asc" },
+    ]);
   });
 
-  test("dragging an available item onto the selected container adds it via onChange", () => {
+  test("dragging an available item onto the selected container adds it at its default direction via onChange", () => {
     const onChange = vi.fn();
-    render(<CitationSort sortCriteria={["Author"]} onChange={onChange} />);
+    render(
+      <CitationSort
+        sortCriteria={[{ field: "Author", direction: "asc" }]}
+        onChange={onChange}
+      />,
+    );
 
     act(() => {
       capturedOnDragEnd({
@@ -202,13 +270,22 @@ describe("CitationSort tests", () => {
       });
     });
 
-    expect(onChange).toHaveBeenCalledWith(["Author", "Title"]);
+    expect(onChange).toHaveBeenCalledWith([
+      { field: "Author", direction: "asc" },
+      { field: "Title", direction: "asc" },
+    ]);
   });
 
   test("dragging a selected item onto the available container removes it via onChange", () => {
     const onChange = vi.fn();
     render(
-      <CitationSort sortCriteria={["Author", "Title"]} onChange={onChange} />,
+      <CitationSort
+        sortCriteria={[
+          { field: "Author", direction: "asc" },
+          { field: "Title", direction: "desc" },
+        ]}
+        onChange={onChange}
+      />,
     );
 
     act(() => {
@@ -218,12 +295,19 @@ describe("CitationSort tests", () => {
       });
     });
 
-    expect(onChange).toHaveBeenCalledWith(["Title"]);
+    expect(onChange).toHaveBeenCalledWith([
+      { field: "Title", direction: "desc" },
+    ]);
   });
 
   test("dragging with no drop target does not call onChange", () => {
     const onChange = vi.fn();
-    render(<CitationSort sortCriteria={["Author"]} onChange={onChange} />);
+    render(
+      <CitationSort
+        sortCriteria={[{ field: "Author", direction: "asc" }]}
+        onChange={onChange}
+      />,
+    );
 
     act(() => {
       capturedOnDragEnd({ active: { id: "Author" }, over: null });
@@ -233,7 +317,9 @@ describe("CitationSort tests", () => {
   });
 
   test("the header and each drag handle show a grab/pointer cursor", () => {
-    render(<CitationSort sortCriteria={["Author"]} />);
+    render(
+      <CitationSort sortCriteria={[{ field: "Author", direction: "asc" }]} />,
+    );
 
     expect(screen.getByTestId("CitationSort-header")).toHaveStyle({
       cursor: "pointer",
