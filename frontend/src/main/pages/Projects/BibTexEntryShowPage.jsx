@@ -16,6 +16,8 @@ import {
 } from "react-bootstrap";
 import { toast } from "react-toastify";
 import CitationTable from "main/components/Citations/CitationTable";
+import CitationFilter from "main/components/Citations/CitationFilter";
+import CitationSort from "main/components/Citations/CitationSort";
 import AbstractEditModal from "main/components/Citations/AbstractEditModal";
 import BibTexEntryModal from "main/components/Citations/BibTexEntryModal";
 import BulkCitationUploadModal from "main/components/Citations/BulkCitationUploadModal";
@@ -33,6 +35,7 @@ import {
   hasPossibleDuplicateFlag,
 } from "main/utils/duplicateFlags";
 import { relevanceClassName } from "main/utils/relevance";
+import { useFilteredSortedCitations } from "main/utils/useFilteredSortedCitations";
 
 const POSSIBLE_DUPLICATE_HEADER_COLOR = "#f8d7da";
 
@@ -318,6 +321,12 @@ export default function BibTexEntryShowPage({
   const unresolvedCitationsCount = unresolved.filter(
     (u) => u.direction === "citation",
   ).length;
+
+  // Each card gets its own independent filter/sort state (issue #108) — narrowing/sorting
+  // References must not affect Citations, and vice versa. The heading counts above still show
+  // the raw, unfiltered totals; only the table itself reflects the filter/sort.
+  const referencesFilterSort = useFilteredSortedCitations(references);
+  const citationsFilterSort = useFilteredSortedCitations(citations);
 
   const abstractText = entry?.keyValuePairs?.abstract ?? "";
   const abstractWordCount = abstractText.trim()
@@ -760,12 +769,24 @@ export default function BibTexEntryShowPage({
             isOpen={cardOpenState.references}
             onToggle={() => toggleCard("references", "card_references")}
           >
+            <CitationFilter
+              filter={referencesFilterSort.filter}
+              onChange={referencesFilterSort.setFilter}
+              allTags={allTags}
+              testId={`${testId}-ReferencesFilter`}
+            />
+            <CitationSort
+              sortCriteria={referencesFilterSort.sortCriteria}
+              onChange={referencesFilterSort.setSortCriteria}
+              testId={`${testId}-ReferencesSort`}
+            />
             <CitationTable
               readOnly
-              citations={references}
+              citations={referencesFilterSort.visibleCitations}
               projectId={projectId}
               testId={`${testId}-ReferencesTable`}
               allTags={allTags}
+              enableColumnSort={referencesFilterSort.enableColumnSort}
             />
           </CollapsibleCard>
 
@@ -796,12 +817,24 @@ export default function BibTexEntryShowPage({
             isOpen={cardOpenState.citations}
             onToggle={() => toggleCard("citations", "card_citations")}
           >
+            <CitationFilter
+              filter={citationsFilterSort.filter}
+              onChange={citationsFilterSort.setFilter}
+              allTags={allTags}
+              testId={`${testId}-CitationsFilter`}
+            />
+            <CitationSort
+              sortCriteria={citationsFilterSort.sortCriteria}
+              onChange={citationsFilterSort.setSortCriteria}
+              testId={`${testId}-CitationsSort`}
+            />
             <CitationTable
               readOnly
-              citations={citations}
+              citations={citationsFilterSort.visibleCitations}
               projectId={projectId}
               testId={`${testId}-CitationsTable`}
               allTags={allTags}
+              enableColumnSort={citationsFilterSort.enableColumnSort}
             />
           </CollapsibleCard>
 

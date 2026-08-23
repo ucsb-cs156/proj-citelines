@@ -6,14 +6,7 @@ import CitationFilter from "main/components/Citations/CitationFilter";
 import CitationSort from "main/components/Citations/CitationSort";
 import BibTexEntryModal from "main/components/Citations/BibTexEntryModal";
 import DoiEntryModal from "main/components/Citations/DoiEntryModal";
-import {
-  DEFAULT_CITATION_FILTER,
-  matchesCitationFilter,
-} from "main/utils/citationFilter";
-import {
-  DEFAULT_CITATION_SORT,
-  sortCriteriaComparator,
-} from "main/utils/citationSort";
+import { useFilteredSortedCitations } from "main/utils/useFilteredSortedCitations";
 
 export default function CitationsTabComponent({
   projectId,
@@ -21,8 +14,6 @@ export default function CitationsTabComponent({
 }) {
   const [postModal, showPostModal] = useState(false);
   const [doiModal, showDoiModal] = useState(false);
-  const [filter, setFilter] = useState(DEFAULT_CITATION_FILTER);
-  const [sortCriteria, setSortCriteria] = useState(DEFAULT_CITATION_SORT);
 
   const queryKey = `/api/bibtexentries/project?projectId=${projectId}`;
 
@@ -49,9 +40,14 @@ export default function CitationsTabComponent({
   // it just renders whatever (already filtered/sorted) array it's handed, with its own
   // column-header click-to-sort disabled below whenever sortCriteria isn't empty, so it can't
   // silently desync the table from what CitationSort's own ordering shows.
-  const visibleCitations = citations
-    .filter((entry) => matchesCitationFilter(entry, filter))
-    .sort(sortCriteriaComparator(sortCriteria));
+  const {
+    filter,
+    setFilter,
+    sortCriteria,
+    setSortCriteria,
+    visibleCitations,
+    enableColumnSort,
+  } = useFilteredSortedCitations(citations);
 
   return (
     <div
@@ -108,7 +104,7 @@ export default function CitationsTabComponent({
           testId={`${testIdPrefix}-CitationTable`}
           allTags={allTags}
           mutationQueryKeys={[queryKey]}
-          enableColumnSort={sortCriteria.length === 0}
+          enableColumnSort={enableColumnSort}
         />
       </Row>
     </div>

@@ -331,6 +331,187 @@ describe("BibTexEntryShowPage tests", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("renders independent CitationFilter/CitationSort panels above the References and Citations tables", async () => {
+    axiosMock.reset();
+    axiosMock
+      .onGet("/api/bibtexentries/entry")
+      .reply(200, bibTexEntriesFixtures.oneEntry);
+    axiosMock
+      .onGet("/api/bibtexentries/export")
+      .reply(200, "@article{smith2020,\n  title = {A Very Long Title}\n}\n");
+    axiosMock.onGet("/api/citationedges/references").reply(200, []);
+    axiosMock.onGet("/api/citationedges/citations").reply(200, []);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-ReferencesCard-header"),
+    );
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-CitationsCard-header"),
+    );
+
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-ReferencesFilter-header"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-ReferencesSort-header"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-CitationsFilter-header"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-CitationsSort-header"),
+    ).toBeInTheDocument();
+  });
+
+  test("filtering the References table does not affect the Citations table, and vice versa", async () => {
+    axiosMock.reset();
+    axiosMock
+      .onGet("/api/bibtexentries/entry")
+      .reply(200, bibTexEntriesFixtures.oneEntry);
+    axiosMock
+      .onGet("/api/bibtexentries/export")
+      .reply(200, "@article{smith2020,\n  title = {A Very Long Title}\n}\n");
+    const twoEntries = [
+      bibTexEntriesFixtures.threeEntries[1],
+      bibTexEntriesFixtures.threeEntries[2],
+    ];
+    axiosMock.onGet("/api/citationedges/references").reply(200, twoEntries);
+    axiosMock.onGet("/api/citationedges/citations").reply(200, twoEntries);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-ReferencesCard-header"),
+    );
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-CitationsCard-header"),
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(
+          "BibTexEntryShowPage-ReferencesTable-cell-row-1-col-citeKey-link",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    // Narrow References to just "jones" — Citations, showing the identical underlying two
+    // entries, must be unaffected.
+    fireEvent.change(
+      screen.getByTestId("BibTexEntryShowPage-ReferencesFilter-search"),
+      { target: { value: "jones" } },
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId(
+          "BibTexEntryShowPage-ReferencesTable-cell-row-1-col-citeKey-link",
+        ),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      screen.getByTestId(
+        "BibTexEntryShowPage-ReferencesTable-cell-row-0-col-citeKey-link",
+      ),
+    ).toHaveTextContent("jones201...");
+    expect(
+      screen.getByTestId(
+        "BibTexEntryShowPage-CitationsTable-cell-row-0-col-citeKey-link",
+      ),
+    ).toHaveTextContent("jones201...");
+    expect(
+      screen.getByTestId(
+        "BibTexEntryShowPage-CitationsTable-cell-row-1-col-citeKey-link",
+      ),
+    ).toHaveTextContent("lee2021");
+  });
+
+  test("while a References sort criterion is selected, its column-header click is disabled, but Citations' is unaffected", async () => {
+    axiosMock.reset();
+    axiosMock
+      .onGet("/api/bibtexentries/entry")
+      .reply(200, bibTexEntriesFixtures.oneEntry);
+    axiosMock
+      .onGet("/api/bibtexentries/export")
+      .reply(200, "@article{smith2020,\n  title = {A Very Long Title}\n}\n");
+    // Raw fetch order is "lee2021" then "jones2019" — deliberately not already citeKey-ascending
+    // ("jones2019" < "lee2021"), so a citeKey column-header click is a detectable change either
+    // way this test uses it.
+    const twoEntries = [
+      bibTexEntriesFixtures.threeEntries[2],
+      bibTexEntriesFixtures.threeEntries[1],
+    ];
+    axiosMock.onGet("/api/citationedges/references").reply(200, twoEntries);
+    axiosMock.onGet("/api/citationedges/citations").reply(200, twoEntries);
+    axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
+
+    function citeKeyLinksInDomOrder(tableTestId) {
+      return screen
+        .getAllByTestId(
+          new RegExp(`^${tableTestId}-cell-row-\\d+-col-citeKey-link$`),
+        )
+        .map((el) => el.textContent);
+    }
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-ReferencesCard-header"),
+    );
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-CitationsCard-header"),
+    );
+    await waitFor(() => {
+      expect(
+        citeKeyLinksInDomOrder("BibTexEntryShowPage-ReferencesTable"),
+      ).toEqual(["lee2021", "jones201..."]);
+    });
+
+    // Select a References sort criterion (its exact order doesn't matter here — Author ascending
+    // happens to match the raw fetch order for this fixture pair, which is fine: the point of
+    // this test is what a *column-header click* does next, not CitationSort's own sort
+    // correctness, which is covered by CitationSort's and CitationsTabComponent's own tests).
+    fireEvent.click(
+      screen.getByTestId(
+        "BibTexEntryShowPage-ReferencesSort-available-item-Author-add",
+      ),
+    );
+    await waitFor(() => {
+      expect(
+        citeKeyLinksInDomOrder("BibTexEntryShowPage-ReferencesTable"),
+      ).toEqual(["lee2021", "jones201..."]);
+    });
+
+    // Clicking References' own citeKey column header must be a no-op while its sort is active.
+    fireEvent.click(
+      screen.getByTestId(
+        "BibTexEntryShowPage-ReferencesTable-header-citeKey-sort-header",
+      ),
+    );
+    expect(
+      citeKeyLinksInDomOrder("BibTexEntryShowPage-ReferencesTable"),
+    ).toEqual(["lee2021", "jones201..."]);
+
+    // Citations has no sort criteria selected, so its own column-header click still works
+    // normally, independent of References' state.
+    fireEvent.click(
+      screen.getByTestId(
+        "BibTexEntryShowPage-CitationsTable-header-citeKey-sort-header",
+      ),
+    );
+    await waitFor(() => {
+      expect(
+        citeKeyLinksInDomOrder("BibTexEntryShowPage-CitationsTable"),
+      ).toEqual(["jones201...", "lee2021"]);
+    });
+  });
+
   test("shows tags as pill badges in the References and Citations read-only tables", async () => {
     axiosMock.reset();
     axiosMock
