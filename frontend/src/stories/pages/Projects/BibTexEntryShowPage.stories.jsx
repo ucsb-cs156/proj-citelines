@@ -7,21 +7,14 @@ import { tagsFixtures } from "fixtures/tagsFixtures";
 import { apiCurrentUserFixtures } from "fixtures/currentUserFixtures";
 import { systemInfoFixtures } from "fixtures/systemInfoFixtures";
 
-// CodeMirror (used internally by the Comments card's Markdown editor) needs a working
-// Document.createRange, which jsdom-based tooling doesn't provide — same polyfill this repo's own
-// BibTexEntryShowPage/BibTexEntryComments test suites use.
-Document.prototype.createRange = function () {
-  return {
-    setEnd: function () {},
-    setStart: function () {},
-    getBoundingClientRect: function () {
-      return { right: 0 };
-    },
-    getClientRects: function () {
-      return { length: 0, left: 0, right: 0 };
-    },
-  };
-};
+// Unlike this repo's Vitest/jsdom test suites (which genuinely lack a working
+// Document.createRange and so need a stub for the Comments card's CodeMirror-based Markdown
+// editor), this file runs in a real browser under Storybook/Chromatic — which already has a
+// fully working native createRange. A polyfill was previously copy-pasted in here too, but
+// permanently overwriting the real one with a broken always-zero stub is actively harmful, not
+// just unnecessary: it corrupts DOM Range measurements for every component (in this story and
+// potentially — if the browser tab is reused across stories rather than reloaded — subsequently
+// rendered ones too) for the rest of that browser session. See issue #114.
 
 const PROJECT_ID = "1";
 const ENTRY = bibTexEntriesFixtures.fullyFeaturedEntry;
