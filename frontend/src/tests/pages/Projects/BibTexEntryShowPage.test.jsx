@@ -284,6 +284,15 @@ describe("BibTexEntryShowPage tests", () => {
     axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
 
     renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    // References/Citations cards are closed (and lazily unmounted) by default.
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-ReferencesCard-header"),
+    );
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-CitationsCard-header"),
+    );
 
     await waitFor(() => {
       expect(
@@ -348,6 +357,15 @@ describe("BibTexEntryShowPage tests", () => {
       .reply(200, tagsFixtures.threeTags);
 
     renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    // References/Citations cards are closed (and lazily unmounted) by default.
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-ReferencesCard-header"),
+    );
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-CitationsCard-header"),
+    );
 
     await waitFor(() => {
       expect(
@@ -822,6 +840,33 @@ describe("BibTexEntryShowPage tests", () => {
     ).toHaveAttribute("aria-expanded", "false");
   });
 
+  test("a closed-by-default card's content is not mounted until it's opened for the first time, and stays mounted after re-closing", async () => {
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-title");
+
+    // Closed by default: BibTexEntryComments (a heavyweight CodeMirror-based editor) isn't
+    // mounted at all yet, not just hidden — see CollapsibleCard's lazy-mount comment.
+    expect(
+      screen.queryByTestId("BibTexEntryShowPage-BibTexEntryComments-base"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-CommentsCard-header"),
+    );
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-BibTexEntryComments-base"),
+    ).toBeInTheDocument();
+
+    // Closing it again doesn't unmount it a second time (state like an in-progress draft would
+    // otherwise be lost every time the card is collapsed).
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-CommentsCard-header"),
+    );
+    expect(
+      screen.getByTestId("BibTexEntryShowPage-BibTexEntryComments-base"),
+    ).toBeInTheDocument();
+  });
+
   test("each card can be opened/closed independently of the others, and PUTs the new state", async () => {
     axiosMock
       .onPut("/api/bibtexentries")
@@ -867,6 +912,11 @@ describe("BibTexEntryShowPage tests", () => {
   test("wires up a working BibtexEntryComments instance inside the Comments card", async () => {
     renderAtSmith2020();
     await screen.findByTestId("BibTexEntryShowPage-title");
+
+    // Comments card is closed (and lazily unmounted) by default.
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-CommentsCard-header"),
+    );
 
     expect(
       screen.getByTestId("BibTexEntryShowPage-BibTexEntryComments-base"),
