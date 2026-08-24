@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BulkCitationUploadFromACMDLViewAllService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">BulkCitationUploadFromACMDLViewAllService.java</span></div><h1>BulkCitationUploadFromACMDLViewAllService.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import edu.ucsb.cs.citelines.collections.BibTexEntry;
+import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
+import edu.ucsb.cs156.jobs.services.JobContext;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import org.springframework.stereotype.Service;
+
+/**
+ * Parses the text ACM Digital Library's &quot;Cited By &amp;gt; View All&quot; page produces (an alternating
+ * sequence of one or more ACM-Ref-formatted citation lines, then the citing paper's {@code
+ * https://doi.org/...} link, repeated for each citing paper) and, for each DOI that passes a sanity
+ * check, resolves full metadata and adds a new {@link BibTexEntry} recording it as citing the
+ * current paper — so a user can paste ACM DL's whole &quot;cited by&quot; list at once instead of adding each
+ * citing paper one at a time.
+ *
+ * &lt;p&gt;Three things are flagged as errors rather than silently dropped or (worse) silently mis-added,
+ * per entry:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;no DOI line follows the reference text at all (a trailing, unpaired block of text at the
+ *       end of the pasted input) or the line doesn't parse as a DOI in any format {@link
+ *       DOIService} recognizes;
+ *   &lt;li&gt;the DOI doesn't resolve on any of {@link CitationGraphService}'s tiered resolvers (the same
+ *       waterfall — OpenAlex, then Semantic Scholar, then Crossref — used to fetch References/
+ *       Citations) — since building a {@link BibTexEntry} needs that metadata anyway, &quot;no resolver
+ *       has ever heard of this DOI&quot; doubles as this feature's DOI-validity check, rather than a
+ *       separate one;
+ *   &lt;li&gt;the resolved title doesn't appear (case/punctuation-insensitive) anywhere in the paired
+ *       reference text — catching a paste where the ACM-Ref/DOI pairing has drifted out of
+ *       alignment (e.g. a stray blank line ACM DL didn't actually put there) before it silently
+ *       attributes the wrong paper's citation.
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;A block of reference text with no title-bearing DOI to sanity-check it against (i.e. a
+ * standalone {@code https://doi.org/...} line with no preceding reference text) skips only that
+ * check, not the whole entry — the DOI itself still gets resolved and added normally.
+ *
+ * &lt;p&gt;Resolve-or-create-then-link reuses exactly the logic {@link CitationGraphService} uses for
+ * &quot;Get Citations&quot; ({@link CitationGraphService#tryResolveByDoi}, {@link
+ * CitationGraphService#tryRecoverMissingTitle}, {@link CitationGraphService#resolveOrCreateEntry},
+ * {@link CitationGraphService#saveCitationEdge}) rather than a second copy of it. A resolved DOI
+ * that turns out to be the current paper's own entry (e.g. ACM DL glitching a paper into its own
+ * &quot;cited by&quot; list) is skipped as an error rather than saved as a self-referential edge.
+ */
+@Service
+public class BulkCitationUploadFromACMDLViewAllService {
+
+  // Matches a whole line that is (only) a doi.org resolver URL — deliberately stricter than
+  // DOIService's own DOI_PATTERN (which finds a DOI anywhere within a larger string), so that a
+  // reference line whose title happens to mention something DOI-shaped is never mistaken for the
+  // DOI line itself. Once a line matches here, DOIService.normalizeRawDOI extracts and validates
+  // the actual DOI value.
+<span class="fc" id="L58">  private static final Pattern DOI_LINE_PATTERN =</span>
+<span class="fc" id="L59">      Pattern.compile(&quot;^https?://(?:dx\\.)?doi\\.org/\\S+$&quot;, Pattern.CASE_INSENSITIVE);</span>
+
+  private final BibTexEntryRepository bibTexEntryRepository;
+  private final CitationGraphService citationGraphService;
+  private final DOIService doiService;
+
+  public BulkCitationUploadFromACMDLViewAllService(
+      BibTexEntryRepository bibTexEntryRepository,
+      CitationGraphService citationGraphService,
+<span class="fc" id="L68">      DOIService doiService) {</span>
+<span class="fc" id="L69">    this.bibTexEntryRepository = bibTexEntryRepository;</span>
+<span class="fc" id="L70">    this.citationGraphService = citationGraphService;</span>
+<span class="fc" id="L71">    this.doiService = doiService;</span>
+<span class="fc" id="L72">  }</span>
+
+  /** One reference-text-then-DOI-line pair from the pasted input; either field may be null. */
+<span class="fc" id="L75">  record ParsedEntry(String refText, String doiLine) {}</span>
+
+  // Package-visible so tests can assert processEntry's exact return value per branch directly,
+  // rather than only through bulkUpload's aggregate tallies (see processEntry's doc).
+<span class="fc" id="L79">  enum Outcome {</span>
+<span class="fc" id="L80">    ADDED,</span>
+<span class="fc" id="L81">    LINKED,</span>
+<span class="fc" id="L82">    ERROR</span>
+  }
+
+  /**
+   * Splits {@code rawText} into alternating (reference text, DOI line) pairs. Package-visible for
+   * direct unit testing, same as {@link CheckLinksService#extractHandle}.
+   *
+   * &lt;p&gt;Blank lines are ignored entirely (tolerating stray ones a real copy-paste might introduce).
+   * Non-blank lines accumulate as one entry's reference text until a line that is itself a doi.org
+   * URL is seen, which closes out that entry; reference text may therefore span multiple physical
+   * lines. A trailing accumulated block with no following DOI line becomes a final entry with a
+   * null {@code doiLine} rather than being dropped silently.
+   */
+  static List&lt;ParsedEntry&gt; parse(String rawText) {
+<span class="fc" id="L96">    List&lt;ParsedEntry&gt; entries = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L97">    StringBuilder refBuffer = new StringBuilder();</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">    for (String rawLine : rawText.split(&quot;\\r?\\n&quot;)) {</span>
+<span class="fc" id="L99">      String line = rawLine.trim();</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">      if (line.isEmpty()) {</span>
+<span class="fc" id="L101">        continue;</span>
+      }
+<span class="fc bfc" id="L103" title="All 2 branches covered.">      if (DOI_LINE_PATTERN.matcher(line).matches()) {</span>
+<span class="fc" id="L104">        String ref = refBuffer.toString().trim();</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        entries.add(new ParsedEntry(ref.isEmpty() ? null : ref, line));</span>
+<span class="fc" id="L106">        refBuffer.setLength(0);</span>
+<span class="fc" id="L107">      } else {</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">        if (!refBuffer.isEmpty()) {</span>
+<span class="fc" id="L109">          refBuffer.append(' ');</span>
+        }
+<span class="fc" id="L111">        refBuffer.append(line);</span>
+      }
+    }
+<span class="fc" id="L114">    String leftover = refBuffer.toString().trim();</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">    if (!leftover.isEmpty()) {</span>
+<span class="fc" id="L116">      entries.add(new ParsedEntry(leftover, null));</span>
+    }
+<span class="fc" id="L118">    return entries;</span>
+  }
+
+  public void bulkUpload(
+      int projectId, String currentPaperCiteKey, String rawText, JobContext ctx) {
+<span class="fc" id="L123">    ctx.log(</span>
+        &quot;Starting Bulk Citation Upload from ACM DL for %s in project %d&quot;
+<span class="fc" id="L125">            .formatted(currentPaperCiteKey, projectId));</span>
+<span class="fc" id="L126">    BibTexEntry currentPaper =</span>
+        bibTexEntryRepository
+<span class="fc" id="L128">            .findByProjectIdAndCiteKey(projectId, currentPaperCiteKey)</span>
+<span class="fc" id="L129">            .orElseThrow(</span>
+                () -&gt; {
+<span class="fc" id="L131">                  ctx.log(&quot;Entry not found: &quot; + currentPaperCiteKey);</span>
+<span class="fc" id="L132">                  return new IllegalStateException(&quot;Entry not found: &quot; + currentPaperCiteKey);</span>
+                });
+
+<span class="fc" id="L135">    List&lt;ParsedEntry&gt; parsedEntries = parse(rawText);</span>
+<span class="fc" id="L136">    CitationGraphService.ExistingEntries existing =</span>
+<span class="fc" id="L137">        citationGraphService.loadExistingEntries(projectId);</span>
+
+<span class="fc" id="L139">    int added = 0;</span>
+<span class="fc" id="L140">    int linked = 0;</span>
+<span class="fc" id="L141">    int errors = 0;</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">    for (ParsedEntry parsedEntry : parsedEntries) {</span>
+<span class="fc" id="L143">      Outcome outcome = processEntry(parsedEntry, projectId, currentPaper, existing, ctx);</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">      if (outcome == Outcome.ADDED) {</span>
+<span class="fc" id="L145">        added++;</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">      } else if (outcome == Outcome.LINKED) {</span>
+<span class="fc" id="L147">        linked++;</span>
+      } else {
+<span class="fc" id="L149">        errors++;</span>
+      }
+<span class="fc" id="L151">    }</span>
+
+<span class="fc" id="L153">    ctx.log(</span>
+        &quot;Done: checked %d entr%s, %d added, %d linked to existing entries, %d errors.&quot;
+<span class="fc" id="L155">            .formatted(</span>
+<span class="fc" id="L156">                parsedEntries.size(),</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">                parsedEntries.size() == 1 ? &quot;y&quot; : &quot;ies&quot;,</span>
+<span class="fc" id="L158">                added,</span>
+<span class="fc" id="L159">                linked,</span>
+<span class="fc" id="L160">                errors));</span>
+<span class="fc" id="L161">  }</span>
+
+  // Package-visible so tests can assert the exact returned Outcome per branch directly — needed
+  // to distinguish a genuine Outcome.ERROR from a null return (a real Pitest mutation) when
+  // bulkUpload's tally loop treats both identically via its trailing catch-all else.
+  Outcome processEntry(
+      ParsedEntry parsedEntry,
+      int projectId,
+      BibTexEntry currentPaper,
+      CitationGraphService.ExistingEntries existing,
+      JobContext ctx) {
+<span class="fc" id="L172">    String description = describeEntry(parsedEntry);</span>
+
+<span class="fc bfc" id="L174" title="All 2 branches covered.">    if (parsedEntry.doiLine() == null) {</span>
+<span class="fc" id="L175">      ctx.log(&quot;Skipping %s: no DOI found for this reference.&quot;.formatted(description));</span>
+<span class="fc" id="L176">      return Outcome.ERROR;</span>
+    }
+
+    String doi;
+    try {
+<span class="fc" id="L181">      doi = doiService.normalizeRawDOI(parsedEntry.doiLine());</span>
+<span class="fc" id="L182">    } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L183">      ctx.log(</span>
+          &quot;Skipping %s: %s is not a recognizable DOI.&quot;
+<span class="fc" id="L185">              .formatted(description, parsedEntry.doiLine()));</span>
+<span class="fc" id="L186">      return Outcome.ERROR;</span>
+<span class="fc" id="L187">    }</span>
+
+<span class="fc" id="L189">    Optional&lt;CitationGraphService.ResolverResult&gt; resolved =</span>
+<span class="fc" id="L190">        citationGraphService.tryResolveByDoi(doi);</span>
+<span class="fc bfc" id="L191" title="All 2 branches covered.">    if (resolved.isEmpty()) {</span>
+<span class="fc" id="L192">      ctx.log(</span>
+<span class="fc" id="L193">          &quot;Skipping %s: DOI %s could not be resolved by any provider.&quot;.formatted(description, doi));</span>
+<span class="fc" id="L194">      return Outcome.ERROR;</span>
+    }
+
+<span class="fc" id="L197">    CitationGraphService.ResolverResult resolverResult = resolved.get();</span>
+<span class="fc" id="L198">    ResolvedWork work = resolverResult.work();</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">    if (isBlank(work.title())) {</span>
+<span class="fc" id="L200">      ResolvedWork recovered =</span>
+<span class="fc" id="L201">          citationGraphService.tryRecoverMissingTitle(work, resolverResult.resolver(), ctx);</span>
+<span class="fc bfc" id="L202" title="All 2 branches covered.">      if (recovered != null) {</span>
+<span class="fc" id="L203">        work = recovered;</span>
+      }
+    }
+<span class="fc bfc" id="L206" title="All 2 branches covered.">    if (isBlank(work.title())) {</span>
+<span class="fc" id="L207">      ctx.log(</span>
+          &quot;Skipping %s: DOI %s resolved, but no title is available from any provider.&quot;
+<span class="fc" id="L209">              .formatted(description, doi));</span>
+<span class="fc" id="L210">      return Outcome.ERROR;</span>
+    }
+
+<span class="fc bfc" id="L213" title="All 2 branches covered.">    if (parsedEntry.refText() != null</span>
+<span class="fc bfc" id="L214" title="All 2 branches covered.">        &amp;&amp; !refTextMatchesTitle(parsedEntry.refText(), work.title())) {</span>
+<span class="fc" id="L215">      ctx.log(</span>
+          &quot;Skipping %s: resolved title \&quot;%s\&quot; does not appear to match the pasted reference.&quot;
+<span class="fc" id="L217">              .formatted(description, work.title()));</span>
+<span class="fc" id="L218">      return Outcome.ERROR;</span>
+    }
+
+<span class="fc" id="L221">    CitationGraphService.ResolveOrCreateResult result =</span>
+<span class="fc" id="L222">        citationGraphService.resolveOrCreateEntry(work, projectId, existing);</span>
+<span class="fc bfc" id="L223" title="All 2 branches covered.">    if (result.entryId().equals(currentPaper.getId())) {</span>
+<span class="fc" id="L224">      ctx.log(</span>
+<span class="fc" id="L225">          &quot;Skipping %s: DOI %s resolves to the current paper itself.&quot;.formatted(description, doi));</span>
+<span class="fc" id="L226">      return Outcome.ERROR;</span>
+    }
+
+<span class="fc" id="L229">    citationGraphService.saveCitationEdge(projectId, result.entryId(), currentPaper.getId());</span>
+<span class="fc bfc" id="L230" title="All 2 branches covered.">    if (result.created()) {</span>
+<span class="fc" id="L231">      ctx.log(&quot;Added new entry %s: %s&quot;.formatted(result.citeKey(), work.title()));</span>
+<span class="fc" id="L232">      return Outcome.ADDED;</span>
+    }
+<span class="fc" id="L234">    ctx.log(&quot;Linking to existing entry %s: %s&quot;.formatted(result.citeKey(), work.title()));</span>
+<span class="fc" id="L235">    return Outcome.LINKED;</span>
+  }
+
+  private static boolean refTextMatchesTitle(String refText, String resolvedTitle) {
+<span class="fc" id="L239">    String normalizedTitle = normalizeForComparison(resolvedTitle);</span>
+<span class="fc bfc" id="L240" title="All 4 branches covered.">    return !normalizedTitle.isBlank() &amp;&amp; normalizeForComparison(refText).contains(normalizedTitle);</span>
+  }
+
+  private static String normalizeForComparison(String value) {
+<span class="fc" id="L244">    return value.toLowerCase(Locale.ROOT).replaceAll(&quot;[^a-z0-9]+&quot;, &quot; &quot;).trim();</span>
+  }
+
+  private static boolean isBlank(String value) {
+<span class="fc bfc" id="L248" title="All 4 branches covered.">    return value == null || value.isBlank();</span>
+  }
+
+  // parse() never produces a ParsedEntry with both fields null, so refText/doiLine here always
+  // has at least one branch to take.
+  private static String describeEntry(ParsedEntry parsedEntry) {
+<span class="fc bfc" id="L254" title="All 2 branches covered.">    if (parsedEntry.refText() != null) {</span>
+<span class="fc" id="L255">      return &quot;\&quot;%s\&quot;&quot;.formatted(truncate(parsedEntry.refText(), 80));</span>
+    }
+<span class="fc" id="L257">    return parsedEntry.doiLine();</span>
+  }
+
+  private static String truncate(String value, int maxLength) {
+<span class="fc bfc" id="L261" title="All 2 branches covered.">    return value.length() &lt;= maxLength ? value : value.substring(0, maxLength) + &quot;...&quot;;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DuplicateDetectionService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">DuplicateDetectionService.java</span></div><h1>DuplicateDetectionService.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import edu.ucsb.cs.citelines.collections.BibTexEntry;
+import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
+import edu.ucsb.cs156.jobs.services.JobContext;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import org.springframework.stereotype.Service;
+
+/**
+ * Scans a project's {@link BibTexEntry} records for likely duplicates and marks each one found with
+ * the ids of the other entries it's suspected to duplicate ({@code possibleDuplicateIds}/ {@code
+ * possibleDuplicateReason}). Report-only: nothing is merged or deleted here — a future, separate
+ * manual-review workflow will read these marks (see issue #68's follow-up issue).
+ *
+ * &lt;p&gt;Entries are grouped by normalized DOI first ({@link #REASON_SAME_DOI}, high confidence);
+ * entries with no usable DOI are then grouped by normalized title ({@link #REASON_SIMILAR_TITLE}, a
+ * weaker signal). Every run recomputes both fields from scratch for every entry, clearing stale
+ * marks for entries no longer part of a group — unlike {@link BibTexEntryImproveService}, this job
+ * owns this derived data outright rather than filling in gaps in user-entered content, so there is
+ * no &quot;might already be reviewed/hand-edited&quot; reason to preserve a stale mark.
+ */
+@Service
+public class DuplicateDetectionService {
+
+  static final String REASON_SAME_DOI = &quot;SAME_DOI&quot;;
+  static final String REASON_SIMILAR_TITLE = &quot;SIMILAR_TITLE&quot;;
+
+  private final BibTexEntryRepository bibTexEntryRepository;
+  private final DOIService doiService;
+
+  public DuplicateDetectionService(
+<span class="fc" id="L35">      BibTexEntryRepository bibTexEntryRepository, DOIService doiService) {</span>
+<span class="fc" id="L36">    this.bibTexEntryRepository = bibTexEntryRepository;</span>
+<span class="fc" id="L37">    this.doiService = doiService;</span>
+<span class="fc" id="L38">  }</span>
+
+  public void detectDuplicates(int projectId, JobContext ctx) {
+<span class="fc" id="L41">    List&lt;BibTexEntry&gt; entries = bibTexEntryRepository.findByProjectId(projectId);</span>
+<span class="fc" id="L42">    ctx.log(</span>
+        &quot;Scanning %d entries in project %d for possible duplicates.&quot;
+<span class="fc" id="L44">            .formatted(entries.size(), projectId));</span>
+
+<span class="fc" id="L46">    Map&lt;String, List&lt;BibTexEntry&gt;&gt; byDoi = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L47">    Map&lt;String, List&lt;BibTexEntry&gt;&gt; byTitle = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">    for (BibTexEntry entry : entries) {</span>
+<span class="fc" id="L49">      String normalizedDoi = normalizedDoiOrNull(entry);</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">      if (normalizedDoi != null) {</span>
+<span class="fc" id="L51">        byDoi.computeIfAbsent(normalizedDoi, k -&gt; new ArrayList&lt;&gt;()).add(entry);</span>
+<span class="fc" id="L52">        continue;</span>
+      }
+<span class="fc" id="L54">      String normalizedTitle = normalizedTitleOrNull(entry);</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">      if (normalizedTitle != null) {</span>
+<span class="fc" id="L56">        byTitle.computeIfAbsent(normalizedTitle, k -&gt; new ArrayList&lt;&gt;()).add(entry);</span>
+      }
+<span class="fc" id="L58">    }</span>
+
+<span class="fc" id="L60">    Map&lt;String, BibTexEntry&gt; markedById = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L61">    int doiGroups = markGroups(byDoi, REASON_SAME_DOI, markedById);</span>
+<span class="fc" id="L62">    int titleGroups = markGroups(byTitle, REASON_SIMILAR_TITLE, markedById);</span>
+
+<span class="fc" id="L64">    List&lt;BibTexEntry&gt; toSave = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L65">    int cleared = 0;</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">    for (BibTexEntry entry : entries) {</span>
+<span class="fc" id="L67">      BibTexEntry marked = markedById.get(entry.getId());</span>
+<span class="fc bfc" id="L68" title="All 2 branches covered.">      if (marked != null) {</span>
+<span class="fc" id="L69">        toSave.add(marked);</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">      } else if (entry.getPossibleDuplicateReason() != null) {</span>
+<span class="fc" id="L71">        entry.setPossibleDuplicateIds(null);</span>
+<span class="fc" id="L72">        entry.setPossibleDuplicateReason(null);</span>
+<span class="fc" id="L73">        toSave.add(entry);</span>
+<span class="fc" id="L74">        cleared++;</span>
+      }
+<span class="fc" id="L76">    }</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">    if (!toSave.isEmpty()) {</span>
+<span class="fc" id="L78">      bibTexEntryRepository.saveAll(toSave);</span>
+    }
+
+    // markedById only ever holds entries from groups of size &gt;= 2, so its size is always either
+    // 0 or &gt;= 2 — never exactly 1 — hence no singular/plural form needed for &quot;entries flagged&quot;.
+<span class="fc" id="L83">    ctx.log(</span>
+        (&quot;Done: %d DOI-based group%s, %d title-based group%s, %d entries flagged, %d entr%s&quot;
+                + &quot; cleared of a stale mark.&quot;)
+<span class="fc" id="L86">            .formatted(</span>
+<span class="fc" id="L87">                doiGroups,</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">                doiGroups == 1 ? &quot;&quot; : &quot;s&quot;,</span>
+<span class="fc" id="L89">                titleGroups,</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">                titleGroups == 1 ? &quot;&quot; : &quot;s&quot;,</span>
+<span class="fc" id="L91">                markedById.size(),</span>
+<span class="fc" id="L92">                cleared,</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">                cleared == 1 ? &quot;y&quot; : &quot;ies&quot;));</span>
+<span class="fc" id="L94">  }</span>
+
+  private int markGroups(
+      Map&lt;String, List&lt;BibTexEntry&gt;&gt; groups, String reason, Map&lt;String, BibTexEntry&gt; markedById) {
+<span class="fc" id="L98">    int groupCount = 0;</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">    for (List&lt;BibTexEntry&gt; group : groups.values()) {</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">      if (group.size() &lt; 2) {</span>
+<span class="fc" id="L101">        continue;</span>
+      }
+<span class="fc" id="L103">      groupCount++;</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">      for (BibTexEntry entry : group) {</span>
+<span class="fc" id="L105">        List&lt;String&gt; others = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        for (BibTexEntry other : group) {</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">          if (!other.getId().equals(entry.getId())) {</span>
+<span class="fc" id="L108">            others.add(other.getId());</span>
+          }
+<span class="fc" id="L110">        }</span>
+<span class="fc" id="L111">        entry.setPossibleDuplicateIds(others);</span>
+<span class="fc" id="L112">        entry.setPossibleDuplicateReason(reason);</span>
+<span class="fc" id="L113">        markedById.put(entry.getId(), entry);</span>
+<span class="fc" id="L114">      }</span>
+<span class="fc" id="L115">    }</span>
+<span class="fc" id="L116">    return groupCount;</span>
+  }
+
+  private String normalizedDoiOrNull(BibTexEntry entry) {
+<span class="fc bfc" id="L120" title="All 2 branches covered.">    String doi = entry.getKeyValuePairs() != null ? entry.getKeyValuePairs().get(&quot;doi&quot;) : null;</span>
+<span class="fc bfc" id="L121" title="All 4 branches covered.">    if (doi == null || doi.isBlank()) {</span>
+<span class="fc" id="L122">      return null;</span>
+    }
+    try {
+<span class="fc" id="L125">      return doiService.normalizeRawDOI(doi);</span>
+<span class="fc" id="L126">    } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L127">      return null;</span>
+    }
+  }
+
+  private String normalizedTitleOrNull(BibTexEntry entry) {
+<span class="fc bfc" id="L132" title="All 2 branches covered.">    String title = entry.getKeyValuePairs() != null ? entry.getKeyValuePairs().get(&quot;title&quot;) : null;</span>
+<span class="fc bfc" id="L133" title="All 2 branches covered.">    if (title == null) {</span>
+<span class="fc" id="L134">      return null;</span>
+    }
+<span class="fc" id="L136">    String normalized = title.toLowerCase().replaceAll(&quot;[^a-z0-9]+&quot;, &quot; &quot;).trim();</span>
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    return normalized.isBlank() ? null : normalized;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
