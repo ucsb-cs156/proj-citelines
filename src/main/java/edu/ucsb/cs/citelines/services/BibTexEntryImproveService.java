@@ -11,11 +11,14 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 /**
- * Re-resolves each of a project's {@link BibTexEntry} records that has a DOI against the
- * citation-metadata resolver waterfall (see {@link CitationGraphService}), filling in whatever
- * fields the entry is currently missing that a resolver now reports — e.g. {@code abstract}/{@code
- * publisher}/{@code pages}/{@code isbn}/{@code series}/{@code address}/{@code volume}/{@code
- * number}, none of which earlier versions of this app's resolvers extracted at all (see issue #66).
+ * Re-resolves {@link BibTexEntry} records that have a DOI against the citation-metadata resolver
+ * waterfall (see {@link CitationGraphService}), filling in whatever fields an entry is currently
+ * missing that a resolver now reports — e.g. {@code abstract}/{@code publisher}/{@code
+ * pages}/{@code isbn}/{@code series}/{@code address}/{@code volume}/{@code number}, none of which
+ * earlier versions of this app's resolvers extracted at all (see issue #66).
+ *
+ * <p>Which entries get checked is controlled by {@link ImproveScope} (see issue #110): the whole
+ * project, a single entry, or the references/citations of a single entry.
  *
  * <p>Never overwrites a field the entry already has a non-blank value for, even if a resolver now
  * reports a different one for it — an existing value may already have been reviewed or hand-edited,
@@ -27,25 +30,36 @@ import org.springframework.stereotype.Service;
  * begin with, unlike a hand-set/reviewed field value.
  */
 @Service
-public class BibTexEntryUpgradeService {
+public class BibTexEntryImproveService {
 
   private final BibTexEntryRepository bibTexEntryRepository;
   private final CitationGraphService citationGraphService;
   private final BibTexSynthesisService bibTexSynthesisService;
   private final BibTexConverterService bibTexConverterService;
+  private final CitationEdgeService citationEdgeService;
 
-  public BibTexEntryUpgradeService(
+  public BibTexEntryImproveService(
       BibTexEntryRepository bibTexEntryRepository,
       CitationGraphService citationGraphService,
       BibTexSynthesisService bibTexSynthesisService,
-      BibTexConverterService bibTexConverterService) {
+      BibTexConverterService bibTexConverterService,
+      CitationEdgeService citationEdgeService) {
     this.bibTexEntryRepository = bibTexEntryRepository;
     this.citationGraphService = citationGraphService;
     this.bibTexSynthesisService = bibTexSynthesisService;
     this.bibTexConverterService = bibTexConverterService;
+    this.citationEdgeService = citationEdgeService;
   }
 
-  // Package-visible so tests can assert upgradeEntry's exact return value per branch directly,
+  /** Which entries of a project a {@link BibTexEntryImproveService} pass should check. */
+  public enum ImproveScope {
+    PROJECT,
+    ENTRY,
+    REFERENCES,
+    CITATIONS
+  }
+
+  // Package-visible so tests can assert improveEntry's exact return value per branch directly,
   // same as BulkCitationUploadFromACMDLViewAllService.Outcome.
   enum Outcome {
     IMPROVED,
@@ -54,10 +68,10 @@ public class BibTexEntryUpgradeService {
     UNRESOLVED
   }
 
-  public void upgradeEntries(int projectId, JobContext ctx) {
-    List<BibTexEntry> entries = bibTexEntryRepository.findByProjectId(projectId);
+  public void improveEntries(int projectId, ImproveScope scope, String entryId, JobContext ctx) {
+    List<BibTexEntry> entries = entriesForScope(projectId, scope, entryId);
     ctx.log(
-        "Checking %d entries in project %d for upgradable metadata."
+        "Checking %d entries in project %d for improvable metadata."
             .formatted(entries.size(), projectId));
 
     int improved = 0;
@@ -65,7 +79,7 @@ public class BibTexEntryUpgradeService {
     int skippedNoDoi = 0;
     int unresolved = 0;
     for (BibTexEntry entry : entries) {
-      Outcome outcome = upgradeEntry(entry, projectId, ctx);
+      Outcome outcome = improveEntry(entry, projectId, ctx);
       if (outcome == Outcome.IMPROVED) {
         improved++;
       } else if (outcome == Outcome.ALREADY_COMPLETE) {
@@ -89,7 +103,16 @@ public class BibTexEntryUpgradeService {
                 unresolved));
   }
 
-  Outcome upgradeEntry(BibTexEntry entry, int projectId, JobContext ctx) {
+  private List<BibTexEntry> entriesForScope(int projectId, ImproveScope scope, String entryId) {
+    return switch (scope) {
+      case PROJECT -> bibTexEntryRepository.findByProjectId(projectId);
+      case ENTRY -> bibTexEntryRepository.findById(entryId).map(List::of).orElse(List.of());
+      case REFERENCES -> citationEdgeService.referencesOf(projectId, entryId);
+      case CITATIONS -> citationEdgeService.citationsOf(projectId, entryId);
+    };
+  }
+
+  Outcome improveEntry(BibTexEntry entry, int projectId, JobContext ctx) {
     Map<String, String> keyValuePairs = entry.getKeyValuePairs();
     String doi = keyValuePairs != null ? keyValuePairs.get("doi") : null;
     if (doi == null || doi.isBlank()) {

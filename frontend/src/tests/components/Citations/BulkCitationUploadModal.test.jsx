@@ -44,9 +44,7 @@ describe("BulkCitationUploadModal tests", () => {
   test("renders the title, instructions, and an empty textarea", () => {
     renderModal();
 
-    expect(
-      screen.getByText("Bulk Citations from ACM DL View All"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Bulk Citations from ACM DL")).toBeInTheDocument();
     expect(
       screen.getByText(
         /Click the link below to open this paper in a new tab or window\./,

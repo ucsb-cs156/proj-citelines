@@ -8,15 +8,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import edu.ucsb.cs.citelines.ControllerTestCase;
 import edu.ucsb.cs.citelines.collections.BibTexEntry;
-import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
-import edu.ucsb.cs.citelines.collections.CitationEdge;
-import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
 import edu.ucsb.cs.citelines.collections.UnresolvedCitation;
 import edu.ucsb.cs.citelines.collections.UnresolvedCitationRepository;
 import edu.ucsb.cs.citelines.config.ProjectSecurity;
 import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.repository.ProjectCollaboratorRepository;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
+import edu.ucsb.cs.citelines.services.CitationEdgeService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -32,8 +30,7 @@ public class CitationEdgesControllerTests extends ControllerTestCase {
 
   @MockitoBean ProjectRepository projectRepository;
   @MockitoBean ProjectCollaboratorRepository projectCollaboratorRepository;
-  @MockitoBean CitationEdgeRepository citationEdgeRepository;
-  @MockitoBean BibTexEntryRepository bibTexEntryRepository;
+  @MockitoBean CitationEdgeService citationEdgeService;
   @MockitoBean UnresolvedCitationRepository unresolvedCitationRepository;
 
   @Test
@@ -77,18 +74,9 @@ public class CitationEdgesControllerTests extends ControllerTestCase {
   public void owner_can_get_the_references_of_an_entry() throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-    CitationEdge edge =
-        CitationEdge.builder()
-            .id("1:id-smith2020:id-jones2019")
-            .projectId(1)
-            .citingEntryId("id-smith2020")
-            .citedEntryId("id-jones2019")
-            .build();
-    when(citationEdgeRepository.findByProjectIdAndCitingEntryId(1, "id-smith2020"))
-        .thenReturn(List.of(edge));
     BibTexEntry citedEntry =
         BibTexEntry.builder().id("id-jones2019").projectId(1).citeKey("jones2019").build();
-    when(bibTexEntryRepository.findById("id-jones2019")).thenReturn(Optional.of(citedEntry));
+    when(citationEdgeService.referencesOf(1, "id-smith2020")).thenReturn(List.of(citedEntry));
 
     MvcResult response =
         mockMvc
@@ -105,48 +93,12 @@ public class CitationEdgesControllerTests extends ControllerTestCase {
       username = "phtcon",
       roles = {"RESEARCHER"})
   @Test
-  public void references_skips_edges_whose_cited_entry_no_longer_exists() throws Exception {
-    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
-    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-    CitationEdge edge =
-        CitationEdge.builder()
-            .id("1:id-smith2020:id-deleted2019")
-            .projectId(1)
-            .citingEntryId("id-smith2020")
-            .citedEntryId("id-deleted2019")
-            .build();
-    when(citationEdgeRepository.findByProjectIdAndCitingEntryId(1, "id-smith2020"))
-        .thenReturn(List.of(edge));
-    when(bibTexEntryRepository.findById("id-deleted2019")).thenReturn(Optional.empty());
-
-    MvcResult response =
-        mockMvc
-            .perform(get("/api/citationedges/references?projectId=1&id=id-smith2020"))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    assertEquals("[]", response.getResponse().getContentAsString());
-  }
-
-  @WithMockUser(
-      username = "phtcon",
-      roles = {"RESEARCHER"})
-  @Test
   public void owner_can_get_the_citations_of_an_entry() throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-    CitationEdge edge =
-        CitationEdge.builder()
-            .id("1:id-jones2019:id-smith2020")
-            .projectId(1)
-            .citingEntryId("id-jones2019")
-            .citedEntryId("id-smith2020")
-            .build();
-    when(citationEdgeRepository.findByProjectIdAndCitedEntryId(1, "id-smith2020"))
-        .thenReturn(List.of(edge));
     BibTexEntry citingEntry =
         BibTexEntry.builder().id("id-jones2019").projectId(1).citeKey("jones2019").build();
-    when(bibTexEntryRepository.findById("id-jones2019")).thenReturn(Optional.of(citingEntry));
+    when(citationEdgeService.citationsOf(1, "id-smith2020")).thenReturn(List.of(citingEntry));
 
     MvcResult response =
         mockMvc
@@ -157,33 +109,6 @@ public class CitationEdgesControllerTests extends ControllerTestCase {
     assertEquals(
         mapper.writeValueAsString(List.of(citingEntry)),
         response.getResponse().getContentAsString());
-  }
-
-  @WithMockUser(
-      username = "phtcon",
-      roles = {"RESEARCHER"})
-  @Test
-  public void citations_skips_edges_whose_citing_entry_no_longer_exists() throws Exception {
-    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
-    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-    CitationEdge edge =
-        CitationEdge.builder()
-            .id("1:id-deleted2019:id-smith2020")
-            .projectId(1)
-            .citingEntryId("id-deleted2019")
-            .citedEntryId("id-smith2020")
-            .build();
-    when(citationEdgeRepository.findByProjectIdAndCitedEntryId(1, "id-smith2020"))
-        .thenReturn(List.of(edge));
-    when(bibTexEntryRepository.findById("id-deleted2019")).thenReturn(Optional.empty());
-
-    MvcResult response =
-        mockMvc
-            .perform(get("/api/citationedges/citations?projectId=1&id=id-smith2020"))
-            .andExpect(status().isOk())
-            .andReturn();
-
-    assertEquals("[]", response.getResponse().getContentAsString());
   }
 
   @WithMockUser(

@@ -65,7 +65,7 @@ export default function BulkCitationUploadModal({
       data-testid="BulkCitationUploadModal-base"
     >
       <Modal.Header>
-        <Modal.Title>Bulk Citations from ACM DL View All</Modal.Title>
+        <Modal.Title>Bulk Citations from ACM DL</Modal.Title>
         <button
           type="button"
           className="btn-close"

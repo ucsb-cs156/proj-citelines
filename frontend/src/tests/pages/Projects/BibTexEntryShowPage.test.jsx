@@ -243,6 +243,31 @@ describe("BibTexEntryShowPage tests", () => {
     );
   });
 
+  test("clicking Improve This Entry launches the job and shows a toast", async () => {
+    axiosMock
+      .onPost("/api/jobs/launch/improveBibTexEntries")
+      .reply(200, { id: 3, jobName: "BibTexEntryImproveJob" });
+
+    renderAtSmith2020();
+    await screen.findByTestId("BibTexEntryShowPage-improve-entry-button");
+
+    fireEvent.click(
+      screen.getByTestId("BibTexEntryShowPage-improve-entry-button"),
+    );
+
+    await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+    expect(axiosMock.history.post[0].params).toEqual({
+      projectId: "1",
+      scope: "ENTRY",
+      entryId: ENTRY_ID,
+    });
+    await waitFor(() =>
+      expect(mockToast).toHaveBeenCalledWith(
+        "Improve BibTeX Entries job launched — check the Jobs tab for progress.",
+      ),
+    );
+  });
+
   test("clicking Get Citations launches the job and shows a toast", async () => {
     axiosMock
       .onPost("/api/jobs/launch/getCitations")
@@ -715,7 +740,7 @@ describe("BibTexEntryShowPage tests", () => {
     });
   });
 
-  test("clicking Bulk Citations from ACM DL View All opens the modal, and submitting launches the job with the current entry's citeKey", async () => {
+  test("clicking Bulk Citations from ACM DL opens the modal, and submitting launches the job with the current entry's citeKey", async () => {
     axiosMock
       .onPost("/api/jobs/launch/bulkCitationUploadFromAcmDlViewAll")
       .reply(200, { id: 99 });

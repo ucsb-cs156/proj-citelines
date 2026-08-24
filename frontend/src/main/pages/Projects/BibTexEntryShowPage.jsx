@@ -357,6 +357,20 @@ export default function BibTexEntryShowPage({
     },
   );
 
+  const improveEntryMutation = useBackendMutation(
+    () => ({
+      url: "/api/jobs/launch/improveBibTexEntries",
+      method: "POST",
+      params: { projectId, scope: "ENTRY", entryId: entry?.id },
+    }),
+    {
+      onSuccess: () =>
+        toast(
+          "Improve BibTeX Entries job launched — check the Jobs tab for progress.",
+        ),
+    },
+  );
+
   const updateRelevanceMutation = useBackendMutation(
     (newRelevance) => ({
       url: "/api/bibtexentries",
@@ -481,14 +495,24 @@ export default function BibTexEntryShowPage({
             <h1 data-testid={`${testId}-title`} className="h3 fw-semibold mb-0">
               {entry.citeKey}
             </h1>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => setShowDeleteModal(true)}
-              data-testid={`${testId}-delete-button`}
-            >
-              Delete
-            </Button>
+            <div className="d-flex gap-2">
+              <Button
+                variant="outline-primary"
+                size="sm"
+                onClick={() => improveEntryMutation.mutate({})}
+                data-testid={`${testId}-improve-entry-button`}
+              >
+                Improve This Entry
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setShowDeleteModal(true)}
+                data-testid={`${testId}-delete-button`}
+              >
+                Delete
+              </Button>
+            </div>
           </div>
 
           <BibTexEntryLink
@@ -600,7 +624,7 @@ export default function BibTexEntryShowPage({
                 onClick={() => setShowBulkCitationUploadModal(true)}
                 data-testid={`${testId}-bulk-citation-upload-button`}
               >
-                Bulk Citations from ACM DL View All
+                Bulk Citations from ACM DL
               </Button>
             </div>
           </Row>
