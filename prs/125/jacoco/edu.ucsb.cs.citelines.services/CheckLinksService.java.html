@@ -1,0 +1,541 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CheckLinksService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">CheckLinksService.java</span></div><h1>CheckLinksService.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.ucsb.cs.citelines.collections.BibTexEntry;
+import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
+import edu.ucsb.cs156.jobs.services.JobContext;
+import java.net.URLEncoder;
+import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+/**
+ * Orchestrates the &quot;Check Links&quot; job: for every {@link BibTexEntry} in a project, resolves the link
+ * that {@code CitationTable}'s &quot;Link&quot; column shows (DOI first, URL as a backup — see the frontend
+ * {@code CitationTable.jsx}) and flags entries whose link looks broken, so the UI can surface a
+ * warning next to them.
+ *
+ * &lt;p&gt;Both checks are designed to avoid tripping bot-management challenges (e.g. Cloudflare 403s)
+ * rather than merely tolerating them:
+ *
+ * &lt;ul&gt;
+ *   &lt;li&gt;&lt;b&gt;DOI&lt;/b&gt; ({@code CITELINES_invalid_doi=True} on a 404): rather than a plain {@code GET
+ *       https://doi.org/&lt;doi&gt;} — which follows the resolver's redirect all the way to the
+ *       publisher's (often WAF-protected) page — this asks {@code doi.org} to content-negotiate a
+ *       machine-readable citation format ({@code Accept: application/citeproc+json}) and disables
+ *       redirect-following, so a nonexistent DOI is reported directly by the resolver as a 404
+ *       instead of chasing a redirect into a publisher's bot defenses.
+ *   &lt;li&gt;&lt;b&gt;URL&lt;/b&gt; ({@code CITELINES_invalid_url=True} on a 404 or 410): if the URL contains a
+ *       DOI/Handle-shaped identifier (e.g. an ACM DL or IEEE Xplore link embeds the paper's DOI in
+ *       its path), that identifier is looked up directly against the Handle System's public REST
+ *       API ({@code https://doi.org/api/handles/&lt;handle&gt;}) instead of requesting the URL itself —
+ *       this sidesteps the publisher's own WAF entirely (ACM DL, IEEE Xplore, etc. are commonly
+ *       behind Cloudflare and block automated requests with a 403 regardless of how browser-like
+ *       the request headers are) and gets an authoritative exists/doesn't-exist answer straight
+ *       from the identifier registry. If the Handle API reports the identifier as unregistered,
+ *       that's not always the final word: some catalog entries predate DOI registration and were
+ *       never assigned a real, Handle-System-registered DOI (ACM informally reuses {@code 10.5555},
+ *       the DOI Handbook's reserved example/placeholder prefix, for this), so two further sources
+ *       are tried, in order, each requiring the entry to have a title to sanity-check against:
+ *       OpenAlex's {@code works?filter=locations.landing_page_url:&lt;url&gt;} (an exact match on the URL
+ *       itself, not just handle-shaped ones — works for any publisher OpenAlex indexes, and this
+ *       project already trusts OpenAlex as the first tier of its citation-resolution engine),
+ *       confirmed only if the matched work's own title agrees; then, if OpenAlex has no match,
+ *       {@code dblp.org}'s public search API by title, confirmed only if a hit cites the exact
+ *       identifier as its own DOI or electronic-edition link — DBLP independently curates ACM's
+ *       full catalog, including this pre-DOI content, so it can confirm entries OpenAlex hasn't
+ *       indexed. Only when no identifier is embedded in the URL at all, or every one of these
+ *       checks is inconclusive, does this fall back to requesting the URL directly: a {@code HEAD}
+ *       request first (falling back to {@code GET} only if the server rejects {@code HEAD} with a
+ *       405) and browser-like request headers, to look as little like a bot as possible.
+ * &lt;/ul&gt;
+ *
+ * In both cases, a 403 or 429 — likely bot protection rather than a genuinely broken link — is
+ * logged but never flags the entry as invalid; only a definitive &quot;not found&quot; response does. Most
+ * other errors (5xx, timeouts/connection failures, or a persistent 403/429 after {@link
+ * ApiRetryHelper}'s retries are exhausted) are treated the same way: logged, not flagged, since
+ * they could just as easily be transient or bot-protection-related as a genuinely broken link. One
+ * exception, for the direct URL check only: a DNS resolution failure ({@link UnknownHostException},
+ * e.g. {@code https://not.a.real.domain}) means the hostname itself doesn't exist, which is as
+ * definitive a signal of a broken link as an HTTP 404 — so that specific failure is flagged.
+ *
+ * &lt;p&gt;Entries with neither a DOI nor a URL are skipped. A previously-set flag is cleared once the
+ * link resolves cleanly.
+ *
+ * &lt;p&gt;Like {@link OpenAlexService} and the other {@code CitationMetadataResolver}s, every link fetch
+ * is paced and retried through {@link ApiRetryHelper}, using {@code citelines.api.delay-ms}/{@code
+ * CITELINES_API_DELAY_MS} both as the minimum gap between calls and as the starting delay for
+ * exponential backoff on 5xx errors and rate-limit responses; since {@code doi.org} and arbitrary
+ * publisher sites have been observed returning bare 403s as an anti-bot measure rather than a
+ * proper 429, the helper is configured to back off on any 403 the same way it does on a 429.
+ */
+<span class="fc" id="L89">@Slf4j</span>
+@Service
+public class CheckLinksService {
+
+  static final String DOI_KEY = &quot;doi&quot;;
+  static final String URL_KEY = &quot;url&quot;;
+  static final String TITLE_KEY = &quot;title&quot;;
+  static final String INVALID_DOI_KEY = &quot;CITELINES_invalid_doi&quot;;
+  static final String INVALID_URL_KEY = &quot;CITELINES_invalid_url&quot;;
+  static final String TRUE_VALUE = &quot;True&quot;;
+
+  // Content negotiation: asks doi.org to hand back machine-readable citation metadata directly,
+  // rather than 302-redirecting on to the publisher's page.
+  static final String DOI_ACCEPT_HEADER = &quot;application/citeproc+json&quot;;
+
+  // A realistic browser fingerprint for arbitrary-URL checks, so plain HTTP-client user agents
+  // (which some sites block outright) aren't what triggers a false-positive block.
+  static final String BROWSER_USER_AGENT =
+      &quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) CitationChecker/1.0&quot;;
+  static final String BROWSER_ACCEPT =
+      &quot;text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8&quot;;
+  static final String BROWSER_ACCEPT_LANGUAGE = &quot;en-US,en;q=0.5&quot;;
+
+  // Matches a DOI/Handle-shaped identifier (&quot;10.&quot; + a 4-9 digit registrant prefix + &quot;/&quot; + a
+  // suffix) embedded anywhere in a URL, e.g. https://dl.acm.org/doi/10.1145/3411764.3445601 or
+  // https://ieeexplore.ieee.org/document/10.1109/ACCESS.2020.1234567. The suffix excludes
+  // characters that would end the identifier (whitespace, URL delimiters/query-string markers,
+  // quotes, and bracket/paren punctuation that's more likely surrounding prose than part of the
+  // identifier itself) so trailing punctuation like a closing parenthesis in &quot;(see 10.1.2/x)&quot;
+  // isn't swept in.
+<span class="fc" id="L119">  static final Pattern HANDLE_PATTERN = Pattern.compile(&quot;10\\.\\d{4,9}/[^\\s?#\&quot;'&lt;&gt;()\\[\\]{}]+&quot;);</span>
+
+  // DBLP's public search API, queried by title as a fallback for identifiers the Handle System
+  // doesn't recognize (see the class Javadoc).
+  static final String DBLP_SEARCH_URL = &quot;https://dblp.org/search/publ/api&quot;;
+
+  // OpenAlex's works endpoint, filtered by exact landing-page URL as the first fallback tier for
+  // identifiers the Handle System doesn't recognize (see the class Javadoc).
+  static final String OPENALEX_WORKS_URL = &quot;https://api.openalex.org/works&quot;;
+
+  private final BibTexEntryRepository bibTexEntryRepository;
+  private final RestTemplate restTemplate;
+  private final RestTemplate noRedirectRestTemplate;
+  private final LaTeXNormalizationService laTeXNormalizationService;
+  private final ApiRetryHelper retryHelper;
+  private final String doiUserAgent;
+  private final String mailto;
+<span class="fc" id="L136">  private final ObjectMapper objectMapper = new ObjectMapper();</span>
+
+  public CheckLinksService(
+      BibTexEntryRepository bibTexEntryRepository,
+      RestTemplate restTemplate,
+      RestTemplate noRedirectRestTemplate,
+      LaTeXNormalizationService laTeXNormalizationService,
+      @Value(&quot;${citelines.api.delay-ms:100}&quot;) int citelinesApiDelayMs,
+      @Value(&quot;${app.sourceRepo:}&quot;) String sourceRepo,
+<span class="fc" id="L145">      @Value(&quot;${citelines.api.checklinks.mailto:}&quot;) String mailto) {</span>
+<span class="fc" id="L146">    this.bibTexEntryRepository = bibTexEntryRepository;</span>
+<span class="fc" id="L147">    this.restTemplate = restTemplate;</span>
+<span class="fc" id="L148">    this.noRedirectRestTemplate = noRedirectRestTemplate;</span>
+<span class="fc" id="L149">    this.laTeXNormalizationService = laTeXNormalizationService;</span>
+<span class="fc" id="L150">    this.retryHelper =</span>
+        new ApiRetryHelper(
+            &quot;CheckLinks&quot;,
+            &quot;CITELINES_API_DELAY_MS&quot;,
+            citelinesApiDelayMs,
+            5,
+            citelinesApiDelayMs,
+            /* treatAnyForbiddenAsRateLimit= */ true);
+<span class="fc" id="L158">    this.doiUserAgent = buildDoiUserAgent(sourceRepo, mailto);</span>
+<span class="fc" id="L159">    this.mailto = mailto;</span>
+<span class="fc" id="L160">  }</span>
+
+  // sourceRepo/mailto are always non-null here: the constructor's @Value defaults resolve to &quot;&quot;
+  // rather than null, so only isBlank() (not a null-check) needs to be tested.
+  private static String buildDoiUserAgent(String sourceRepo, String mailto) {
+<span class="fc" id="L165">    StringBuilder userAgent = new StringBuilder(&quot;Citelines/1.0&quot;);</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">    boolean hasSourceRepo = !sourceRepo.isBlank();</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">    boolean hasMailto = !mailto.isBlank();</span>
+<span class="fc bfc" id="L168" title="All 4 branches covered.">    if (hasSourceRepo || hasMailto) {</span>
+<span class="fc" id="L169">      userAgent.append(&quot; (&quot;);</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">      if (hasSourceRepo) {</span>
+<span class="fc" id="L171">        userAgent.append(&quot;+&quot;).append(sourceRepo);</span>
+      }
+<span class="fc bfc" id="L173" title="All 2 branches covered.">      if (hasMailto) {</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">        userAgent.append(hasSourceRepo ? &quot;; &quot; : &quot;&quot;).append(&quot;mailto:&quot;).append(mailto);</span>
+      }
+<span class="fc" id="L176">      userAgent.append(&quot;)&quot;);</span>
+    }
+<span class="fc" id="L178">    return userAgent.toString();</span>
+  }
+
+  public void checkLinks(int projectId, JobContext ctx) {
+<span class="fc" id="L182">    List&lt;BibTexEntry&gt; entries = bibTexEntryRepository.findByProjectId(projectId);</span>
+<span class="fc" id="L183">    ctx.log(&quot;Checking links for %d entries in project %d.&quot;.formatted(entries.size(), projectId));</span>
+
+<span class="fc" id="L185">    int checked = 0;</span>
+<span class="fc" id="L186">    int flagged = 0;</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">    for (BibTexEntry entry : entries) {</span>
+      // A valid, unchanged link (the common case, and the branch that makes the outbound
+      // HTTP call) never calls ctx.log() -- only the invalid/error/redirect branches inside
+      // isInvalidDoi/isInvalidUrl do. checkCancellation() gives this loop its own checkpoint
+      // independent of whether an iteration logs anything.
+<span class="fc" id="L192">      ctx.checkCancellation();</span>
+<span class="fc" id="L193">      Map&lt;String, String&gt; keyValuePairs = entry.getKeyValuePairs();</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">      if (keyValuePairs == null) {</span>
+<span class="fc" id="L195">        continue;</span>
+      }
+
+<span class="fc" id="L198">      String doi = keyValuePairs.get(DOI_KEY);</span>
+<span class="fc" id="L199">      String url = keyValuePairs.get(URL_KEY);</span>
+      boolean invalid;
+      String flagKey;
+<span class="fc bfc" id="L202" title="All 4 branches covered.">      if (doi != null &amp;&amp; !doi.isBlank()) {</span>
+<span class="fc" id="L203">        invalid = isInvalidDoi(doi, entry.getCiteKey(), ctx);</span>
+<span class="fc" id="L204">        flagKey = INVALID_DOI_KEY;</span>
+<span class="fc bfc" id="L205" title="All 4 branches covered.">      } else if (url != null &amp;&amp; !url.isBlank()) {</span>
+<span class="fc" id="L206">        invalid = isInvalidUrl(url, keyValuePairs.get(TITLE_KEY), entry.getCiteKey(), ctx);</span>
+<span class="fc" id="L207">        flagKey = INVALID_URL_KEY;</span>
+      } else {
+        continue;
+      }
+<span class="fc" id="L211">      checked++;</span>
+
+      boolean changed;
+<span class="fc bfc" id="L214" title="All 2 branches covered.">      if (invalid) {</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">        changed = !TRUE_VALUE.equals(keyValuePairs.put(flagKey, TRUE_VALUE));</span>
+<span class="fc" id="L216">        flagged++;</span>
+      } else {
+<span class="fc bfc" id="L218" title="All 2 branches covered.">        changed = keyValuePairs.remove(flagKey) != null;</span>
+      }
+<span class="fc bfc" id="L220" title="All 2 branches covered.">      if (changed) {</span>
+<span class="fc" id="L221">        bibTexEntryRepository.save(entry);</span>
+      }
+<span class="fc" id="L223">    }</span>
+
+<span class="fc" id="L225">    ctx.log(</span>
+        &quot;Done: checked %d link%s, %d flagged as suspicious.&quot;
+<span class="fc bfc" id="L227" title="All 2 branches covered.">            .formatted(checked, checked == 1 ? &quot;&quot; : &quot;s&quot;, flagged));</span>
+<span class="fc" id="L228">  }</span>
+
+  private boolean isInvalidDoi(String doi, String citeKey, JobContext ctx) {
+<span class="fc" id="L231">    String url = &quot;https://doi.org/&quot; + doi;</span>
+<span class="fc" id="L232">    HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L233">    headers.set(HttpHeaders.ACCEPT, DOI_ACCEPT_HEADER);</span>
+<span class="fc" id="L234">    headers.set(HttpHeaders.USER_AGENT, doiUserAgent);</span>
+<span class="fc" id="L235">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
+    try {
+<span class="fc" id="L237">      ResponseEntity&lt;String&gt; response =</span>
+<span class="fc" id="L238">          retryHelper.execute(</span>
+              &quot;GET &quot; + url,
+<span class="fc" id="L240">              () -&gt; noRedirectRestTemplate.exchange(url, HttpMethod.GET, request, String.class));</span>
+<span class="fc bfc" id="L241" title="All 2 branches covered.">      if (response.getStatusCode().is3xxRedirection()) {</span>
+<span class="fc" id="L242">        ctx.log(</span>
+            &quot;Could not verify DOI for %s (%s): resolver returned %s instead of negotiated metadata&quot;
+<span class="fc" id="L244">                .formatted(citeKey, doi, response.getStatusCode()));</span>
+      }
+<span class="fc" id="L246">      return false;</span>
+<span class="fc" id="L247">    } catch (HttpClientErrorException.NotFound e) {</span>
+<span class="fc" id="L248">      ctx.log(&quot;Invalid DOI for %s: %s&quot;.formatted(citeKey, doi));</span>
+<span class="fc" id="L249">      return true;</span>
+<span class="fc" id="L250">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L251">      ctx.log(&quot;Could not check DOI for %s (%s): %s&quot;.formatted(citeKey, doi, e.getMessage()));</span>
+<span class="fc" id="L252">      return false;</span>
+    }
+  }
+
+  private boolean isInvalidUrl(String url, String title, String citeKey, JobContext ctx) {
+<span class="fc" id="L257">    String handle = extractHandle(url);</span>
+<span class="fc bfc" id="L258" title="All 2 branches covered.">    if (handle != null) {</span>
+<span class="fc" id="L259">      Boolean handleExists = checkHandleExists(handle, url, title, citeKey, ctx);</span>
+<span class="fc bfc" id="L260" title="All 2 branches covered.">      if (handleExists != null) {</span>
+<span class="fc bfc" id="L261" title="All 2 branches covered.">        if (!handleExists) {</span>
+<span class="fc" id="L262">          ctx.log(&quot;Invalid URL (no such handle %s) for %s: %s&quot;.formatted(handle, citeKey, url));</span>
+        }
+<span class="fc bfc" id="L264" title="All 2 branches covered.">        return !handleExists;</span>
+      }
+    }
+<span class="fc" id="L267">    return isInvalidUrlDirectly(url, citeKey, ctx);</span>
+  }
+
+  // Package-visible for tests: extracts the first DOI/Handle-shaped identifier embedded in a URL
+  // (e.g. an ACM DL or IEEE Xplore link), or null if none is found. A trailing slash is stripped —
+  // the Handle API incorrectly reports a real handle as nonexistent when queried with one — and if
+  // stripping it away leaves no &quot;/&quot; at all, the match is discarded as not actually handle-shaped.
+  static String extractHandle(String url) {
+<span class="fc" id="L275">    Matcher matcher = HANDLE_PATTERN.matcher(url);</span>
+<span class="fc bfc" id="L276" title="All 2 branches covered.">    if (!matcher.find()) {</span>
+<span class="fc" id="L277">      return null;</span>
+    }
+<span class="fc" id="L279">    String handle = matcher.group().replaceAll(&quot;/+$&quot;, &quot;&quot;);</span>
+<span class="fc bfc" id="L280" title="All 2 branches covered.">    return handle.contains(&quot;/&quot;) ? handle : null;</span>
+  }
+
+  // Looks the handle up against the Handle System's public REST API, which doi.org also serves
+  // requests to directly (rather than following the handle's redirect on to the publisher's
+  // page), so this never touches a WAF-protected publisher site. Returns Boolean.TRUE/FALSE for a
+  // definitive answer, or null when the check itself couldn't be completed (network error,
+  // malformed response, retries exhausted) — callers fall back to the direct URL check in that
+  // case, same as every other &quot;could not check&quot; path in this class.
+  //
+  // The API mirrors its JSON responseCode in the HTTP status: responseCode 1 (&quot;found&quot;) comes back
+  // as a 200, but responseCode 100 (&quot;not found&quot;) comes back as a 404 — which RestTemplate turns
+  // into a thrown HttpClientErrorException.NotFound rather than a normal response, so that case is
+  // handled in its own catch clause below rather than by inspecting the body of a 2xx response.
+  private Boolean checkHandleExists(
+      String handle, String url, String title, String citeKey, JobContext ctx) {
+<span class="fc" id="L296">    String handleUrl = &quot;https://doi.org/api/handles/&quot; + handle;</span>
+<span class="fc" id="L297">    HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L298">    headers.set(HttpHeaders.USER_AGENT, doiUserAgent);</span>
+<span class="fc" id="L299">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
+    try {
+<span class="fc" id="L301">      ResponseEntity&lt;String&gt; response =</span>
+<span class="fc" id="L302">          retryHelper.execute(</span>
+              &quot;GET &quot; + handleUrl,
+              () -&gt;
+<span class="fc" id="L305">                  noRedirectRestTemplate.exchange(</span>
+                      handleUrl, HttpMethod.GET, request, String.class));
+<span class="fc" id="L307">      int responseCode = readResponseCode(response.getBody());</span>
+<span class="fc bfc" id="L308" title="All 2 branches covered.">      if (responseCode == 1) {</span>
+<span class="fc" id="L309">        return Boolean.TRUE;</span>
+      }
+<span class="fc" id="L311">      ctx.log(</span>
+          &quot;Could not verify handle %s for %s: unexpected Handle API responseCode %d&quot;
+<span class="fc" id="L313">              .formatted(handle, citeKey, responseCode));</span>
+<span class="fc" id="L314">      return null;</span>
+<span class="fc" id="L315">    } catch (HttpClientErrorException.NotFound e) {</span>
+<span class="fc" id="L316">      return confirmLegacyHandle(handle, url, title, citeKey, ctx);</span>
+<span class="fc" id="L317">    } catch (JsonProcessingException e) {</span>
+<span class="fc" id="L318">      ctx.log(</span>
+          &quot;Could not verify handle %s for %s: malformed Handle API response&quot;
+<span class="fc" id="L320">              .formatted(handle, citeKey));</span>
+<span class="fc" id="L321">      return null;</span>
+<span class="fc" id="L322">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L323">      ctx.log(&quot;Could not verify handle %s for %s: %s&quot;.formatted(handle, citeKey, e.getMessage()));</span>
+<span class="fc" id="L324">      return null;</span>
+    }
+  }
+
+  private int readResponseCode(String body) throws JsonProcessingException {
+<span class="fc" id="L329">    JsonNode node = objectMapper.readTree(body);</span>
+<span class="fc" id="L330">    return node.path(&quot;responseCode&quot;).asInt(-1);</span>
+  }
+
+  // A handle the Handle System doesn't recognize isn't necessarily fake: some catalog entries
+  // predate DOI registration and were never assigned a real, Handle-System-registered DOI, but are
+  // still cataloged (and reachable) at a handle-shaped URL. OpenAlex and DBLP each independently
+  // index that kind of pre-DOI content, so both are tried, in order, before giving up — but only
+  // when there's a title to sanity-check a match against; with no title, there's nothing to
+  // confirm with, so this falls straight through to &quot;not confirmed&quot; (definitively invalid, same as
+  // if the Handle System's &quot;not found&quot; had gone unchallenged) rather than leaving the result
+  // indeterminate — these fallbacks exist only to overturn that verdict with positive evidence, not
+  // to make the outcome fuzzier when they can't find any.
+  private boolean confirmLegacyHandle(
+      String handle, String url, String title, String citeKey, JobContext ctx) {
+<span class="fc bfc" id="L344" title="All 4 branches covered.">    if (title == null || title.isBlank()) {</span>
+<span class="fc" id="L345">      return false;</span>
+    }
+<span class="fc bfc" id="L347" title="All 2 branches covered.">    if (confirmHandleViaOpenAlex(handle, url, title, citeKey, ctx)) {</span>
+<span class="fc" id="L348">      return true;</span>
+    }
+<span class="fc" id="L350">    return confirmHandleViaDblp(handle, title, citeKey, ctx);</span>
+  }
+
+  // OpenAlex's works endpoint accepts an exact-match filter on a work's landing-page URL, so this
+  // asks it whether any indexed work was seen at exactly this URL — general-purpose (unlike DBLP's
+  // title search below, it isn't limited to identifiers shaped like a DOI, or to CS-adjacent
+  // venues), and this project already trusts OpenAlex as the first tier of its citation-resolution
+  // engine (see OpenAlexService). A URL match alone isn't accepted as confirmation, though: the
+  // matched work's own title must also agree with this entry's, as a sanity check against a
+  // same-URL coincidence.
+  private boolean confirmHandleViaOpenAlex(
+      String handle, String landingPageUrl, String title, String citeKey, JobContext ctx) {
+<span class="fc" id="L362">    String url =</span>
+        OPENALEX_WORKS_URL
+            + &quot;?filter=locations.landing_page_url:&quot;
+<span class="fc" id="L365">            + URLEncoder.encode(landingPageUrl, StandardCharsets.UTF_8)</span>
+<span class="fc" id="L366">            + mailtoSuffix();</span>
+<span class="fc" id="L367">    HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L368">    headers.set(HttpHeaders.USER_AGENT, doiUserAgent);</span>
+<span class="fc" id="L369">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
+    try {
+<span class="fc" id="L371">      ResponseEntity&lt;String&gt; response =</span>
+<span class="fc" id="L372">          retryHelper.execute(</span>
+              &quot;GET &quot; + url,
+<span class="fc" id="L374">              () -&gt; restTemplate.exchange(url, HttpMethod.GET, request, String.class));</span>
+<span class="fc" id="L375">      JsonNode root = objectMapper.readTree(response.getBody());</span>
+<span class="fc bfc" id="L376" title="All 2 branches covered.">      if (root.path(&quot;meta&quot;).path(&quot;count&quot;).asInt(0) &lt;= 0) {</span>
+<span class="fc" id="L377">        return false;</span>
+      }
+<span class="fc" id="L379">      String matchedTitle = root.path(&quot;results&quot;).path(0).path(&quot;title&quot;).asText(&quot;&quot;);</span>
+<span class="fc" id="L380">      boolean confirmed = titlesMatch(title, matchedTitle);</span>
+<span class="fc bfc" id="L381" title="All 2 branches covered.">      if (confirmed) {</span>
+<span class="fc" id="L382">        ctx.log(</span>
+            &quot;Confirmed handle %s for %s via OpenAlex (landing page URL match; not registered in the Handle System)&quot;
+<span class="fc" id="L384">                .formatted(handle, citeKey));</span>
+      }
+<span class="fc" id="L386">      return confirmed;</span>
+<span class="fc" id="L387">    } catch (JsonProcessingException e) {</span>
+<span class="fc" id="L388">      ctx.log(</span>
+          &quot;Could not corroborate handle %s for %s via OpenAlex: malformed OpenAlex response&quot;
+<span class="fc" id="L390">              .formatted(handle, citeKey));</span>
+<span class="fc" id="L391">      return false;</span>
+<span class="fc" id="L392">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L393">      ctx.log(</span>
+          &quot;Could not corroborate handle %s for %s via OpenAlex: %s&quot;
+<span class="fc" id="L395">              .formatted(handle, citeKey, e.getMessage()));</span>
+<span class="fc" id="L396">      return false;</span>
+    }
+  }
+
+  private String mailtoSuffix() {
+<span class="fc bfc" id="L401" title="All 2 branches covered.">    return mailto.isBlank() ? &quot;&quot; : &quot;&amp;mailto=&quot; + URLEncoder.encode(mailto, StandardCharsets.UTF_8);</span>
+  }
+
+  // Normalizes both titles (LaTeX-escape-aware, then case/whitespace/punctuation-insensitive)
+  // before comparing, so a BibTeX title's brace-protected acronyms or accent escapes (e.g. {HTML},
+  // Schr{\&quot;{o}}der) don't defeat a match against the plain-Unicode title an API returns.
+  private boolean titlesMatch(String bibTexTitle, String otherTitle) {
+<span class="fc" id="L408">    String normalizedBibTexTitle =</span>
+<span class="fc" id="L409">        normalizeTitleForComparison(laTeXNormalizationService.normalize(bibTexTitle));</span>
+<span class="fc bfc" id="L410" title="All 2 branches covered.">    return !normalizedBibTexTitle.isBlank()</span>
+<span class="fc bfc" id="L411" title="All 2 branches covered.">        &amp;&amp; normalizedBibTexTitle.equals(normalizeTitleForComparison(otherTitle));</span>
+  }
+
+  // Both call sites always pass a non-null string: bibTexTitle is already known non-blank (see
+  // confirmLegacyHandle's guard) before it reaches here, and otherTitle comes from a Jackson
+  // asText(&quot;&quot;) default.
+  private static String normalizeTitleForComparison(String title) {
+<span class="fc" id="L418">    return title.toLowerCase(Locale.ROOT).replaceAll(&quot;[^a-z0-9]+&quot;, &quot; &quot;).trim();</span>
+  }
+
+  // DBLP independently curates ACM's full catalog, including pre-DOI content, and publishes each
+  // entry's own identifier directly — so this searches DBLP by title and accepts the handle as
+  // confirmed only if some hit cites that exact identifier as its own DOI or electronic-edition
+  // link, tried after OpenAlex since DBLP's coverage is narrower (CS-adjacent venues only) and its
+  // title search is a fuzzier match than OpenAlex's exact URL filter.
+  private boolean confirmHandleViaDblp(
+      String handle, String title, String citeKey, JobContext ctx) {
+<span class="fc" id="L428">    String url =</span>
+<span class="fc" id="L429">        DBLP_SEARCH_URL + &quot;?format=json&amp;q=&quot; + URLEncoder.encode(title, StandardCharsets.UTF_8);</span>
+<span class="fc" id="L430">    HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L431">    headers.set(HttpHeaders.USER_AGENT, doiUserAgent);</span>
+<span class="fc" id="L432">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
+    try {
+<span class="fc" id="L434">      ResponseEntity&lt;String&gt; response =</span>
+<span class="fc" id="L435">          retryHelper.execute(</span>
+              &quot;GET &quot; + url,
+<span class="fc" id="L437">              () -&gt; restTemplate.exchange(url, HttpMethod.GET, request, String.class));</span>
+<span class="fc" id="L438">      boolean confirmed = dblpHitsCiteHandle(response.getBody(), handle);</span>
+<span class="fc bfc" id="L439" title="All 2 branches covered.">      if (confirmed) {</span>
+<span class="fc" id="L440">        ctx.log(</span>
+            &quot;Confirmed handle %s for %s via DBLP (not registered in the Handle System, but DBLP catalogs it)&quot;
+<span class="fc" id="L442">                .formatted(handle, citeKey));</span>
+      }
+<span class="fc" id="L444">      return confirmed;</span>
+<span class="fc" id="L445">    } catch (JsonProcessingException e) {</span>
+<span class="fc" id="L446">      ctx.log(</span>
+          &quot;Could not corroborate handle %s for %s via DBLP: malformed DBLP response&quot;
+<span class="fc" id="L448">              .formatted(handle, citeKey));</span>
+<span class="fc" id="L449">      return false;</span>
+<span class="fc" id="L450">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L451">      ctx.log(</span>
+          &quot;Could not corroborate handle %s for %s via DBLP: %s&quot;
+<span class="fc" id="L453">              .formatted(handle, citeKey, e.getMessage()));</span>
+<span class="fc" id="L454">      return false;</span>
+    }
+  }
+
+  private boolean dblpHitsCiteHandle(String body, String handle) throws JsonProcessingException {
+<span class="fc" id="L459">    JsonNode hits = objectMapper.readTree(body).path(&quot;result&quot;).path(&quot;hits&quot;).path(&quot;hit&quot;);</span>
+<span class="fc bfc" id="L460" title="All 2 branches covered.">    for (JsonNode hit : hits) {</span>
+<span class="fc" id="L461">      JsonNode info = hit.path(&quot;info&quot;);</span>
+<span class="fc bfc" id="L462" title="All 2 branches covered.">      if (handle.equalsIgnoreCase(info.path(&quot;doi&quot;).asText(&quot;&quot;))</span>
+<span class="fc bfc" id="L463" title="All 2 branches covered.">          || info.path(&quot;ee&quot;).asText(&quot;&quot;).contains(handle)) {</span>
+<span class="fc" id="L464">        return true;</span>
+      }
+<span class="fc" id="L466">    }</span>
+<span class="fc" id="L467">    return false;</span>
+  }
+
+  private boolean isInvalidUrlDirectly(String url, String citeKey, JobContext ctx) {
+<span class="fc" id="L471">    HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L472">    headers.set(HttpHeaders.USER_AGENT, BROWSER_USER_AGENT);</span>
+<span class="fc" id="L473">    headers.set(HttpHeaders.ACCEPT, BROWSER_ACCEPT);</span>
+<span class="fc" id="L474">    headers.set(HttpHeaders.ACCEPT_LANGUAGE, BROWSER_ACCEPT_LANGUAGE);</span>
+<span class="fc" id="L475">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
+    try {
+<span class="fc" id="L477">      retryHelper.execute(</span>
+          &quot;HEAD &quot; + url,
+          () -&gt; {
+<span class="fc" id="L480">            restTemplate.exchange(url, HttpMethod.HEAD, request, Void.class);</span>
+<span class="fc" id="L481">            return null;</span>
+          });
+<span class="fc" id="L483">      return false;</span>
+<span class="fc" id="L484">    } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {</span>
+<span class="fc" id="L485">      ctx.log(&quot;Invalid URL (%d) for %s: %s&quot;.formatted(e.getStatusCode().value(), citeKey, url));</span>
+<span class="fc" id="L486">      return true;</span>
+<span class="fc" id="L487">    } catch (HttpClientErrorException.MethodNotAllowed e) {</span>
+<span class="fc" id="L488">      return isInvalidUrlViaGet(url, request, citeKey, ctx);</span>
+<span class="fc" id="L489">    } catch (ResourceAccessException e) {</span>
+<span class="fc" id="L490">      return isInvalidDueToUnknownHost(e, citeKey, url, ctx);</span>
+<span class="fc" id="L491">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L492">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
+<span class="fc" id="L493">      return false;</span>
+    }
+  }
+
+  private boolean isInvalidUrlViaGet(
+      String url, HttpEntity&lt;Void&gt; request, String citeKey, JobContext ctx) {
+    try {
+<span class="fc" id="L500">      retryHelper.execute(</span>
+          &quot;GET &quot; + url,
+          () -&gt; {
+<span class="fc" id="L503">            restTemplate.exchange(url, HttpMethod.GET, request, String.class);</span>
+<span class="fc" id="L504">            return null;</span>
+          });
+<span class="fc" id="L506">      return false;</span>
+<span class="fc" id="L507">    } catch (HttpClientErrorException.NotFound | HttpClientErrorException.Gone e) {</span>
+<span class="fc" id="L508">      ctx.log(&quot;Invalid URL (%d) for %s: %s&quot;.formatted(e.getStatusCode().value(), citeKey, url));</span>
+<span class="fc" id="L509">      return true;</span>
+<span class="fc" id="L510">    } catch (ResourceAccessException e) {</span>
+<span class="fc" id="L511">      return isInvalidDueToUnknownHost(e, citeKey, url, ctx);</span>
+<span class="fc" id="L512">    } catch (RestClientException | ApiRetryHelper.ApiUnavailableException e) {</span>
+<span class="fc" id="L513">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
+<span class="fc" id="L514">      return false;</span>
+    }
+  }
+
+  // A DNS resolution failure means the hostname itself doesn't exist — as definitive a signal of a
+  // broken link as an HTTP 404, unlike every other RestClientException this class treats as
+  // inconclusive (timeouts, connection resets, TLS failures — any of which could be transient or
+  // bot-protection-related rather than proof the link is broken).
+  private boolean isInvalidDueToUnknownHost(
+      ResourceAccessException e, String citeKey, String url, JobContext ctx) {
+<span class="fc bfc" id="L524" title="All 2 branches covered.">    if (!isUnknownHostFailure(e)) {</span>
+<span class="fc" id="L525">      ctx.log(&quot;Could not check URL for %s (%s): %s&quot;.formatted(citeKey, url, e.getMessage()));</span>
+<span class="fc" id="L526">      return false;</span>
+    }
+<span class="fc" id="L528">    ctx.log(&quot;Invalid URL (unknown host) for %s: %s&quot;.formatted(citeKey, url));</span>
+<span class="fc" id="L529">    return true;</span>
+  }
+
+  private static boolean isUnknownHostFailure(Throwable e) {
+<span class="fc bfc" id="L533" title="All 2 branches covered.">    for (Throwable cause = e; cause != null; cause = cause.getCause()) {</span>
+<span class="fc bfc" id="L534" title="All 2 branches covered.">      if (cause instanceof UnknownHostException) {</span>
+<span class="fc" id="L535">        return true;</span>
+      }
+    }
+<span class="fc" id="L538">    return false;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
