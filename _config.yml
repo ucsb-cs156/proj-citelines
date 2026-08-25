@@ -20,4 +20,4 @@ repo_name: "TBD"
 repo: ucsb-cs156/proj-citelines
 owner: ucsb-cs156
 repo_name: proj-citelines
-pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue122-citationfilter-controlled-state","number":123,"title":"CitationFilter: lift open/closed state to a controlled prop, default closed, tagMode defaults to \"and\" (issue #122)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/123"}]
+pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-lib-jobs-v0.3.0","number":125,"title":"Bump lib-jobs to v0.3.3 (job cancellation, startup recovery, chaining fix)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/125"},{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue122-citationfilter-controlled-state","number":123,"title":"CitationFilter: lift open/closed state to a controlled prop, default closed, tagMode defaults to \"and\" (issue #122)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/123"}]
