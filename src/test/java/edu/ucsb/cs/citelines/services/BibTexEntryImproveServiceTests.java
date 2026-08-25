@@ -1,18 +1,22 @@
 package edu.ucsb.cs.citelines.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs.citelines.services.BibTexEntryImproveService.ImproveScope;
 import edu.ucsb.cs156.jobs.entities.Job;
+import edu.ucsb.cs156.jobs.errors.JobCancelledException;
+import edu.ucsb.cs156.jobs.repositories.JobsRepository;
 import edu.ucsb.cs156.jobs.services.JobContext;
 import java.util.HashMap;
 import java.util.List;
@@ -487,5 +491,30 @@ public class BibTexEntryImproveServiceTests {
     service.improveEntries(1, ImproveScope.CITATIONS, "id-smith2020", ctx);
 
     assertTrue(job.getLog().contains("Checking 1 entries in project 1 for improvable metadata."));
+  }
+
+  // ────────────────────── checkCancellation checkpoint ──────────────────────
+  // An entry with no DOI (SKIPPED_NO_DOI) or with nothing new to add (ALREADY_COMPLETE) never
+  // calls ctx.log() -- without its own checkCancellation() checkpoint, this loop would give
+  // cancellation no opportunity to fire no matter how many entries it skips. 1 real checkpoint
+  // precedes the loop's own check: improveEntries()'s opening log line.
+  @Test
+  void checkCancellation_stops_the_loop_before_calling_improveEntry() {
+    BibTexEntry target = entry("smith2020", new HashMap<>(Map.of("doi", "10.1234/x")));
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(target));
+
+    JobsRepository jobsRepository = mock(JobsRepository.class);
+    Job runningJob = Job.builder().id(99L).status("running").build();
+    Job cancellingJob = Job.builder().id(99L).status("cancelling").build();
+    when(jobsRepository.findById(99L))
+        .thenReturn(Optional.of(runningJob), Optional.of(cancellingJob));
+    Job job99 = Job.builder().id(99L).build();
+    JobContext cancellingCtx = new JobContext(null, job99, null, jobsRepository);
+
+    assertThrows(
+        JobCancelledException.class,
+        () -> service.improveEntries(1, ImproveScope.PROJECT, null, cancellingCtx));
+
+    verifyNoInteractions(citationGraphService);
   }
 }

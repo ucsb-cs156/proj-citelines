@@ -39,7 +39,7 @@ export default function AdminJobsPage() {
     purgeJobLogMutation.mutate();
   };
 
-  const { data: jobs } = useBackend(
+  const { data: jobs, refetch } = useBackend(
     ["/api/jobs/all"],
     {
       //Stryker disable next-line StringLiteral: axios default is GET
@@ -74,7 +74,7 @@ export default function AdminJobsPage() {
         ))}
       </Accordion>
       <h2 className="p-3">Job Status</h2>
-      <JobsTable jobs={jobs} />
+      <JobsTable jobs={jobs} onCancelled={refetch} />
       <Button variant="danger" onClick={purgeJobLog} data-testid="purgeJobLog">
         Purge Job Log
       </Button>

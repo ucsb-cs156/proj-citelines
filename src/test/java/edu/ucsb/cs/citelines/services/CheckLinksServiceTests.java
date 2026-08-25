@@ -3,6 +3,7 @@ package edu.ucsb.cs.citelines.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -10,17 +11,21 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs156.jobs.entities.Job;
+import edu.ucsb.cs156.jobs.errors.JobCancelledException;
+import edu.ucsb.cs156.jobs.repositories.JobsRepository;
 import edu.ucsb.cs156.jobs.services.JobContext;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -1240,6 +1245,30 @@ public class CheckLinksServiceTests {
             eq(String.class));
     assertTrue(
         captor.getValue().getHeaders().getFirst(HttpHeaders.USER_AGENT).contains("proj-citelines"));
+  }
+
+  // ────────────────────── checkCancellation checkpoint ──────────────────────
+  // A valid, unchanged link (the common case, and the branch that makes the outbound HTTP
+  // call) never calls ctx.log() -- without its own checkCancellation() checkpoint, this loop
+  // would give cancellation no opportunity to fire no matter how many links it checks. 1 real
+  // checkpoint precedes the loop's own check: checkLinks()'s opening log line.
+  @Test
+  void checkCancellation_stops_the_loop_before_checking_any_link() {
+    Map<String, String> kvp = new HashMap<>(Map.of("doi", "10.1234/whatever"));
+    BibTexEntry entry = entry("whatever2020", kvp);
+    when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of(entry));
+
+    JobsRepository jobsRepository = mock(JobsRepository.class);
+    Job runningJob = Job.builder().id(99L).status("running").build();
+    Job cancellingJob = Job.builder().id(99L).status("cancelling").build();
+    when(jobsRepository.findById(99L))
+        .thenReturn(Optional.of(runningJob), Optional.of(cancellingJob));
+    Job job99 = Job.builder().id(99L).build();
+    JobContext cancellingCtx = new JobContext(null, job99, null, jobsRepository);
+
+    assertThrows(JobCancelledException.class, () -> checkLinksService.checkLinks(1, cancellingCtx));
+
+    verifyNoInteractions(restTemplate, noRedirectRestTemplate);
   }
 
   @Test

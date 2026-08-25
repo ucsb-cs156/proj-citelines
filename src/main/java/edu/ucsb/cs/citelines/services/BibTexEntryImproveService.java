@@ -79,6 +79,10 @@ public class BibTexEntryImproveService {
     int skippedNoDoi = 0;
     int unresolved = 0;
     for (BibTexEntry entry : entries) {
+      // An entry with no DOI (SKIPPED_NO_DOI) or with nothing new to add (ALREADY_COMPLETE)
+      // never calls ctx.log() -- checkCancellation() gives this loop its own checkpoint
+      // independent of whether an iteration does anything at all.
+      ctx.checkCancellation();
       Outcome outcome = improveEntry(entry, projectId, ctx);
       if (outcome == Outcome.IMPROVED) {
         improved++;

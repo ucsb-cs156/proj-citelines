@@ -185,6 +185,11 @@ public class CheckLinksService {
     int checked = 0;
     int flagged = 0;
     for (BibTexEntry entry : entries) {
+      // A valid, unchanged link (the common case, and the branch that makes the outbound
+      // HTTP call) never calls ctx.log() -- only the invalid/error/redirect branches inside
+      // isInvalidDoi/isInvalidUrl do. checkCancellation() gives this loop its own checkpoint
+      // independent of whether an iteration logs anything.
+      ctx.checkCancellation();
       Map<String, String> keyValuePairs = entry.getKeyValuePairs();
       if (keyValuePairs == null) {
         continue;
