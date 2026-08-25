@@ -1,4 +1,11 @@
-import { Button, Collapse, Dropdown, Form } from "react-bootstrap";
+import {
+  Button,
+  Collapse,
+  Dropdown,
+  Form,
+  OverlayTrigger,
+  Tooltip,
+} from "react-bootstrap";
 import { RELEVANCE_OPTIONS } from "main/utils/citelinesFields";
 import {
   CITATION_FILTER_LINK_OPTIONS,
@@ -51,18 +58,27 @@ export default function CitationFilter({
 
   return (
     <div data-testid={testId}>
-      <div
-        role="button"
-        onClick={() => onExpandedChange(!expanded)}
-        data-testid={`${testId}-header`}
-        className="d-flex justify-content-between align-items-center border rounded-3 p-2 mb-2"
-        style={{ cursor: "pointer" }}
+      <OverlayTrigger
+        placement="top"
+        overlay={
+          <Tooltip id={`${testId}-header-tooltip`}>
+            {expanded ? "Click to close" : "Click to open"}
+          </Tooltip>
+        }
       >
-        <strong>{expanded ? "Citation Filters" : "citation filters"}</strong>
-        <span data-testid={`${testId}-toggle-icon`}>
-          {expanded ? "▲" : "▼"}
-        </span>
-      </div>
+        <div
+          role="button"
+          onClick={() => onExpandedChange(!expanded)}
+          data-testid={`${testId}-header`}
+          className="d-flex justify-content-between align-items-center border rounded-3 p-2 mb-2"
+          style={{ cursor: "pointer" }}
+        >
+          <strong>Citation Filters</strong>
+          <span data-testid={`${testId}-toggle-icon`}>
+            {expanded ? "▲" : "▼"}
+          </span>
+        </div>
+      </OverlayTrigger>
       <Collapse in={expanded}>
         <div data-testid={`${testId}-body`}>
           <div className="border rounded-3 p-3 mb-3">

@@ -73,7 +73,10 @@ describe("CitationsTabComponent tests", () => {
 
     expect(
       screen.getByTestId("CitationsTabComponent-CitationFilter-header"),
-    ).toHaveTextContent("citation filters");
+    ).toHaveTextContent("Citation Filters");
+    expect(
+      screen.getByTestId("CitationsTabComponent-CitationFilter-toggle-icon"),
+    ).toHaveTextContent("▼");
   });
 
   test("typing in the CitationFilter search box narrows what the CitationTable shows", async () => {

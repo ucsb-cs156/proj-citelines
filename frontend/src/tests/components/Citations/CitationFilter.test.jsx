@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 
 import CitationFilter from "main/components/Citations/CitationFilter";
@@ -10,11 +10,11 @@ import {
 import { tagsFixtures } from "fixtures/tagsFixtures";
 
 describe("CitationFilter tests", () => {
-  test("renders closed by default, showing lowercase 'citation filters' and a ▼ toggle icon", () => {
+  test("renders closed by default, showing 'Citation Filters' (title case) and a ▼ toggle icon", () => {
     render(<CitationFilter />);
 
     expect(screen.getByTestId("CitationFilter-header")).toHaveTextContent(
-      "citation filters",
+      "Citation Filters",
     );
     expect(screen.getByTestId("CitationFilter-toggle-icon")).toHaveTextContent(
       "▼",
@@ -24,7 +24,7 @@ describe("CitationFilter tests", () => {
     expect(screen.getByTestId("CitationFilter-body")).toBeInTheDocument();
   });
 
-  test("renders expanded when the expanded prop is true, showing 'Citation Filters' and a ▲ toggle icon", () => {
+  test("renders expanded when the expanded prop is true, still 'Citation Filters' but with a ▲ toggle icon", () => {
     render(<CitationFilter expanded={true} />);
 
     expect(screen.getByTestId("CitationFilter-header")).toHaveTextContent(
@@ -33,6 +33,26 @@ describe("CitationFilter tests", () => {
     expect(screen.getByTestId("CitationFilter-toggle-icon")).toHaveTextContent(
       "▲",
     );
+  });
+
+  test("hovering the header while closed shows a 'Click to open' tooltip", async () => {
+    render(<CitationFilter expanded={false} />);
+
+    fireEvent.mouseOver(screen.getByTestId("CitationFilter-header"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Click to open")).toBeInTheDocument();
+    });
+  });
+
+  test("hovering the header while expanded shows a 'Click to close' tooltip", async () => {
+    render(<CitationFilter expanded={true} />);
+
+    fireEvent.mouseOver(screen.getByTestId("CitationFilter-header"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Click to close")).toBeInTheDocument();
+    });
   });
 
   test("clicking the header while closed calls onExpandedChange(true)", () => {
