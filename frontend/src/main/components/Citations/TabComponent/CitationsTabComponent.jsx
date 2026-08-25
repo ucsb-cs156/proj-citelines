@@ -49,7 +49,7 @@ export default function CitationsTabComponent({
     setExpanded,
     visibleCitations,
     enableColumnSort,
-  } = useFilteredSortedCitations(citations);
+  } = useFilteredSortedCitations(citations, { projectId, scope: "PROJECT" });
 
   return (
     <div

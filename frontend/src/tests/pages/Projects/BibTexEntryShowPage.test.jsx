@@ -14,6 +14,7 @@ import AxiosMockAdapter from "axios-mock-adapter";
 import BibTexEntryShowPage from "main/pages/Projects/BibTexEntryShowPage";
 import bibTexEntriesFixtures from "fixtures/bibTexEntriesFixtures";
 import { tagsFixtures } from "fixtures/tagsFixtures";
+import { DEFAULT_CITATION_FILTER } from "main/utils/citationFilter";
 
 // CodeMirror (used internally by BibTexEntryComments' Markdown editor) needs a working
 // Document.createRange, which jsdom does not provide — same polyfill react-simplemde-editor's
@@ -79,6 +80,9 @@ describe("BibTexEntryShowPage tests", () => {
     axiosMock.onGet("/api/citationedges/citations").reply(200, []);
     axiosMock.onGet("/api/citationedges/unresolved").reply(200, []);
     axiosMock.onGet("/api/tags/project?projectId=1").reply(200, []);
+    axiosMock
+      .onGet("/api/citationfilterstate")
+      .reply(200, { ...DEFAULT_CITATION_FILTER, expanded: false });
   });
 
   test("shows loading, then the entry's citekey, raw bibtex, and both buttons", async () => {
