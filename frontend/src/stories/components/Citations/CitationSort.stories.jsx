@@ -7,19 +7,22 @@ export default {
   component: CitationSort,
 };
 
-// CitationSort is a controlled component (value/onChange, like CitationFilter/ColorChooser) —
-// this Template wraps it in local state so the story is actually interactive (drag/drop, the
-// direction toggle, and the ×/Add buttons all work), rather than a static snapshot of whatever
-// args.sortCriteria happened to be.
+// CitationSort is a controlled component (value/onChange, like CitationFilter/ColorChooser; the
+// open/closed state is controlled the same way, issue #126) — this Template wraps both in local
+// state so the story is actually interactive (drag/drop, the direction toggle, the ×/Add buttons,
+// and expand/collapse all work), rather than a static snapshot of whatever args happened to be.
 const Template = (args) => {
   const [sortCriteria, setSortCriteria] = useState(
     args.sortCriteria ?? DEFAULT_CITATION_SORT,
   );
+  const [expanded, setExpanded] = useState(args.expanded ?? false);
   return (
     <CitationSort
       {...args}
       sortCriteria={sortCriteria}
       onChange={setSortCriteria}
+      expanded={expanded}
+      onExpandedChange={setExpanded}
     />
   );
 };
@@ -27,11 +30,19 @@ const Template = (args) => {
 export const NoSortSelected = Template.bind({});
 NoSortSelected.args = {
   sortCriteria: DEFAULT_CITATION_SORT,
+  expanded: true,
+};
+
+export const ClosedByDefault = Template.bind({});
+ClosedByDefault.args = {
+  sortCriteria: DEFAULT_CITATION_SORT,
+  expanded: false,
 };
 
 export const OneCriterionSelected = Template.bind({});
 OneCriterionSelected.args = {
   sortCriteria: [{ field: "Relevance", direction: "desc" }],
+  expanded: true,
 };
 
 export const MultipleCriteriaSelected = Template.bind({});
@@ -40,6 +51,7 @@ MultipleCriteriaSelected.args = {
     { field: "Author", direction: "asc" },
     { field: "Title", direction: "desc" },
   ],
+  expanded: true,
 };
 
 export const AllCriteriaSelected = Template.bind({});
@@ -50,4 +62,5 @@ AllCriteriaSelected.args = {
     { field: "Author", direction: "asc" },
     { field: "Title", direction: "asc" },
   ],
+  expanded: true,
 };

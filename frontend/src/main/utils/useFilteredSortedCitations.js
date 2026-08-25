@@ -41,6 +41,8 @@ import {
  *   setSortCriteria: Function,
  *   expanded: boolean,
  *   setExpanded: Function,
+ *   sortExpanded: boolean,
+ *   setSortExpanded: Function,
  *   visibleCitations: object[],
  *   enableColumnSort: boolean,
  * }}
@@ -52,6 +54,10 @@ export function useFilteredSortedCitations(entries, persistence) {
   // here (rather than inside CitationFilter itself) so it's available alongside filter for
   // persistence below.
   const [expanded, setExpandedState] = useState(false);
+  // CitationSort's own open/closed state (issue #126, mirroring #122) — closed by default.
+  // Not yet persisted (that's #126's follow-up PR, mirroring #121); plain local state for now,
+  // same as `expanded` was here before #121 wired its persistence up.
+  const [sortExpanded, setSortExpanded] = useState(false);
 
   const hasPersistence = Boolean(persistence);
   const {
@@ -149,6 +155,8 @@ export function useFilteredSortedCitations(entries, persistence) {
     setSortCriteria,
     expanded,
     setExpanded,
+    sortExpanded,
+    setSortExpanded,
     visibleCitations,
     // A stray CitationTable column-header click can't silently desync the table from what
     // CitationSort's own ordering shows — see CitationTable's enableColumnSort doc comment.

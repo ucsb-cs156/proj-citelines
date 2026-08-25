@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Button, Collapse } from "react-bootstrap";
+import { Button, Collapse, OverlayTrigger, Tooltip } from "react-bootstrap";
 import {
   DndContext,
   KeyboardSensor,
@@ -155,12 +154,18 @@ function AvailableItem({ criterion, testId, onAdd }) {
 // drag-and-drop alone is not an accessible interaction (WCAG 2.5.7). The actual drop-target
 // resolution lives in main/utils/citationSort.js's reorderAfterDrag so it's testable without
 // simulating a real pointer drag.
+//
+// The open/closed state is controlled the same way as CitationFilter (issue #126, mirroring
+// #122): `expanded`/`onExpandedChange`, defaulting closed when uncontrolled, title stays
+// "Citation Sort" in both states with a "Click to open"/"Click to close" tooltip rather than
+// flipping the label's case.
 export default function CitationSort({
   sortCriteria = DEFAULT_CITATION_SORT,
   onChange = () => {},
+  expanded = false,
+  onExpandedChange = () => {},
   testId = "CitationSort",
 }) {
-  const [expanded, setExpanded] = useState(true);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, {
@@ -180,18 +185,27 @@ export default function CitationSort({
 
   return (
     <div data-testid={testId}>
-      <div
-        role="button"
-        onClick={() => setExpanded((prev) => !prev)}
-        data-testid={`${testId}-header`}
-        className="d-flex justify-content-between align-items-center border rounded-3 p-2 mb-2"
-        style={{ cursor: "pointer" }}
+      <OverlayTrigger
+        placement="top"
+        overlay={
+          <Tooltip id={`${testId}-header-tooltip`}>
+            {expanded ? "Click to close" : "Click to open"}
+          </Tooltip>
+        }
       >
-        <strong>{expanded ? "Citation Sort" : "citation sort"}</strong>
-        <span data-testid={`${testId}-toggle-icon`}>
-          {expanded ? "▲" : "▼"}
-        </span>
-      </div>
+        <div
+          role="button"
+          onClick={() => onExpandedChange(!expanded)}
+          data-testid={`${testId}-header`}
+          className="d-flex justify-content-between align-items-center border rounded-3 p-2 mb-2"
+          style={{ cursor: "pointer" }}
+        >
+          <strong>Citation Sort</strong>
+          <span data-testid={`${testId}-toggle-icon`}>
+            {expanded ? "▲" : "▼"}
+          </span>
+        </div>
+      </OverlayTrigger>
       <Collapse in={expanded}>
         <div data-testid={`${testId}-body`}>
           <div className="border rounded-3 p-3 mb-3">

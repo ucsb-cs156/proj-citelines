@@ -1,4 +1,10 @@
-import { act, render, screen, fireEvent } from "@testing-library/react";
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react";
 import { vi } from "vitest";
 
 import CitationSort from "main/components/Citations/CitationSort";
@@ -25,31 +31,22 @@ vi.mock("@dnd-kit/core", async (importOriginal) => {
 });
 
 describe("CitationSort tests", () => {
-  test("renders expanded by default, showing 'Citation Sort' and a ▲ toggle icon", () => {
+  test("renders closed by default, showing 'Citation Sort' (title case) and a ▼ toggle icon", () => {
     render(<CitationSort />);
 
     expect(screen.getByTestId("CitationSort-header")).toHaveTextContent(
       "Citation Sort",
-    );
-    expect(screen.getByTestId("CitationSort-toggle-icon")).toHaveTextContent(
-      "▲",
-    );
-    expect(screen.getByTestId("CitationSort-body")).toBeInTheDocument();
-  });
-
-  test("clicking the header twice collapses then re-expands the panel, updating the label and icon each time", () => {
-    render(<CitationSort />);
-
-    fireEvent.click(screen.getByTestId("CitationSort-header"));
-
-    expect(screen.getByTestId("CitationSort-header")).toHaveTextContent(
-      "citation sort",
     );
     expect(screen.getByTestId("CitationSort-toggle-icon")).toHaveTextContent(
       "▼",
     );
+    // Collapse keeps its children mounted even while closed (see CollapsibleCard's doc comment
+    // elsewhere in this codebase for the same behavior/rationale) — the body is present regardless.
+    expect(screen.getByTestId("CitationSort-body")).toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByTestId("CitationSort-header"));
+  test("renders expanded when the expanded prop is true, still 'Citation Sort' but with a ▲ toggle icon", () => {
+    render(<CitationSort expanded={true} />);
 
     expect(screen.getByTestId("CitationSort-header")).toHaveTextContent(
       "Citation Sort",
@@ -57,6 +54,48 @@ describe("CitationSort tests", () => {
     expect(screen.getByTestId("CitationSort-toggle-icon")).toHaveTextContent(
       "▲",
     );
+  });
+
+  test("hovering the header while closed shows a 'Click to open' tooltip", async () => {
+    render(<CitationSort expanded={false} />);
+
+    fireEvent.mouseOver(screen.getByTestId("CitationSort-header"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Click to open")).toBeInTheDocument();
+    });
+  });
+
+  test("hovering the header while expanded shows a 'Click to close' tooltip", async () => {
+    render(<CitationSort expanded={true} />);
+
+    fireEvent.mouseOver(screen.getByTestId("CitationSort-header"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Click to close")).toBeInTheDocument();
+    });
+  });
+
+  test("clicking the header while closed calls onExpandedChange(true)", () => {
+    const onExpandedChange = vi.fn();
+    render(
+      <CitationSort expanded={false} onExpandedChange={onExpandedChange} />,
+    );
+
+    fireEvent.click(screen.getByTestId("CitationSort-header"));
+
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
+  });
+
+  test("clicking the header while expanded calls onExpandedChange(false)", () => {
+    const onExpandedChange = vi.fn();
+    render(
+      <CitationSort expanded={true} onExpandedChange={onExpandedChange} />,
+    );
+
+    fireEvent.click(screen.getByTestId("CitationSort-header"));
+
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
   });
 
   test("defaults sortCriteria to empty: shows all four options available and a 'No sort applied' placeholder", () => {

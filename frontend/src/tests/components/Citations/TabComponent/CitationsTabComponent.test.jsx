@@ -139,7 +139,7 @@ describe("CitationsTabComponent tests", () => {
     });
   });
 
-  test("renders a CitationSort panel above the table, expanded by default", async () => {
+  test("renders a CitationSort panel above the table, closed by default", async () => {
     renderTab();
 
     await waitFor(() => {
@@ -153,6 +153,9 @@ describe("CitationsTabComponent tests", () => {
     expect(
       screen.getByTestId("CitationsTabComponent-CitationSort-header"),
     ).toHaveTextContent("Citation Sort");
+    expect(
+      screen.getByTestId("CitationsTabComponent-CitationSort-toggle-icon"),
+    ).toHaveTextContent("▼");
   });
 
   test("adding Author as a sort criterion re-sorts the table by author", async () => {
