@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BibTexConverterService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">BibTexConverterService.java</span></div><h1>BibTexConverterService.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import edu.ucsb.cs.citelines.collections.BibTexEntry;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.jbibtex.BibTeXDatabase;
+import org.jbibtex.BibTeXFormatter;
+import org.jbibtex.BibTeXParser;
+import org.jbibtex.Key;
+import org.jbibtex.ObjectResolutionException;
+import org.jbibtex.ParseException;
+import org.jbibtex.StringValue;
+import org.jbibtex.TokenMgrException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+/**
+ * Converts between raw BibTeX text (as pasted by a user) and {@link BibTexEntry} documents, using
+ * JBibTeX for the actual BibTeX parsing/formatting. See docs/design/bibtex.md.
+ */
+<span class="fc" id="L27">@Slf4j</span>
+@Service
+<span class="fc" id="L29">public class BibTexConverterService {</span>
+
+  @Autowired DOIService doiService;
+
+  /**
+   * Parses raw BibTeX text into one {@link BibTexEntry} per entry found (a single paste may contain
+   * more than one {@code @}-entry).
+   *
+   * @param rawBibTex the pasted BibTeX text
+   * @param projectId the id of the Project these entries belong to
+   * @return the parsed entries, not yet saved
+   * @throws IllegalArgumentException if {@code rawBibTex} is empty, or is not well-formed BibTeX
+   */
+  public List&lt;BibTexEntry&gt; parseToEntries(String rawBibTex, int projectId) {
+<span class="fc bfc" id="L43" title="All 4 branches covered.">    if (rawBibTex == null || rawBibTex.isBlank()) {</span>
+<span class="fc" id="L44">      throw new IllegalArgumentException(&quot;BibTeX text must not be empty.&quot;);</span>
+    }
+
+    BibTeXDatabase database;
+    try {
+<span class="fc" id="L49">      BibTeXParser parser = new BibTeXParser();</span>
+<span class="fc" id="L50">      database = parser.parse(new StringReader(rawBibTex));</span>
+<span class="fc" id="L51">    } catch (ParseException | TokenMgrException | ObjectResolutionException e) {</span>
+      // Logged here (rather than left to surface only in the HTTP 400 response body) since a
+      // parse failure on an edit/save round-trip usually means something upstream — e.g.
+      // convertEntryToBibTexString — produced text this same parser can't read back.
+<span class="fc" id="L55">      log.warn(&quot;Could not parse BibTeX for project {}: {}&quot;, projectId, e.getMessage());</span>
+<span class="fc" id="L56">      throw new IllegalArgumentException(&quot;Could not parse BibTeX: &quot; + e.getMessage(), e);</span>
+<span class="fc" id="L57">    }</span>
+
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    if (database.getEntries().isEmpty()) {</span>
+<span class="fc" id="L60">      throw new IllegalArgumentException(&quot;No BibTeX entries were found in the pasted text.&quot;);</span>
+    }
+
+<span class="fc" id="L63">    List&lt;BibTexEntry&gt; entries = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L64">    database</span>
+<span class="fc" id="L65">        .getEntries()</span>
+<span class="fc" id="L66">        .forEach((key, entry) -&gt; entries.add(toBibTexEntry(key, entry, projectId)));</span>
+<span class="fc" id="L67">    return entries;</span>
+  }
+
+  private BibTexEntry toBibTexEntry(Key key, org.jbibtex.BibTeXEntry entry, int projectId) {
+<span class="fc" id="L71">    Map&lt;String, String&gt; keyValuePairs = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L72">    entry</span>
+<span class="fc" id="L73">        .getFields()</span>
+<span class="fc" id="L74">        .forEach(</span>
+            (fieldKey, fieldValue) -&gt; {
+<span class="fc" id="L76">              String name = fieldKey.getValue().toLowerCase();</span>
+<span class="fc" id="L77">              keyValuePairs.put(name, normalizeIfDoi(name, fieldValue.toUserString()));</span>
+<span class="fc" id="L78">            });</span>
+
+<span class="fc" id="L80">    return BibTexEntry.builder()</span>
+<span class="fc" id="L81">        .projectId(projectId)</span>
+<span class="fc" id="L82">        .entryType(entry.getType().getValue().toLowerCase())</span>
+<span class="fc" id="L83">        .citeKey(key.getValue())</span>
+<span class="fc" id="L84">        .keyValuePairs(keyValuePairs)</span>
+<span class="fc" id="L85">        .build();</span>
+  }
+
+  // The doi field is optional and free-form; if present but not recognizable as a DOI, we keep
+  // the raw value as-is rather than rejecting the whole entry over a formatting quirk.
+  private String normalizeIfDoi(String fieldName, String value) {
+<span class="fc bfc" id="L91" title="All 2 branches covered.">    if (!&quot;doi&quot;.equals(fieldName)) {</span>
+<span class="fc" id="L92">      return value;</span>
+    }
+    try {
+<span class="fc" id="L95">      return doiService.normalizeRawDOI(value);</span>
+<span class="fc" id="L96">    } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L97">      log.debug(&quot;Could not normalize doi field value '{}': {}&quot;, value, e.getMessage());</span>
+<span class="fc" id="L98">      return value;</span>
+    }
+  }
+
+  /**
+   * Converts a stored {@link BibTexEntry} back into raw BibTeX text, e.g. for editing.
+   *
+   * @param entry the entry to convert
+   * @return the entry, formatted as BibTeX text
+   * @throws IOException never in practice — {@link BibTeXFormatter#format} writes to an in-memory
+   *     {@link StringWriter}, which cannot fail — but the underlying library declares it, so it
+   *     propagates rather than being wrapped in a catch block that could never be exercised.
+   */
+  public String convertEntryToBibTexString(BibTexEntry entry) throws IOException {
+<span class="fc" id="L112">    BibTeXDatabase database = new BibTeXDatabase();</span>
+<span class="fc" id="L113">    org.jbibtex.BibTeXEntry bibEntry =</span>
+<span class="fc" id="L114">        new org.jbibtex.BibTeXEntry(new Key(entry.getEntryType()), new Key(entry.getCiteKey()));</span>
+
+<span class="fc bfc" id="L116" title="All 2 branches covered.">    if (entry.getKeyValuePairs() != null) {</span>
+<span class="fc" id="L117">      entry</span>
+<span class="fc" id="L118">          .getKeyValuePairs()</span>
+<span class="fc" id="L119">          .forEach(</span>
+              (fieldName, value) -&gt;
+<span class="fc" id="L121">                  bibEntry.addField(new Key(fieldName), new StringValue(value, styleFor(value))));</span>
+    }
+
+<span class="fc" id="L124">    database.addObject(bibEntry);</span>
+
+<span class="fc" id="L126">    StringWriter writer = new StringWriter();</span>
+<span class="fc" id="L127">    new BibTeXFormatter().format(database, writer);</span>
+<span class="fc" id="L128">    return writer.toString();</span>
+  }
+
+  // A &quot;-delimited value that itself contains a literal &quot; (e.g. a title or abstract quoting a
+  // word) produces syntactically invalid BibTeX — JBibTeX writes the embedded quote through
+  // unescaped, and then rejects that same text if it's re-parsed (e.g. after editing and saving).
+  // Braces don't have this ambiguity for a value containing a quote character, so fall back to
+  // brace-delimiting only when needed, to keep existing output unchanged for the common case.
+  private StringValue.Style styleFor(String value) {
+<span class="fc bfc" id="L137" title="All 2 branches covered.">    return value.contains(&quot;\&quot;&quot;) ? StringValue.Style.BRACED : StringValue.Style.QUOTED;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
