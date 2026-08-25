@@ -58,6 +58,9 @@ export default function AppNavbar({
                   id="appnavbar-admin-dropdown"
                   data-testid="appnavbar-admin-dropdown"
                 >
+                  <NavDropdown.Item as={Link} to="/admin/users">
+                    Users
+                  </NavDropdown.Item>
                   <NavDropdown.Item as={Link} to="/admin/admins">
                     Admins
                   </NavDropdown.Item>

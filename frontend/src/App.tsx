@@ -13,6 +13,7 @@ import SignInSuccessPage from "main/pages/Auth/SignInSuccessPage";
 
 import { useCurrentUser } from "main/utils/currentUser";
 import AdminDeveloperPage from "main/pages/Admin/AdminDeveloperPage";
+import AdminUsersPage from "main/pages/Admin/AdminUsersPage";
 
 import HomePageLoggedIn from "main/pages/Home/HomePageLoggedIn";
 import HomePageLoggedOut from "main/pages/Home/HomePageLoggedOut";
@@ -73,6 +74,16 @@ export default function App() {
           element={
             <ProtectedPage
               component={<ResearchersCreatePage />}
+              enforceRole={"ROLE_ADMIN"}
+              currentUser={currentUser}
+            />
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedPage
+              component={<AdminUsersPage />}
               enforceRole={"ROLE_ADMIN"}
               currentUser={currentUser}
             />
