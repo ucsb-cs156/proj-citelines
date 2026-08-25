@@ -23,7 +23,9 @@ describe("AdminUsersPage tests", () => {
     axiosMock
       .onGet("/api/currentUser")
       .reply(200, apiCurrentUserFixtures.adminUser);
-    axiosMock.onGet("/api/systemInfo").reply(200, systemInfoFixtures.showingNeither);
+    axiosMock
+      .onGet("/api/systemInfo")
+      .reply(200, systemInfoFixtures.showingNeither);
   };
 
   const renderPage = () => {
@@ -54,24 +56,24 @@ describe("AdminUsersPage tests", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByTestId("UsersTable-cell-row-0-col-email")).toHaveTextContent(
-        "phtcon@ucsb.edu",
-      );
+      expect(
+        screen.getByTestId("UsersTable-cell-row-0-col-email"),
+      ).toHaveTextContent("phtcon@ucsb.edu");
     });
 
     expect(screen.getByText("Users")).toBeInTheDocument();
     expect(screen.getByLabelText("Page size")).toHaveValue("10");
-    expect(screen.getByTestId("AdminUsersPage-page-indicator")).toHaveTextContent(
-      "Page 1 of 1",
-    );
+    expect(
+      screen.getByTestId("AdminUsersPage-page-indicator"),
+    ).toHaveTextContent("Page 1 of 1");
     expect(screen.getByText("Previous")).toBeDisabled();
     expect(screen.getByText("Next")).toBeDisabled();
-    expect(screen.getByTestId("UsersTable-cell-row-0-col-email")).toHaveTextContent(
-      "phtcon@ucsb.edu",
-    );
-    expect(screen.getByTestId("UsersTable-cell-row-2-col-researcher")).toHaveTextContent(
-      "true",
-    );
+    expect(
+      screen.getByTestId("UsersTable-cell-row-0-col-email"),
+    ).toHaveTextContent("phtcon@ucsb.edu");
+    expect(
+      screen.getByTestId("UsersTable-cell-row-2-col-researcher"),
+    ).toHaveTextContent("true");
   });
 
   test("supports paging and changing page size", async () => {
@@ -121,40 +123,40 @@ describe("AdminUsersPage tests", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByTestId("UsersTable-cell-row-0-col-email")).toHaveTextContent(
-        "phtcon@ucsb.edu",
-      );
+      expect(
+        screen.getByTestId("UsersTable-cell-row-0-col-email"),
+      ).toHaveTextContent("phtcon@ucsb.edu");
     });
 
     fireEvent.click(screen.getByText("Next"));
 
     await waitFor(() => {
-      expect(screen.getByTestId("AdminUsersPage-page-indicator")).toHaveTextContent(
-        "Page 2 of 2",
-      );
+      expect(
+        screen.getByTestId("AdminUsersPage-page-indicator"),
+      ).toHaveTextContent("Page 2 of 2");
     });
-    expect(screen.getByTestId("UsersTable-cell-row-0-col-email")).toHaveTextContent(
-      "pconrad.cis@gmail.com",
-    );
+    expect(
+      screen.getByTestId("UsersTable-cell-row-0-col-email"),
+    ).toHaveTextContent("pconrad.cis@gmail.com");
 
     fireEvent.change(screen.getByLabelText("Page size"), {
       target: { value: "25" },
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId("UsersTable-cell-row-1-col-email")).toHaveTextContent(
-        "pconrad.cis@gmail.com",
-      );
+      expect(
+        screen.getByTestId("UsersTable-cell-row-1-col-email"),
+      ).toHaveTextContent("pconrad.cis@gmail.com");
     });
-    expect(screen.getByTestId("AdminUsersPage-page-indicator")).toHaveTextContent(
-      "Page 1 of 1",
-    );
-    expect(screen.getByTestId("UsersTable-cell-row-0-col-email")).toHaveTextContent(
-      "phtcon@ucsb.edu",
-    );
-    expect(screen.getByTestId("UsersTable-cell-row-1-col-email")).toHaveTextContent(
-      "pconrad.cis@gmail.com",
-    );
+    expect(
+      screen.getByTestId("AdminUsersPage-page-indicator"),
+    ).toHaveTextContent("Page 1 of 1");
+    expect(
+      screen.getByTestId("UsersTable-cell-row-0-col-email"),
+    ).toHaveTextContent("phtcon@ucsb.edu");
+    expect(
+      screen.getByTestId("UsersTable-cell-row-1-col-email"),
+    ).toHaveTextContent("pconrad.cis@gmail.com");
   });
 
   test("renders empty table when backend unavailable", async () => {

@@ -63,7 +63,9 @@ export default function AdminUsersPage(): React.JSX.Element {
           <div className="d-flex align-items-center gap-2">
             <Button
               variant="secondary"
-              onClick={() => setPage((previousPage) => Math.max(previousPage - 1, 0))}
+              onClick={() =>
+                setPage((previousPage) => Math.max(previousPage - 1, 0))
+              }
               disabled={page === 0}
             >
               Previous
