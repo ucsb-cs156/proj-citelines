@@ -123,7 +123,7 @@ export default function JobsTabComponent({
         </Button>
       </Row>
       <Row>
-        <JobsTable jobs={jobs} />
+        <JobsTable jobs={jobs} onCancelled={refetch} />
       </Row>
     </div>
   );
