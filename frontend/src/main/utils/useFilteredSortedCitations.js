@@ -24,6 +24,8 @@ import {
  *   setFilter: Function,
  *   sortCriteria: {field: string, direction: "asc"|"desc"}[],
  *   setSortCriteria: Function,
+ *   expanded: boolean,
+ *   setExpanded: Function,
  *   visibleCitations: object[],
  *   enableColumnSort: boolean,
  * }}
@@ -31,6 +33,10 @@ import {
 export function useFilteredSortedCitations(entries) {
   const [filter, setFilter] = useState(DEFAULT_CITATION_FILTER);
   const [sortCriteria, setSortCriteria] = useState(DEFAULT_CITATION_SORT);
+  // The CitationFilter panel's own open/closed state (issue #122) — closed by default, owned
+  // here (rather than inside CitationFilter itself) so it's available alongside filter/sort for
+  // whatever persists this state per scope later (issue #121).
+  const [expanded, setExpanded] = useState(false);
 
   const visibleCitations = entries
     .filter((entry) => matchesCitationFilter(entry, filter))
@@ -41,6 +47,8 @@ export function useFilteredSortedCitations(entries) {
     setFilter,
     sortCriteria,
     setSortCriteria,
+    expanded,
+    setExpanded,
     visibleCitations,
     // A stray CitationTable column-header click can't silently desync the table from what
     // CitationSort's own ordering shows — see CitationTable's enableColumnSort doc comment.

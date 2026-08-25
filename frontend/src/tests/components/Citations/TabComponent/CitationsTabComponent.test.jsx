@@ -60,7 +60,7 @@ describe("CitationsTabComponent tests", () => {
     });
   });
 
-  test("renders a CitationFilter panel above the table, expanded by default", async () => {
+  test("renders a CitationFilter panel above the table, closed by default", async () => {
     renderTab();
 
     await waitFor(() => {
@@ -73,7 +73,7 @@ describe("CitationsTabComponent tests", () => {
 
     expect(
       screen.getByTestId("CitationsTabComponent-CitationFilter-header"),
-    ).toHaveTextContent("Citation Filters");
+    ).toHaveTextContent("citation filters");
   });
 
   test("typing in the CitationFilter search box narrows what the CitationTable shows", async () => {

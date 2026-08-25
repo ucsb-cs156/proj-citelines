@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button, Collapse, Dropdown, Form } from "react-bootstrap";
 import { RELEVANCE_OPTIONS } from "main/utils/citelinesFields";
 import {
@@ -15,14 +14,17 @@ import TagPill from "main/components/Tags/TagPill";
 // owns the `filter` value (typically starting from DEFAULT_CITATION_FILTER) and applies
 // matchesCitationFilter (main/utils/citationFilter.js) to its own entry array using that value,
 // the same controlled value/onChange shape used elsewhere in this codebase (e.g. ColorChooser).
+//
+// The open/closed state is controlled the same way (issue #122, so a page can persist it — see
+// issue #121): `expanded`/`onExpandedChange`, defaulting closed when uncontrolled.
 export default function CitationFilter({
   filter = DEFAULT_CITATION_FILTER,
   onChange = () => {},
+  expanded = false,
+  onExpandedChange = () => {},
   allTags = [],
   testId = "CitationFilter",
 }) {
-  const [expanded, setExpanded] = useState(true);
-
   const update = (patch) => onChange({ ...filter, ...patch });
 
   const toggleRelevance = (option) => {
@@ -51,7 +53,7 @@ export default function CitationFilter({
     <div data-testid={testId}>
       <div
         role="button"
-        onClick={() => setExpanded((prev) => !prev)}
+        onClick={() => onExpandedChange(!expanded)}
         data-testid={`${testId}-header`}
         className="d-flex justify-content-between align-items-center border rounded-3 p-2 mb-2"
         style={{ cursor: "pointer" }}

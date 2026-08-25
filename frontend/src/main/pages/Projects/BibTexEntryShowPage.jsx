@@ -796,6 +796,8 @@ export default function BibTexEntryShowPage({
             <CitationFilter
               filter={referencesFilterSort.filter}
               onChange={referencesFilterSort.setFilter}
+              expanded={referencesFilterSort.expanded}
+              onExpandedChange={referencesFilterSort.setExpanded}
               allTags={allTags}
               testId={`${testId}-ReferencesFilter`}
             />
@@ -844,6 +846,8 @@ export default function BibTexEntryShowPage({
             <CitationFilter
               filter={citationsFilterSort.filter}
               onChange={citationsFilterSort.setFilter}
+              expanded={citationsFilterSort.expanded}
+              onExpandedChange={citationsFilterSort.setExpanded}
               allTags={allTags}
               testId={`${testId}-CitationsFilter`}
             />

@@ -45,6 +45,8 @@ export default function CitationsTabComponent({
     setFilter,
     sortCriteria,
     setSortCriteria,
+    expanded,
+    setExpanded,
     visibleCitations,
     enableColumnSort,
   } = useFilteredSortedCitations(citations);
@@ -86,6 +88,8 @@ export default function CitationsTabComponent({
         <CitationFilter
           filter={filter}
           onChange={setFilter}
+          expanded={expanded}
+          onExpandedChange={setExpanded}
           allTags={allTags}
           testId={`${testIdPrefix}-CitationFilter`}
         />

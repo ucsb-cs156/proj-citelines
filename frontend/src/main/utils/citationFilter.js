@@ -31,7 +31,7 @@ export const DEFAULT_CITATION_FILTER = {
   duplicates: "all",
   search: "",
   tagIds: [],
-  tagMode: "or",
+  tagMode: "and",
 };
 
 // Relevance is stored directly on keyValuePairs, but — unlike CITELINES_invalid_doi/url, which

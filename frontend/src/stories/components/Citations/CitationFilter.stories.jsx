@@ -8,18 +8,35 @@ export default {
   component: CitationFilter,
 };
 
-// CitationFilter is a controlled component (value/onChange, like ColorChooser) — this Template
-// wraps it in local state so the story is actually interactive, rather than a static snapshot of
-// whatever args.filter happened to be.
+// CitationFilter is a controlled component (value/onChange, like ColorChooser; the open/closed
+// state is controlled the same way, issue #122) — this Template wraps both in local state so the
+// story is actually interactive, rather than a static snapshot of whatever args happened to be.
 const Template = (args) => {
   const [filter, setFilter] = useState(args.filter ?? DEFAULT_CITATION_FILTER);
-  return <CitationFilter {...args} filter={filter} onChange={setFilter} />;
+  const [expanded, setExpanded] = useState(args.expanded ?? false);
+  return (
+    <CitationFilter
+      {...args}
+      filter={filter}
+      onChange={setFilter}
+      expanded={expanded}
+      onExpandedChange={setExpanded}
+    />
+  );
 };
 
 export const Default = Template.bind({});
 Default.args = {
   filter: DEFAULT_CITATION_FILTER,
   allTags: tagsFixtures.threeTags,
+  expanded: true,
+};
+
+export const ClosedByDefault = Template.bind({});
+ClosedByDefault.args = {
+  filter: DEFAULT_CITATION_FILTER,
+  allTags: tagsFixtures.threeTags,
+  expanded: false,
 };
 
 export const SomeTagsAlreadySelected = Template.bind({});
@@ -29,6 +46,7 @@ SomeTagsAlreadySelected.args = {
     tagIds: [tagsFixtures.threeTags[0].id],
   },
   allTags: tagsFixtures.threeTags,
+  expanded: true,
 };
 
 export const NarrowedFilter = Template.bind({});
@@ -43,10 +61,12 @@ NarrowedFilter.args = {
     tagMode: "and",
   },
   allTags: tagsFixtures.threeTags,
+  expanded: true,
 };
 
 export const NoTagsAvailable = Template.bind({});
 NoTagsAvailable.args = {
   filter: DEFAULT_CITATION_FILTER,
   allTags: [],
+  expanded: true,
 };
