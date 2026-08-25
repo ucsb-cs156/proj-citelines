@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 
 import CitationFilter from "main/components/Citations/CitationFilter";
@@ -10,31 +10,22 @@ import {
 import { tagsFixtures } from "fixtures/tagsFixtures";
 
 describe("CitationFilter tests", () => {
-  test("renders expanded by default, showing 'Citation Filters' and a ▲ toggle icon", () => {
+  test("renders closed by default, showing 'Citation Filters' (title case) and a ▼ toggle icon", () => {
     render(<CitationFilter />);
 
     expect(screen.getByTestId("CitationFilter-header")).toHaveTextContent(
       "Citation Filters",
-    );
-    expect(screen.getByTestId("CitationFilter-toggle-icon")).toHaveTextContent(
-      "▲",
-    );
-    expect(screen.getByTestId("CitationFilter-body")).toBeInTheDocument();
-  });
-
-  test("clicking the header twice collapses then re-expands the panel, updating the label and icon each time", () => {
-    render(<CitationFilter />);
-
-    fireEvent.click(screen.getByTestId("CitationFilter-header"));
-
-    expect(screen.getByTestId("CitationFilter-header")).toHaveTextContent(
-      "citation filters",
     );
     expect(screen.getByTestId("CitationFilter-toggle-icon")).toHaveTextContent(
       "▼",
     );
+    // Collapse keeps its children mounted even while closed (see CollapsibleCard's doc comment
+    // elsewhere in this codebase for the same behavior/rationale) — the body is present regardless.
+    expect(screen.getByTestId("CitationFilter-body")).toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByTestId("CitationFilter-header"));
+  test("renders expanded when the expanded prop is true, still 'Citation Filters' but with a ▲ toggle icon", () => {
+    render(<CitationFilter expanded={true} />);
 
     expect(screen.getByTestId("CitationFilter-header")).toHaveTextContent(
       "Citation Filters",
@@ -42,6 +33,48 @@ describe("CitationFilter tests", () => {
     expect(screen.getByTestId("CitationFilter-toggle-icon")).toHaveTextContent(
       "▲",
     );
+  });
+
+  test("hovering the header while closed shows a 'Click to open' tooltip", async () => {
+    render(<CitationFilter expanded={false} />);
+
+    fireEvent.mouseOver(screen.getByTestId("CitationFilter-header"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Click to open")).toBeInTheDocument();
+    });
+  });
+
+  test("hovering the header while expanded shows a 'Click to close' tooltip", async () => {
+    render(<CitationFilter expanded={true} />);
+
+    fireEvent.mouseOver(screen.getByTestId("CitationFilter-header"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Click to close")).toBeInTheDocument();
+    });
+  });
+
+  test("clicking the header while closed calls onExpandedChange(true)", () => {
+    const onExpandedChange = vi.fn();
+    render(
+      <CitationFilter expanded={false} onExpandedChange={onExpandedChange} />,
+    );
+
+    fireEvent.click(screen.getByTestId("CitationFilter-header"));
+
+    expect(onExpandedChange).toHaveBeenCalledWith(true);
+  });
+
+  test("clicking the header while expanded calls onExpandedChange(false)", () => {
+    const onExpandedChange = vi.fn();
+    render(
+      <CitationFilter expanded={true} onExpandedChange={onExpandedChange} />,
+    );
+
+    fireEvent.click(screen.getByTestId("CitationFilter-header"));
+
+    expect(onExpandedChange).toHaveBeenCalledWith(false);
   });
 
   test("clicking a relevance button toggles it on and off via onChange", () => {
@@ -189,13 +222,13 @@ describe("CitationFilter tests", () => {
       <CitationFilter filter={DEFAULT_CITATION_FILTER} onChange={onChange} />,
     );
 
-    expect(screen.getByTestId("CitationFilter-tagMode-or")).toBeChecked();
+    expect(screen.getByTestId("CitationFilter-tagMode-and")).toBeChecked();
 
-    fireEvent.click(screen.getByTestId("CitationFilter-tagMode-and"));
+    fireEvent.click(screen.getByTestId("CitationFilter-tagMode-or"));
 
     expect(onChange).toHaveBeenCalledWith({
       ...DEFAULT_CITATION_FILTER,
-      tagMode: "and",
+      tagMode: "or",
     });
   });
 

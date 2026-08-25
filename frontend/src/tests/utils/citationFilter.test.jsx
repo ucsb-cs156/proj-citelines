@@ -31,7 +31,7 @@ describe("citationFilter constants", () => {
     expect(DEFAULT_CITATION_FILTER.duplicates).toBe("all");
     expect(DEFAULT_CITATION_FILTER.search).toBe("");
     expect(DEFAULT_CITATION_FILTER.tagIds).toEqual([]);
-    expect(DEFAULT_CITATION_FILTER.tagMode).toBe("or");
+    expect(DEFAULT_CITATION_FILTER.tagMode).toBe("and");
   });
 
   test("CITATION_FILTER_LINK_OPTIONS and CITATION_FILTER_DUPLICATE_OPTIONS have the expected values", () => {

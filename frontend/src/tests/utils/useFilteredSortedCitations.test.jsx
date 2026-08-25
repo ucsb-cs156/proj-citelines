@@ -17,8 +17,19 @@ describe("useFilteredSortedCitations", () => {
 
     expect(result.current.filter).toEqual(DEFAULT_CITATION_FILTER);
     expect(result.current.sortCriteria).toEqual(DEFAULT_CITATION_SORT);
+    expect(result.current.expanded).toBe(false);
     expect(result.current.visibleCitations).toEqual(entries);
     expect(result.current.enableColumnSort).toBe(true);
+  });
+
+  test("setExpanded toggles the expanded flag", () => {
+    const { result } = renderHook(() => useFilteredSortedCitations([]));
+
+    act(() => {
+      result.current.setExpanded(true);
+    });
+
+    expect(result.current.expanded).toBe(true);
   });
 
   test("setFilter narrows visibleCitations via matchesCitationFilter", () => {
@@ -80,10 +91,13 @@ describe("useFilteredSortedCitations", () => {
 
     act(() => {
       a.current.setSortCriteria([{ field: "Author", direction: "asc" }]);
+      a.current.setExpanded(true);
     });
 
     expect(a.current.enableColumnSort).toBe(false);
     expect(b.current.enableColumnSort).toBe(true);
     expect(b.current.sortCriteria).toEqual(DEFAULT_CITATION_SORT);
+    expect(a.current.expanded).toBe(true);
+    expect(b.current.expanded).toBe(false);
   });
 });

@@ -1,5 +1,11 @@
-import { useState } from "react";
-import { Button, Collapse, Dropdown, Form } from "react-bootstrap";
+import {
+  Button,
+  Collapse,
+  Dropdown,
+  Form,
+  OverlayTrigger,
+  Tooltip,
+} from "react-bootstrap";
 import { RELEVANCE_OPTIONS } from "main/utils/citelinesFields";
 import {
   CITATION_FILTER_LINK_OPTIONS,
@@ -15,14 +21,17 @@ import TagPill from "main/components/Tags/TagPill";
 // owns the `filter` value (typically starting from DEFAULT_CITATION_FILTER) and applies
 // matchesCitationFilter (main/utils/citationFilter.js) to its own entry array using that value,
 // the same controlled value/onChange shape used elsewhere in this codebase (e.g. ColorChooser).
+//
+// The open/closed state is controlled the same way (issue #122, so a page can persist it — see
+// issue #121): `expanded`/`onExpandedChange`, defaulting closed when uncontrolled.
 export default function CitationFilter({
   filter = DEFAULT_CITATION_FILTER,
   onChange = () => {},
+  expanded = false,
+  onExpandedChange = () => {},
   allTags = [],
   testId = "CitationFilter",
 }) {
-  const [expanded, setExpanded] = useState(true);
-
   const update = (patch) => onChange({ ...filter, ...patch });
 
   const toggleRelevance = (option) => {
@@ -49,18 +58,27 @@ export default function CitationFilter({
 
   return (
     <div data-testid={testId}>
-      <div
-        role="button"
-        onClick={() => setExpanded((prev) => !prev)}
-        data-testid={`${testId}-header`}
-        className="d-flex justify-content-between align-items-center border rounded-3 p-2 mb-2"
-        style={{ cursor: "pointer" }}
+      <OverlayTrigger
+        placement="top"
+        overlay={
+          <Tooltip id={`${testId}-header-tooltip`}>
+            {expanded ? "Click to close" : "Click to open"}
+          </Tooltip>
+        }
       >
-        <strong>{expanded ? "Citation Filters" : "citation filters"}</strong>
-        <span data-testid={`${testId}-toggle-icon`}>
-          {expanded ? "▲" : "▼"}
-        </span>
-      </div>
+        <div
+          role="button"
+          onClick={() => onExpandedChange(!expanded)}
+          data-testid={`${testId}-header`}
+          className="d-flex justify-content-between align-items-center border rounded-3 p-2 mb-2"
+          style={{ cursor: "pointer" }}
+        >
+          <strong>Citation Filters</strong>
+          <span data-testid={`${testId}-toggle-icon`}>
+            {expanded ? "▲" : "▼"}
+          </span>
+        </div>
+      </OverlayTrigger>
       <Collapse in={expanded}>
         <div data-testid={`${testId}-body`}>
           <div className="border rounded-3 p-3 mb-3">
