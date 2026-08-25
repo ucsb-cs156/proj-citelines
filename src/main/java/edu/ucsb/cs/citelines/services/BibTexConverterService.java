@@ -49,6 +49,10 @@ public class BibTexConverterService {
       BibTeXParser parser = new BibTeXParser();
       database = parser.parse(new StringReader(rawBibTex));
     } catch (ParseException | TokenMgrException | ObjectResolutionException e) {
+      // Logged here (rather than left to surface only in the HTTP 400 response body) since a
+      // parse failure on an edit/save round-trip usually means something upstream — e.g.
+      // convertEntryToBibTexString — produced text this same parser can't read back.
+      log.warn("Could not parse BibTeX for project {}: {}", projectId, e.getMessage());
       throw new IllegalArgumentException("Could not parse BibTeX: " + e.getMessage(), e);
     }
 
@@ -114,8 +118,7 @@ public class BibTexConverterService {
           .getKeyValuePairs()
           .forEach(
               (fieldName, value) ->
-                  bibEntry.addField(
-                      new Key(fieldName), new StringValue(value, StringValue.Style.QUOTED)));
+                  bibEntry.addField(new Key(fieldName), new StringValue(value, styleFor(value))));
     }
 
     database.addObject(bibEntry);
@@ -123,5 +126,14 @@ public class BibTexConverterService {
     StringWriter writer = new StringWriter();
     new BibTeXFormatter().format(database, writer);
     return writer.toString();
+  }
+
+  // A "-delimited value that itself contains a literal " (e.g. a title or abstract quoting a
+  // word) produces syntactically invalid BibTeX — JBibTeX writes the embedded quote through
+  // unescaped, and then rejects that same text if it's re-parsed (e.g. after editing and saving).
+  // Braces don't have this ambiguity for a value containing a quote character, so fall back to
+  // brace-delimiting only when needed, to keep existing output unchanged for the common case.
+  private StringValue.Style styleFor(String value) {
+    return value.contains("\"") ? StringValue.Style.BRACED : StringValue.Style.QUOTED;
   }
 }

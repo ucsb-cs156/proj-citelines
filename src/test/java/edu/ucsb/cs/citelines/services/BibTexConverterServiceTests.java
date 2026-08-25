@@ -206,4 +206,28 @@ class BibTexConverterServiceTests {
     assertEquals(original.getCiteKey(), roundTripped.getCiteKey());
     assertEquals(original.getKeyValuePairs(), roundTripped.getKeyValuePairs());
   }
+
+  // Regression test for a real bug: a field value (e.g. an abstract) containing a literal "
+  // used to always be written out "-delimited, producing invalid BibTeX that this same parser
+  // then rejected on re-import (e.g. when saving after a Relevance change re-sends the exported
+  // text unchanged) — a 400 with no server-side log line, since ApiController's exception
+  // handler doesn't log.
+  @Test
+  void round_trips_an_entry_whose_value_contains_an_embedded_quote() throws Exception {
+    BibTexEntry original =
+        BibTexEntry.builder()
+            .projectId(1)
+            .entryType("misc")
+            .citeKey("parnas2002")
+            .keyValuePairs(
+                Map.of(
+                    "abstract", "...deserve to be called \"engineering\".",
+                    "title", "Software aging"))
+            .build();
+
+    String bibtex = bibTexConverterService.convertEntryToBibTexString(original);
+    BibTexEntry roundTripped = bibTexConverterService.parseToEntries(bibtex, 1).get(0);
+
+    assertEquals(original.getKeyValuePairs(), roundTripped.getKeyValuePairs());
+  }
 }
