@@ -325,8 +325,16 @@ export default function BibTexEntryShowPage({
   // Each card gets its own independent filter/sort state (issue #108) — narrowing/sorting
   // References must not affect Citations, and vice versa. The heading counts above still show
   // the raw, unfiltered totals; only the table itself reflects the filter/sort.
-  const referencesFilterSort = useFilteredSortedCitations(references);
-  const citationsFilterSort = useFilteredSortedCitations(citations);
+  const referencesFilterSort = useFilteredSortedCitations(references, {
+    projectId,
+    scope: "REFERENCES",
+    entryId,
+  });
+  const citationsFilterSort = useFilteredSortedCitations(citations, {
+    projectId,
+    scope: "CITATIONS",
+    entryId,
+  });
 
   const abstractText = entry?.keyValuePairs?.abstract ?? "";
   const abstractWordCount = abstractText.trim()

@@ -78,6 +78,19 @@ const commonHandlers = [
   http.get("/api/tags/project", () =>
     HttpResponse.json(tagsFixtures.threeTags),
   ),
+  // Neither References nor Citations panel has a saved filter yet in this story, so this always
+  // returns the same unsaved default (issue #121).
+  http.get("/api/citationfilterstate", () =>
+    HttpResponse.json({
+      relevance: ["High", "Medium", "Low", "None", "Unreviewed"],
+      link: "all",
+      duplicates: "all",
+      search: "",
+      tagIds: [],
+      tagMode: "and",
+      expanded: false,
+    }),
+  ),
 ];
 
 const mutationHandlers = [
@@ -95,6 +108,11 @@ const mutationHandlers = [
     "put",
     "/api/bibtexentries",
     "Used for relevance changes, card open/closed persistence, and the BibTex Edit modal alike.",
+  ),
+  alertingHandler(
+    "post",
+    "/api/citationfilterstate",
+    "Saves the References/Citations filter panel's state.",
   ),
   alertingHandler(
     "patch",
