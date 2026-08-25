@@ -15,7 +15,7 @@ import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
 import edu.ucsb.cs.citelines.config.ProjectSecurity;
 import edu.ucsb.cs.citelines.entity.Project;
-import edu.ucsb.cs.citelines.jobs.BibTexEntryUpgradeJob;
+import edu.ucsb.cs.citelines.jobs.BibTexEntryImproveJob;
 import edu.ucsb.cs.citelines.jobs.BulkCitationUploadFromACMDLViewAllJob;
 import edu.ucsb.cs.citelines.jobs.BulkReferenceUploadFromACMDLJob;
 import edu.ucsb.cs.citelines.jobs.CheckLinksJob;
@@ -24,7 +24,7 @@ import edu.ucsb.cs.citelines.jobs.GetCitationsJob;
 import edu.ucsb.cs.citelines.jobs.GetReferencesJob;
 import edu.ucsb.cs.citelines.repository.ProjectCollaboratorRepository;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
-import edu.ucsb.cs.citelines.services.BibTexEntryUpgradeService;
+import edu.ucsb.cs.citelines.services.BibTexEntryImproveService;
 import edu.ucsb.cs.citelines.services.BulkCitationUploadFromACMDLViewAllService;
 import edu.ucsb.cs.citelines.services.BulkReferenceUploadFromACMDLService;
 import edu.ucsb.cs.citelines.services.CheckLinksService;
@@ -54,7 +54,7 @@ public class JobsControllerTests extends ControllerTestCase {
   @MockitoBean CitationGraphService citationGraphService;
   @MockitoBean CheckLinksService checkLinksService;
   @MockitoBean DuplicateDetectionService duplicateDetectionService;
-  @MockitoBean BibTexEntryUpgradeService bibTexEntryUpgradeService;
+  @MockitoBean BibTexEntryImproveService bibTexEntryImproveService;
   @MockitoBean BulkCitationUploadFromACMDLViewAllService bulkCitationUploadFromACMDLViewAllService;
   @MockitoBean BulkReferenceUploadFromACMDLService bulkReferenceUploadFromACMDLService;
 
@@ -339,9 +339,9 @@ public class JobsControllerTests extends ControllerTestCase {
   }
 
   @Test
-  public void logged_out_users_cannot_launch_upgradeBibTexEntries() throws Exception {
+  public void logged_out_users_cannot_launch_improveBibTexEntries() throws Exception {
     mockMvc
-        .perform(post("/api/jobs/launch/upgradeBibTexEntries?projectId=1"))
+        .perform(post("/api/jobs/launch/improveBibTexEntries?projectId=1&scope=PROJECT"))
         .andExpect(status().is(403));
   }
 
@@ -349,33 +349,97 @@ public class JobsControllerTests extends ControllerTestCase {
       username = "phtcon",
       roles = {"RESEARCHER"})
   @Test
-  public void owner_can_launch_an_upgradeBibTexEntries_job() throws Exception {
+  public void owner_can_launch_a_project_scoped_improveBibTexEntries_job() throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
-    Job launchedJob = Job.builder().id(12L).jobName("BibTexEntryUpgradeJob").build();
-    when(jobService.runAsJob(any(BibTexEntryUpgradeJob.class))).thenReturn(launchedJob);
+    Job launchedJob = Job.builder().id(12L).jobName("BibTexEntryImproveJob").build();
+    when(jobService.runAsJob(any(BibTexEntryImproveJob.class))).thenReturn(launchedJob);
 
     MvcResult response =
         mockMvc
-            .perform(post("/api/jobs/launch/upgradeBibTexEntries?projectId=1").with(csrf()))
+            .perform(
+                post("/api/jobs/launch/improveBibTexEntries?projectId=1&scope=PROJECT")
+                    .with(csrf()))
             .andExpect(status().isOk())
             .andReturn();
 
     assertEquals(
         mapper.writeValueAsString(launchedJob), response.getResponse().getContentAsString());
-    verify(jobService, times(1)).runAsJob(any(BibTexEntryUpgradeJob.class));
+    verify(jobService, times(1)).runAsJob(any(BibTexEntryImproveJob.class));
   }
 
   @WithMockUser(
       username = "phtcon",
       roles = {"RESEARCHER"})
   @Test
-  public void launch_upgradeBibTexEntries_throws_not_found_for_nonexistent_project()
+  public void owner_can_launch_an_entry_scoped_improveBibTexEntries_job() throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    BibTexEntry entry = BibTexEntry.builder().id("id1").projectId(1).citeKey("smith2020").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findByIdAndProjectId("id1", 1)).thenReturn(Optional.of(entry));
+    Job launchedJob = Job.builder().id(12L).jobName("BibTexEntryImproveJob").build();
+    when(jobService.runAsJob(any(BibTexEntryImproveJob.class))).thenReturn(launchedJob);
+
+    MvcResult response =
+        mockMvc
+            .perform(
+                post("/api/jobs/launch/improveBibTexEntries?projectId=1&scope=ENTRY&entryId=id1")
+                    .with(csrf()))
+            .andExpect(status().isOk())
+            .andReturn();
+
+    assertEquals(
+        mapper.writeValueAsString(launchedJob), response.getResponse().getContentAsString());
+    verify(jobService, times(1)).runAsJob(any(BibTexEntryImproveJob.class));
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void launch_improveBibTexEntries_throws_not_found_for_nonexistent_project()
       throws Exception {
     when(projectRepository.findById(1L)).thenReturn(Optional.empty());
 
     mockMvc
-        .perform(post("/api/jobs/launch/upgradeBibTexEntries?projectId=1").with(csrf()))
+        .perform(
+            post("/api/jobs/launch/improveBibTexEntries?projectId=1&scope=PROJECT").with(csrf()))
+        .andExpect(status().isNotFound());
+
+    verify(jobService, times(0)).runAsJob(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void launch_improveBibTexEntries_throws_not_found_for_an_entry_not_in_the_project()
+      throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+    when(bibTexEntryRepository.findByIdAndProjectId("missing", 1)).thenReturn(Optional.empty());
+
+    mockMvc
+        .perform(
+            post("/api/jobs/launch/improveBibTexEntries?projectId=1&scope=ENTRY&entryId=missing")
+                .with(csrf()))
+        .andExpect(status().isNotFound());
+
+    verify(jobService, times(0)).runAsJob(any());
+  }
+
+  @WithMockUser(
+      username = "phtcon",
+      roles = {"RESEARCHER"})
+  @Test
+  public void
+      launch_improveBibTexEntries_throws_not_found_when_entryId_is_missing_for_a_non_project_scope()
+          throws Exception {
+    Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
+    when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
+
+    mockMvc
+        .perform(post("/api/jobs/launch/improveBibTexEntries?projectId=1&scope=ENTRY").with(csrf()))
         .andExpect(status().isNotFound());
 
     verify(jobService, times(0)).runAsJob(any());
@@ -386,14 +450,15 @@ public class JobsControllerTests extends ControllerTestCase {
       roles = {"USER"})
   @Test
   public void
-      a_stranger_cannot_launch_upgradeBibTexEntries_for_a_project_they_dont_own_or_collaborate_on()
+      a_stranger_cannot_launch_improveBibTexEntries_for_a_project_they_dont_own_or_collaborate_on()
           throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
     when(projectCollaboratorRepository.findAllByEmail(any())).thenReturn(List.of());
 
     mockMvc
-        .perform(post("/api/jobs/launch/upgradeBibTexEntries?projectId=1").with(csrf()))
+        .perform(
+            post("/api/jobs/launch/improveBibTexEntries?projectId=1&scope=PROJECT").with(csrf()))
         .andExpect(status().is(403));
 
     verify(jobService, times(0)).runAsJob(any());

@@ -1,17 +1,13 @@
 package edu.ucsb.cs.citelines.controller;
 
 import edu.ucsb.cs.citelines.collections.BibTexEntry;
-import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
-import edu.ucsb.cs.citelines.collections.CitationEdge;
-import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
 import edu.ucsb.cs.citelines.collections.UnresolvedCitation;
 import edu.ucsb.cs.citelines.collections.UnresolvedCitationRepository;
+import edu.ucsb.cs.citelines.services.CitationEdgeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,8 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class CitationEdgesController extends ApiController {
 
-  @Autowired private CitationEdgeRepository citationEdgeRepository;
-  @Autowired private BibTexEntryRepository bibTexEntryRepository;
+  @Autowired private CitationEdgeService citationEdgeService;
   @Autowired private UnresolvedCitationRepository unresolvedCitationRepository;
 
   /**
@@ -46,9 +41,7 @@ public class CitationEdgesController extends ApiController {
   public List<BibTexEntry> references(
       @Parameter(name = "projectId") @RequestParam Long projectId,
       @Parameter(name = "id") @RequestParam String id) {
-    return relatedEntries(
-        citationEdgeRepository.findByProjectIdAndCitingEntryId(projectId.intValue(), id).stream()
-            .map(CitationEdge::getCitedEntryId));
+    return citationEdgeService.referencesOf(projectId.intValue(), id);
   }
 
   /**
@@ -61,9 +54,7 @@ public class CitationEdgesController extends ApiController {
   public List<BibTexEntry> citations(
       @Parameter(name = "projectId") @RequestParam Long projectId,
       @Parameter(name = "id") @RequestParam String id) {
-    return relatedEntries(
-        citationEdgeRepository.findByProjectIdAndCitedEntryId(projectId.intValue(), id).stream()
-            .map(CitationEdge::getCitingEntryId));
+    return citationEdgeService.citationsOf(projectId.intValue(), id);
   }
 
   @Operation(
@@ -79,12 +70,5 @@ public class CitationEdgesController extends ApiController {
         ? unresolvedCitationRepository.findByProjectId(projectId.intValue())
         : unresolvedCitationRepository.findByProjectIdAndSourceEntryId(
             projectId.intValue(), sourceEntryId);
-  }
-
-  // A Mongo _id is unique by construction, so (unlike a lookup by citeKey) this can never match
-  // more than one entry — no coalescing needed, just a plain lookup that silently skips an edge
-  // whose related entry no longer exists (e.g. deleted since the edge was recorded).
-  private List<BibTexEntry> relatedEntries(Stream<String> entryIds) {
-    return entryIds.map(bibTexEntryRepository::findById).flatMap(Optional::stream).toList();
   }
 }

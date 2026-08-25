@@ -37,24 +37,24 @@ export default function JobsTabComponent({
     checkLinksMutation.mutate({});
   };
 
-  const upgradeBibTexEntriesMutation = useBackendMutation(
+  const improveBibTexEntriesMutation = useBackendMutation(
     () => ({
-      url: "/api/jobs/launch/upgradeBibTexEntries",
+      url: "/api/jobs/launch/improveBibTexEntries",
       method: "POST",
-      params: { projectId },
+      params: { projectId, scope: "PROJECT" },
     }),
     {
       onSuccess: () => {
         toast(
-          "Upgrade BibTeX Entries job launched — check below for progress.",
+          "Improve BibTeX Entries job launched — check below for progress.",
         );
         refetch();
       },
     },
   );
 
-  const submitUpgradeBibTexEntries = async () => {
-    upgradeBibTexEntriesMutation.mutate({});
+  const submitImproveBibTexEntries = async () => {
+    improveBibTexEntriesMutation.mutate({});
   };
 
   const detectDuplicatesMutation = useBackendMutation(
@@ -92,13 +92,13 @@ export default function JobsTabComponent({
               />
             </Accordion.Body>
           </Accordion.Item>
-          <Accordion.Item eventKey="upgradeBibTexEntries">
-            <Accordion.Header>Upgrade BibTeX Entries</Accordion.Header>
+          <Accordion.Item eventKey="improveBibTexEntries">
+            <Accordion.Header>Improve BibTeX Entries</Accordion.Header>
             <Accordion.Body>
               <SingleButtonJobForm
-                callback={submitUpgradeBibTexEntries}
+                callback={submitImproveBibTexEntries}
                 text={"Start"}
-                testid={`${testIdPrefix}-upgradeBibTexEntriesJob`}
+                testid={`${testIdPrefix}-improveBibTexEntriesJob`}
               />
             </Accordion.Body>
           </Accordion.Item>

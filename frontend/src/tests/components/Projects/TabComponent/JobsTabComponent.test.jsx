@@ -101,13 +101,13 @@ describe("JobsTabComponent tests", () => {
     );
   });
 
-  test("clicking the Upgrade BibTeX Entries Start button launches the job and refetches the job list", async () => {
+  test("clicking the Improve BibTeX Entries Start button launches the job and refetches the job list", async () => {
     axiosMock
       .onGet("/api/jobs/project?projectId=1")
       .reply(200, jobsFixtures.oneJob);
     axiosMock
-      .onPost("/api/jobs/launch/upgradeBibTexEntries")
-      .reply(200, { id: 99, jobName: "BibTexEntryUpgradeJob" });
+      .onPost("/api/jobs/launch/improveBibTexEntries")
+      .reply(200, { id: 99, jobName: "BibTexEntryImproveJob" });
 
     renderTab();
 
@@ -118,13 +118,13 @@ describe("JobsTabComponent tests", () => {
     });
 
     fireEvent.click(
-      screen.getByTestId("JobsTabComponent-upgradeBibTexEntriesJob-job-submit"),
+      screen.getByTestId("JobsTabComponent-improveBibTexEntriesJob-job-submit"),
     );
 
     await waitFor(() =>
       expect(
         axiosMock.history.post.filter(
-          (r) => r.url === "/api/jobs/launch/upgradeBibTexEntries",
+          (r) => r.url === "/api/jobs/launch/improveBibTexEntries",
         ).length,
       ).toBe(1),
     );

@@ -114,6 +114,11 @@ const mutationHandlers = [
   ),
   alertingHandler(
     "post",
+    "/api/jobs/launch/improveBibTexEntries",
+    "Launches the Improve BibTeX Entries job.",
+  ),
+  alertingHandler(
+    "post",
     "/api/bibtexentries/post",
     "Adds a Reference or Citation (or, in edit/create flows elsewhere, a new entry).",
   ),

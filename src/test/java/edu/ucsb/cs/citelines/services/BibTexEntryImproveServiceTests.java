@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
+import edu.ucsb.cs.citelines.services.BibTexEntryImproveService.ImproveScope;
 import edu.ucsb.cs156.jobs.entities.Job;
 import edu.ucsb.cs156.jobs.services.JobContext;
 import java.util.HashMap;
@@ -21,11 +22,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-public class BibTexEntryUpgradeServiceTests {
+public class BibTexEntryImproveServiceTests {
 
-  private BibTexEntryUpgradeService service;
+  private BibTexEntryImproveService service;
   private BibTexEntryRepository bibTexEntryRepository;
   private CitationGraphService citationGraphService;
+  private CitationEdgeService citationEdgeService;
   private Job job;
   private JobContext ctx;
 
@@ -33,14 +35,16 @@ public class BibTexEntryUpgradeServiceTests {
   void setup() {
     bibTexEntryRepository = mock(BibTexEntryRepository.class);
     citationGraphService = mock(CitationGraphService.class);
+    citationEdgeService = mock(CitationEdgeService.class);
     BibTexConverterService converterService = new BibTexConverterService();
     converterService.doiService = new DOIService();
     service =
-        new BibTexEntryUpgradeService(
+        new BibTexEntryImproveService(
             bibTexEntryRepository,
             citationGraphService,
             new BibTexSynthesisService(new LaTeXNormalizationService()),
-            converterService);
+            converterService,
+            citationEdgeService);
     job = Job.builder().build();
     ctx = new JobContext(null, job);
   }
@@ -81,40 +85,40 @@ public class BibTexEntryUpgradeServiceTests {
         "3");
   }
 
-  // ---- upgradeEntry() outcomes, asserted directly ----
+  // ---- improveEntry() outcomes, asserted directly ----
 
   @Test
-  void upgradeEntry_returns_skipped_no_doi_when_keyValuePairs_is_null() {
+  void improveEntry_returns_skipped_no_doi_when_keyValuePairs_is_null() {
     BibTexEntry e = entry("smith2020", null);
 
-    assertEquals(BibTexEntryUpgradeService.Outcome.SKIPPED_NO_DOI, service.upgradeEntry(e, 1, ctx));
+    assertEquals(BibTexEntryImproveService.Outcome.SKIPPED_NO_DOI, service.improveEntry(e, 1, ctx));
   }
 
   @Test
-  void upgradeEntry_returns_skipped_no_doi_when_there_is_no_doi_key() {
+  void improveEntry_returns_skipped_no_doi_when_there_is_no_doi_key() {
     BibTexEntry e = entry("smith2020", new HashMap<>(Map.of("title", "T")));
 
-    assertEquals(BibTexEntryUpgradeService.Outcome.SKIPPED_NO_DOI, service.upgradeEntry(e, 1, ctx));
+    assertEquals(BibTexEntryImproveService.Outcome.SKIPPED_NO_DOI, service.improveEntry(e, 1, ctx));
   }
 
   @Test
-  void upgradeEntry_returns_skipped_no_doi_when_the_doi_is_blank() {
+  void improveEntry_returns_skipped_no_doi_when_the_doi_is_blank() {
     BibTexEntry e = entry("smith2020", new HashMap<>(Map.of("doi", "   ")));
 
-    assertEquals(BibTexEntryUpgradeService.Outcome.SKIPPED_NO_DOI, service.upgradeEntry(e, 1, ctx));
+    assertEquals(BibTexEntryImproveService.Outcome.SKIPPED_NO_DOI, service.improveEntry(e, 1, ctx));
   }
 
   @Test
-  void upgradeEntry_returns_unresolved_when_no_resolver_has_a_record() {
+  void improveEntry_returns_unresolved_when_no_resolver_has_a_record() {
     BibTexEntry e = entry("smith2020", new HashMap<>(Map.of("doi", "10.1/x")));
     when(citationGraphService.tryResolveByDoi("10.1/x")).thenReturn(Optional.empty());
 
-    assertEquals(BibTexEntryUpgradeService.Outcome.UNRESOLVED, service.upgradeEntry(e, 1, ctx));
+    assertEquals(BibTexEntryImproveService.Outcome.UNRESOLVED, service.improveEntry(e, 1, ctx));
     assertTrue(job.getLog().contains("Could not re-resolve smith2020 (DOI 10.1/x)"));
   }
 
   @Test
-  void upgradeEntry_returns_unresolved_when_the_resolved_work_has_a_blank_title() {
+  void improveEntry_returns_unresolved_when_the_resolved_work_has_a_blank_title() {
     BibTexEntry e = entry("smith2020", new HashMap<>(Map.of("doi", "10.1/x")));
     CitationMetadataResolver resolver = mock(CitationMetadataResolver.class);
     ResolvedWork blankTitleWork =
@@ -123,12 +127,12 @@ public class BibTexEntryUpgradeServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1/x"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, blankTitleWork)));
 
-    assertEquals(BibTexEntryUpgradeService.Outcome.UNRESOLVED, service.upgradeEntry(e, 1, ctx));
+    assertEquals(BibTexEntryImproveService.Outcome.UNRESOLVED, service.improveEntry(e, 1, ctx));
     assertTrue(job.getLog().contains("resolved, but no title is available"));
   }
 
   @Test
-  void upgradeEntry_returns_unresolved_when_the_resolved_work_has_a_null_title() {
+  void improveEntry_returns_unresolved_when_the_resolved_work_has_a_null_title() {
     BibTexEntry e = entry("smith2020", new HashMap<>(Map.of("doi", "10.1/x")));
     CitationMetadataResolver resolver = mock(CitationMetadataResolver.class);
     ResolvedWork nullTitleWork =
@@ -137,12 +141,12 @@ public class BibTexEntryUpgradeServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1/x"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, nullTitleWork)));
 
-    assertEquals(BibTexEntryUpgradeService.Outcome.UNRESOLVED, service.upgradeEntry(e, 1, ctx));
+    assertEquals(BibTexEntryImproveService.Outcome.UNRESOLVED, service.improveEntry(e, 1, ctx));
     assertTrue(job.getLog().contains("resolved, but no title is available"));
   }
 
   @Test
-  void upgradeEntry_returns_already_complete_when_nothing_new_is_available() {
+  void improveEntry_returns_already_complete_when_nothing_new_is_available() {
     Map<String, String> existing = new HashMap<>();
     existing.put("doi", "10.1/x");
     existing.put("title", "A Full Title");
@@ -170,12 +174,12 @@ public class BibTexEntryUpgradeServiceTests {
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, richWork())));
 
     assertEquals(
-        BibTexEntryUpgradeService.Outcome.ALREADY_COMPLETE, service.upgradeEntry(e, 1, ctx));
+        BibTexEntryImproveService.Outcome.ALREADY_COMPLETE, service.improveEntry(e, 1, ctx));
     verify(bibTexEntryRepository, never()).save(any());
   }
 
   @Test
-  void upgradeEntry_fills_in_missing_fields_and_saves() {
+  void improveEntry_fills_in_missing_fields_and_saves() {
     Map<String, String> existing = new HashMap<>();
     existing.put("doi", "10.1/x");
     existing.put("title", "A Full Title");
@@ -184,9 +188,9 @@ public class BibTexEntryUpgradeServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1/x"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, richWork())));
 
-    BibTexEntryUpgradeService.Outcome outcome = service.upgradeEntry(e, 1, ctx);
+    BibTexEntryImproveService.Outcome outcome = service.improveEntry(e, 1, ctx);
 
-    assertEquals(BibTexEntryUpgradeService.Outcome.IMPROVED, outcome);
+    assertEquals(BibTexEntryImproveService.Outcome.IMPROVED, outcome);
     ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
     verify(bibTexEntryRepository).save(savedEntry.capture());
     Map<String, String> saved = savedEntry.getValue().getKeyValuePairs();
@@ -200,7 +204,7 @@ public class BibTexEntryUpgradeServiceTests {
   }
 
   @Test
-  void upgradeEntry_treats_a_blank_existing_value_the_same_as_a_missing_one() {
+  void improveEntry_treats_a_blank_existing_value_the_same_as_a_missing_one() {
     Map<String, String> existing = new HashMap<>();
     existing.put("doi", "10.1/x");
     existing.put("title", "A Full Title");
@@ -210,14 +214,14 @@ public class BibTexEntryUpgradeServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1/x"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, richWork())));
 
-    assertEquals(BibTexEntryUpgradeService.Outcome.IMPROVED, service.upgradeEntry(e, 1, ctx));
+    assertEquals(BibTexEntryImproveService.Outcome.IMPROVED, service.improveEntry(e, 1, ctx));
     ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
     verify(bibTexEntryRepository).save(savedEntry.capture());
     assertEquals("An abstract.", savedEntry.getValue().getKeyValuePairs().get("abstract"));
   }
 
   @Test
-  void upgradeEntry_never_overwrites_an_existing_non_blank_value() {
+  void improveEntry_never_overwrites_an_existing_non_blank_value() {
     Map<String, String> existing = new HashMap<>();
     existing.put("doi", "10.1/x");
     existing.put("title", "My Own Hand-Edited Title");
@@ -226,7 +230,7 @@ public class BibTexEntryUpgradeServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1/x"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, richWork())));
 
-    service.upgradeEntry(e, 1, ctx);
+    service.improveEntry(e, 1, ctx);
 
     ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
     verify(bibTexEntryRepository).save(savedEntry.capture());
@@ -234,7 +238,7 @@ public class BibTexEntryUpgradeServiceTests {
   }
 
   @Test
-  void upgradeEntry_never_changes_citeKey() {
+  void improveEntry_never_changes_citeKey() {
     Map<String, String> existing = new HashMap<>();
     existing.put("doi", "10.1/x");
     existing.put("title", "A Full Title");
@@ -243,7 +247,7 @@ public class BibTexEntryUpgradeServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1/x"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, richWork())));
 
-    service.upgradeEntry(e, 1, ctx);
+    service.improveEntry(e, 1, ctx);
 
     ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
     verify(bibTexEntryRepository).save(savedEntry.capture());
@@ -251,7 +255,7 @@ public class BibTexEntryUpgradeServiceTests {
   }
 
   @Test
-  void upgradeEntry_upgrades_entryType_from_misc_to_a_more_specific_resolved_type() {
+  void improveEntry_upgrades_entryType_from_misc_to_a_more_specific_resolved_type() {
     Map<String, String> existing = new HashMap<>();
     existing.put("doi", "10.1/x");
     existing.put("title", "A Full Title");
@@ -261,9 +265,9 @@ public class BibTexEntryUpgradeServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1/x"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, richWork())));
 
-    BibTexEntryUpgradeService.Outcome outcome = service.upgradeEntry(e, 1, ctx);
+    BibTexEntryImproveService.Outcome outcome = service.improveEntry(e, 1, ctx);
 
-    assertEquals(BibTexEntryUpgradeService.Outcome.IMPROVED, outcome);
+    assertEquals(BibTexEntryImproveService.Outcome.IMPROVED, outcome);
     ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
     verify(bibTexEntryRepository).save(savedEntry.capture());
     assertEquals("inproceedings", savedEntry.getValue().getEntryType());
@@ -271,7 +275,7 @@ public class BibTexEntryUpgradeServiceTests {
   }
 
   @Test
-  void upgradeEntry_counts_as_improved_when_only_the_entryType_changes() {
+  void improveEntry_counts_as_improved_when_only_the_entryType_changes() {
     Map<String, String> existing = new HashMap<>();
     existing.put("doi", "10.1/x");
     existing.put("title", "A Full Title");
@@ -290,16 +294,16 @@ public class BibTexEntryUpgradeServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1/x"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, richWork())));
 
-    BibTexEntryUpgradeService.Outcome outcome = service.upgradeEntry(e, 1, ctx);
+    BibTexEntryImproveService.Outcome outcome = service.improveEntry(e, 1, ctx);
 
-    assertEquals(BibTexEntryUpgradeService.Outcome.IMPROVED, outcome);
+    assertEquals(BibTexEntryImproveService.Outcome.IMPROVED, outcome);
     ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
     verify(bibTexEntryRepository).save(savedEntry.capture());
     assertEquals("inproceedings", savedEntry.getValue().getEntryType());
   }
 
   @Test
-  void upgradeEntry_never_overwrites_an_entryType_that_is_not_misc() {
+  void improveEntry_never_overwrites_an_entryType_that_is_not_misc() {
     Map<String, String> existing = new HashMap<>();
     existing.put("doi", "10.1/x");
     existing.put("title", "A Full Title");
@@ -315,7 +319,7 @@ public class BibTexEntryUpgradeServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1/x"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, richWork())));
 
-    service.upgradeEntry(e, 1, ctx);
+    service.improveEntry(e, 1, ctx);
 
     ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
     verify(bibTexEntryRepository).save(savedEntry.capture());
@@ -323,7 +327,7 @@ public class BibTexEntryUpgradeServiceTests {
   }
 
   @Test
-  void upgradeEntry_does_not_treat_misc_resolving_to_misc_as_an_entryType_upgrade() {
+  void improveEntry_does_not_treat_misc_resolving_to_misc_as_an_entryType_upgrade() {
     Map<String, String> existing = new HashMap<>();
     existing.put("doi", "10.1/x");
     existing.put("title", "A Full Title");
@@ -334,9 +338,9 @@ public class BibTexEntryUpgradeServiceTests {
         .thenReturn(
             Optional.of(new CitationGraphService.ResolverResult(resolver, workOfType("dataset"))));
 
-    BibTexEntryUpgradeService.Outcome outcome = service.upgradeEntry(e, 1, ctx);
+    BibTexEntryImproveService.Outcome outcome = service.improveEntry(e, 1, ctx);
 
-    assertEquals(BibTexEntryUpgradeService.Outcome.IMPROVED, outcome);
+    assertEquals(BibTexEntryImproveService.Outcome.IMPROVED, outcome);
     ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
     verify(bibTexEntryRepository).save(savedEntry.capture());
     assertEquals("misc", savedEntry.getValue().getEntryType());
@@ -344,7 +348,7 @@ public class BibTexEntryUpgradeServiceTests {
   }
 
   @Test
-  void upgradeEntry_never_touches_CITELINES_fields() {
+  void improveEntry_never_touches_CITELINES_fields() {
     Map<String, String> existing = new HashMap<>();
     existing.put("doi", "10.1/x");
     existing.put("title", "A Full Title");
@@ -354,17 +358,17 @@ public class BibTexEntryUpgradeServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1/x"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, richWork())));
 
-    service.upgradeEntry(e, 1, ctx);
+    service.improveEntry(e, 1, ctx);
 
     ArgumentCaptor<BibTexEntry> savedEntry = ArgumentCaptor.forClass(BibTexEntry.class);
     verify(bibTexEntryRepository).save(savedEntry.capture());
     assertEquals("High", savedEntry.getValue().getKeyValuePairs().get("CITELINES_relevance"));
   }
 
-  // ---- upgradeEntries() summary ----
+  // ---- improveEntries() summary, PROJECT scope ----
 
   @Test
-  void upgradeEntries_logs_a_correct_summary_with_mixed_outcomes() {
+  void improveEntries_logs_a_correct_summary_with_mixed_outcomes() {
     Map<String, String> noDoi = new HashMap<>(Map.of("title", "No DOI"));
     Map<String, String> noDoi2 = new HashMap<>(Map.of("title", "Also No DOI"));
     Map<String, String> unresolvable = new HashMap<>(Map.of("doi", "10.1/unresolvable"));
@@ -410,9 +414,9 @@ public class BibTexEntryUpgradeServiceTests {
     when(citationGraphService.tryResolveByDoi("10.1/improvable"))
         .thenReturn(Optional.of(new CitationGraphService.ResolverResult(resolver, richWork())));
 
-    service.upgradeEntries(1, ctx);
+    service.improveEntries(1, ImproveScope.PROJECT, null, ctx);
 
-    assertTrue(job.getLog().contains("Checking 5 entries in project 1 for upgradable metadata."));
+    assertTrue(job.getLog().contains("Checking 5 entries in project 1 for improvable metadata."));
     assertTrue(
         job.getLog()
             .contains(
@@ -422,25 +426,66 @@ public class BibTexEntryUpgradeServiceTests {
   }
 
   @Test
-  void upgradeEntries_logs_a_singular_entry_count() {
+  void improveEntries_logs_a_singular_entry_count() {
     when(bibTexEntryRepository.findByProjectId(1))
         .thenReturn(List.of(entry("nodoi2020", new HashMap<>())));
 
-    service.upgradeEntries(1, ctx);
+    service.improveEntries(1, ImproveScope.PROJECT, null, ctx);
 
     assertTrue(job.getLog().contains("Done: checked 1 entry, 0 improved"));
   }
 
   @Test
-  void upgradeEntries_with_no_entries_logs_a_zero_summary() {
+  void improveEntries_with_no_entries_logs_a_zero_summary() {
     when(bibTexEntryRepository.findByProjectId(1)).thenReturn(List.of());
 
-    service.upgradeEntries(1, ctx);
+    service.improveEntries(1, ImproveScope.PROJECT, null, ctx);
 
     assertTrue(
         job.getLog()
             .contains(
                 "Done: checked 0 entries, 0 improved, 0 already complete, 0 skipped (no DOI), 0"
                     + " unresolved."));
+  }
+
+  // ---- improveEntries() scope selection ----
+
+  @Test
+  void improveEntries_with_entry_scope_checks_only_that_one_entry() {
+    BibTexEntry target = entry("smith2020", new HashMap<>());
+    when(bibTexEntryRepository.findById("id-smith2020")).thenReturn(Optional.of(target));
+
+    service.improveEntries(1, ImproveScope.ENTRY, "id-smith2020", ctx);
+
+    assertTrue(job.getLog().contains("Checking 1 entries in project 1 for improvable metadata."));
+  }
+
+  @Test
+  void improveEntries_with_entry_scope_and_a_missing_entry_checks_nothing() {
+    when(bibTexEntryRepository.findById("id-missing")).thenReturn(Optional.empty());
+
+    service.improveEntries(1, ImproveScope.ENTRY, "id-missing", ctx);
+
+    assertTrue(job.getLog().contains("Checking 0 entries in project 1 for improvable metadata."));
+  }
+
+  @Test
+  void improveEntries_with_references_scope_delegates_to_citationEdgeService() {
+    BibTexEntry reference = entry("jones2019", new HashMap<>());
+    when(citationEdgeService.referencesOf(1, "id-smith2020")).thenReturn(List.of(reference));
+
+    service.improveEntries(1, ImproveScope.REFERENCES, "id-smith2020", ctx);
+
+    assertTrue(job.getLog().contains("Checking 1 entries in project 1 for improvable metadata."));
+  }
+
+  @Test
+  void improveEntries_with_citations_scope_delegates_to_citationEdgeService() {
+    BibTexEntry citation = entry("jones2019", new HashMap<>());
+    when(citationEdgeService.citationsOf(1, "id-smith2020")).thenReturn(List.of(citation));
+
+    service.improveEntries(1, ImproveScope.CITATIONS, "id-smith2020", ctx);
+
+    assertTrue(job.getLog().contains("Checking 1 entries in project 1 for improvable metadata."));
   }
 }
