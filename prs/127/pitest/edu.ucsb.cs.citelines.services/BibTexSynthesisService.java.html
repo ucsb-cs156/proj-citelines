@@ -1,0 +1,3149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>BibTexSynthesisService.java</h1>
+
+<table class="src">
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package edu.ucsb.cs.citelines.services;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.List;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.Map;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.Set;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.stream.Collectors;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.stereotype.Service;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>/**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Builds a raw BibTeX string from a {@link ResolvedWork}, so it can be fed through the existing,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * already-tested {@link BibTexConverterService#parseToEntries} rather than hand-building a {@link</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * edu.ucsb.cs.citelines.collections.BibTexEntry} and duplicating its validation/normalization.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * &#60;p&#62;Field values are passed through {@link LaTeXNormalizationService} (some upstream bibliographic</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * data &#8212; especially older ACM/IEEE deposits &#8212; carries literal LaTeX escapes like {@code</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * Schr{\&#34;o}der} even in an otherwise-JSON API response) and any leftover stray {@code {}/{}}</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> * characters are stripped. See {@code docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md}.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''> */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_19'/>
+19
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_19'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>@Service</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>public class BibTexSynthesisService {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_22'/>
+22
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_22'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  private static final Map&#60;String, String&#62; ENTRY_TYPE_MAP =</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_23'/>
+23
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_23'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      Map.of(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_24'/>
+24
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_24'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;article&#34;, &#34;article&#34;,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_25'/>
+25
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_25'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;proceedings-article&#34;, &#34;inproceedings&#34;,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_26'/>
+26
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_26'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;book-chapter&#34;, &#34;incollection&#34;,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_27'/>
+27
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_27'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;book&#34;, &#34;book&#34;,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_28'/>
+28
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_28'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;dissertation&#34;, &#34;phdthesis&#34;,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_29'/>
+29
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_29'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>          &#34;report&#34;, &#34;techreport&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_30'/>
+30
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_30'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_31'/>
+31
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_31'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // Which of the newly-synthesizable fields make sense for which entry type &#8212; e.g. an ISBN</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_32'/>
+32
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_32'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // belongs to the book/proceedings volume an inproceedings paper appeared in, not to the paper</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_33'/>
+33
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_33'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // itself, so it&#39;s never emitted for a plain article. An entry type not covered by one of these</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_34'/>
+34
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_34'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // sets (including the &#34;misc&#34; fallback for anything ENTRY_TYPE_MAP doesn&#39;t recognize) simply</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_35'/>
+35
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_35'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // never gets that field.</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_36'/>
+36
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_36'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  private static final Set&#60;String&#62; HAS_PAGES = Set.of(&#34;article&#34;, &#34;inproceedings&#34;, &#34;incollection&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_37'/>
+37
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_37'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  private static final Set&#60;String&#62; HAS_PUBLISHER_OR_ADDRESS =</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_38'/>
+38
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_38'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      Set.of(&#34;inproceedings&#34;, &#34;book&#34;, &#34;incollection&#34;, &#34;techreport&#34;, &#34;phdthesis&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_39'/>
+39
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_39'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  private static final Set&#60;String&#62; HAS_ISBN_OR_SERIES =</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_40'/>
+40
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_40'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      Set.of(&#34;inproceedings&#34;, &#34;book&#34;, &#34;incollection&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_41'/>
+41
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_41'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  private static final Set&#60;String&#62; HAS_VOLUME = Set.of(&#34;article&#34;, &#34;book&#34;, &#34;incollection&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_42'/>
+42
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_42'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  private static final Set&#60;String&#62; HAS_NUMBER = Set.of(&#34;article&#34;, &#34;techreport&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_43'/>
+43
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_43'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_44'/>
+44
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_44'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private final LaTeXNormalizationService laTeXNormalizationService;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_45'/>
+45
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_45'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_46'/>
+46
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_46'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  public BibTexSynthesisService(LaTeXNormalizationService laTeXNormalizationService) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_47'/>
+47
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_47'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    this.laTeXNormalizationService = laTeXNormalizationService;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_48'/>
+48
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_48'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_49'/>
+49
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_49'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_50'/>
+50
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_50'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_51'/>
+51
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_51'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * Builds a raw BibTeX string for the given work, using {@code citeKey} as its citation key.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_52'/>
+52
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_52'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_53'/>
+53
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_53'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @throws IllegalArgumentException if the work has no title</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_54'/>
+54
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_54'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_55'/>
+55
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_55'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public String synthesizeRawBibTex(ResolvedWork work, String citeKey) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_56'/>
+56
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_56'>2</a>
+<span>
+1. synthesizeRawBibTex : negated conditional &rarr; KILLED<br/>
+2. synthesizeRawBibTex : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (work.title() == null || work.title().isBlank()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_57'/>
+57
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_57'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      throw new IllegalArgumentException(&#34;Cannot synthesize a BibTeX entry without a title.&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_58'/>
+58
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_58'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_59'/>
+59
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_59'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_60'/>
+60
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_60'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    String entryType = ENTRY_TYPE_MAP.getOrDefault(work.type(), &#34;misc&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_61'/>
+61
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_61'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_62'/>
+62
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_62'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    StringBuilder bibtex = new StringBuilder();</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_63'/>
+63
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_63'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    bibtex.append(&#34;@&#34;).append(entryType).append(&#34;{&#34;).append(citeKey).append(&#34;,\n&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_64'/>
+64
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_64'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    bibtex.append(&#34;  title = {&#34;).append(sanitize(work.title())).append(&#34;},\n&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_65'/>
+65
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_65'>2</a>
+<span>
+1. synthesizeRawBibTex : negated conditional &rarr; KILLED<br/>
+2. synthesizeRawBibTex : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (work.authorNames() != null &#38;&#38; !work.authorNames().isEmpty()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_66'/>
+66
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_66'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      bibtex.append(&#34;  author = {&#34;).append(formatAuthors(work.authorNames())).append(&#34;},\n&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_67'/>
+67
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_67'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_68'/>
+68
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_68'>1</a>
+<span>
+1. synthesizeRawBibTex : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (work.year() != null) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_69'/>
+69
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_69'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      bibtex.append(&#34;  year = {&#34;).append(work.year()).append(&#34;},\n&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_70'/>
+70
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_70'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_71'/>
+71
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_71'>2</a>
+<span>
+1. synthesizeRawBibTex : negated conditional &rarr; KILLED<br/>
+2. synthesizeRawBibTex : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (work.venue() != null &#38;&#38; !work.venue().isBlank()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_72'/>
+72
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_72'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      bibtex</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_73'/>
+73
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_73'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>          .append(&#34;  &#34;)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_74'/>
+74
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_74'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>          .append(venueFieldName(entryType))</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_75'/>
+75
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_75'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>          .append(&#34; = {&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_76'/>
+76
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_76'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>          .append(sanitize(work.venue()))</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_77'/>
+77
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_77'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>          .append(&#34;},\n&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_78'/>
+78
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_78'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_79'/>
+79
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_79'>2</a>
+<span>
+1. synthesizeRawBibTex : negated conditional &rarr; KILLED<br/>
+2. synthesizeRawBibTex : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (work.doi() != null &#38;&#38; !work.doi().isBlank()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_80'/>
+80
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_80'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      bibtex.append(&#34;  doi = {&#34;).append(work.doi()).append(&#34;},\n&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_81'/>
+81
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_81'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_82'/>
+82
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_82'>1</a>
+<span>
+1. synthesizeRawBibTex : removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    appendField(bibtex, &#34;abstract&#34;, work.abstractText(), true);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_83'/>
+83
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_83'>1</a>
+<span>
+1. synthesizeRawBibTex : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (HAS_PUBLISHER_OR_ADDRESS.contains(entryType)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_84'/>
+84
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_84'>1</a>
+<span>
+1. synthesizeRawBibTex : removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      appendField(bibtex, &#34;publisher&#34;, work.publisher(), true);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_85'/>
+85
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_85'>1</a>
+<span>
+1. synthesizeRawBibTex : removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      appendField(bibtex, &#34;address&#34;, work.address(), true);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_86'/>
+86
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_86'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_87'/>
+87
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_87'>1</a>
+<span>
+1. synthesizeRawBibTex : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (HAS_PAGES.contains(entryType)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_88'/>
+88
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_88'>1</a>
+<span>
+1. synthesizeRawBibTex : removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      appendField(bibtex, &#34;pages&#34;, work.pages(), false);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_89'/>
+89
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_89'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_90'/>
+90
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_90'>1</a>
+<span>
+1. synthesizeRawBibTex : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (HAS_ISBN_OR_SERIES.contains(entryType)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_91'/>
+91
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_91'>1</a>
+<span>
+1. synthesizeRawBibTex : removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      appendField(bibtex, &#34;isbn&#34;, work.isbn(), false);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_92'/>
+92
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_92'>1</a>
+<span>
+1. synthesizeRawBibTex : removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      appendField(bibtex, &#34;series&#34;, work.series(), true);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_93'/>
+93
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_93'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_94'/>
+94
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_94'>1</a>
+<span>
+1. synthesizeRawBibTex : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (HAS_VOLUME.contains(entryType)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_95'/>
+95
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_95'>1</a>
+<span>
+1. synthesizeRawBibTex : removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      appendField(bibtex, &#34;volume&#34;, work.volume(), false);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_96'/>
+96
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_96'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_97'/>
+97
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_97'>1</a>
+<span>
+1. synthesizeRawBibTex : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (HAS_NUMBER.contains(entryType)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_98'/>
+98
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_98'>1</a>
+<span>
+1. synthesizeRawBibTex : removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      appendField(bibtex, &#34;number&#34;, work.number(), false);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_99'/>
+99
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_99'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_100'/>
+100
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_100'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    bibtex.append(&#34;}\n&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_101'/>
+101
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_101'>1</a>
+<span>
+1. synthesizeRawBibTex : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::synthesizeRawBibTex &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return bibtex.toString();</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_102'/>
+102
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_102'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_103'/>
+103
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_103'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_104'/>
+104
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_104'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // Free-text fields (abstract/publisher/address/series) are passed through sanitize() the same</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_105'/>
+105
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_105'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // as title/venue/author, since upstream data can carry the same LaTeX-escape/stray-brace issues</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_106'/>
+106
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_106'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // those do. Fields that are closer to identifiers than prose (pages/isbn/volume/number) are</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_107'/>
+107
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_107'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // written verbatim &#8212; sanitize()&#39;s brace-stripping is unnecessary for them and LaTeX-escape</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_108'/>
+108
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_108'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // normalization has no meaningful effect on e.g. a page range or an ISBN.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_109'/>
+109
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_109'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private void appendField(StringBuilder bibtex, String name, String value, boolean isFreeText) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_110'/>
+110
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_110'>2</a>
+<span>
+1. appendField : negated conditional &rarr; KILLED<br/>
+2. appendField : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (value == null || value.isBlank()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_111'/>
+111
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_111'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      return;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_112'/>
+112
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_112'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_113'/>
+113
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_113'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    bibtex</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_114'/>
+114
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_114'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        .append(&#34;  &#34;)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_115'/>
+115
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_115'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        .append(name)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_116'/>
+116
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_116'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        .append(&#34; = {&#34;)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_117'/>
+117
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_117'>1</a>
+<span>
+1. appendField : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        .append(isFreeText ? sanitize(value) : value)</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_118'/>
+118
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_118'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        .append(&#34;},\n&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_119'/>
+119
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_119'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_120'/>
+120
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_120'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_121'/>
+121
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_121'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_122'/>
+122
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_122'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * Generates a citeKey ({@code lastname+year}, e.g. {@code &#34;harris2020&#34;}) for the given work,</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_123'/>
+123
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_123'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * disambiguated against {@code existingCiteKeys} by appending a letter (or, in the unlikely event</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_124'/>
+124
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_124'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * all 26 are taken, a number) suffix.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_125'/>
+125
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_125'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_126'/>
+126
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_126'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public String generateUniqueCiteKey(ResolvedWork work, Set&#60;String&#62; existingCiteKeys) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_127'/>
+127
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_127'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    String base = citeKeyBase(work);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_128'/>
+128
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_128'>1</a>
+<span>
+1. generateUniqueCiteKey : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (!existingCiteKeys.contains(base)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_129'/>
+129
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_129'>1</a>
+<span>
+1. generateUniqueCiteKey : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::generateUniqueCiteKey &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      return base;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_130'/>
+130
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_130'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_131'/>
+131
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_131'>3</a>
+<span>
+1. generateUniqueCiteKey : changed conditional boundary &rarr; KILLED<br/>
+2. generateUniqueCiteKey : Replaced integer addition with subtraction &rarr; KILLED<br/>
+3. generateUniqueCiteKey : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    for (char suffix = &#39;a&#39;; suffix &#60;= &#39;z&#39;; suffix++) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_132'/>
+132
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_132'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      String candidate = base + suffix;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_133'/>
+133
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_133'>1</a>
+<span>
+1. generateUniqueCiteKey : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      if (!existingCiteKeys.contains(candidate)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_134'/>
+134
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_134'>1</a>
+<span>
+1. generateUniqueCiteKey : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::generateUniqueCiteKey &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>        return candidate;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_135'/>
+135
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_135'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_136'/>
+136
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_136'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_137'/>
+137
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_137'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    int counter = 2;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_138'/>
+138
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_138'>1</a>
+<span>
+1. generateUniqueCiteKey : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    while (existingCiteKeys.contains(base + counter)) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_139'/>
+139
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_139'>1</a>
+<span>
+1. generateUniqueCiteKey : Changed increment from 1 to -1 &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      counter++;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_140'/>
+140
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_140'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_141'/>
+141
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_141'>1</a>
+<span>
+1. generateUniqueCiteKey : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::generateUniqueCiteKey &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return base + counter;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_142'/>
+142
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_142'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_143'/>
+143
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_143'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_144'/>
+144
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_144'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private String citeKeyBase(ResolvedWork work) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_145'/>
+145
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_145'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    String lastName = &#34;entry&#34;;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_146'/>
+146
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_146'>2</a>
+<span>
+1. citeKeyBase : negated conditional &rarr; KILLED<br/>
+2. citeKeyBase : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (work.authorNames() != null &#38;&#38; !work.authorNames().isEmpty()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_147'/>
+147
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_147'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      String[] parts = sanitize(work.authorNames().get(0)).trim().split(&#34;\\s+&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_148'/>
+148
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_148'>1</a>
+<span>
+1. citeKeyBase : Replaced integer subtraction with addition &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      String candidate = parts[parts.length - 1].toLowerCase().replaceAll(&#34;[^a-z0-9]&#34;, &#34;&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_149'/>
+149
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_149'>1</a>
+<span>
+1. citeKeyBase : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      if (!candidate.isEmpty()) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_150'/>
+150
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_150'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        lastName = candidate;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_151'/>
+151
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_151'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_152'/>
+152
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_152'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_153'/>
+153
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_153'>1</a>
+<span>
+1. citeKeyBase : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    String yearPart = work.year() != null ? String.valueOf(work.year()) : &#34;&#34;;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_154'/>
+154
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_154'>1</a>
+<span>
+1. citeKeyBase : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::citeKeyBase &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return lastName + yearPart;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_155'/>
+155
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_155'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_156'/>
+156
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_156'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_157'/>
+157
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_157'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private static String venueFieldName(String entryType) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_158'/>
+158
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_158'>1</a>
+<span>
+1. venueFieldName : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::venueFieldName &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return switch (entryType) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_159'/>
+159
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_159'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      case &#34;inproceedings&#34;, &#34;incollection&#34; -&#62; &#34;booktitle&#34;;</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_160'/>
+160
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_160'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>      default -&#62; &#34;journal&#34;;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_161'/>
+161
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_161'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    };</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_162'/>
+162
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_162'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_163'/>
+163
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_163'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_164'/>
+164
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_164'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private String formatAuthors(List&#60;String&#62; names) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_165'/>
+165
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_165'>1</a>
+<span>
+1. formatAuthors : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::formatAuthors &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return names.stream().map(this::formatAuthorName).collect(Collectors.joining(&#34; and &#34;));</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_166'/>
+166
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_166'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_167'/>
+167
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_167'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_168'/>
+168
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_168'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // Heuristic &#34;Last, First Middle&#34; reformatting; does not handle multi-word surnames/particles</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_169'/>
+169
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_169'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  // (e.g. &#34;van der Berg&#34;) specially.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_170'/>
+170
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_170'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private String formatAuthorName(String fullName) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_171'/>
+171
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_171'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    String trimmed = sanitize(fullName).trim();</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_172'/>
+172
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_172'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    int lastSpace = trimmed.lastIndexOf(&#39; &#39;);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_173'/>
+173
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_173'>1</a>
+<span>
+1. formatAuthorName : negated conditional &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    if (lastSpace == -1) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_174'/>
+174
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_174'>1</a>
+<span>
+1. formatAuthorName : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::formatAuthorName &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>      return trimmed;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_175'/>
+175
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_175'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>    }</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_176'/>
+176
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_176'>2</a>
+<span>
+1. formatAuthorName : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::formatAuthorName &rarr; KILLED<br/>
+2. formatAuthorName : Replaced integer addition with subtraction &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return trimmed.substring(lastSpace + 1) + &#34;, &#34; + trimmed.substring(0, lastSpace);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_177'/>
+177
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_177'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_178'/>
+178
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_178'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_179'/>
+179
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_179'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  private String sanitize(String value) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_180'/>
+180
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_180'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>    String normalized = laTeXNormalizationService.normalize(value);</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_181'/>
+181
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_181'>1</a>
+<span>
+1. sanitize : replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::sanitize &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return normalized.replace(&#34;{&#34;, &#34;&#34;).replace(&#34;}&#34;, &#34;&#34;);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_182'/>
+182
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_182'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@6f601ce0_183'/>
+183
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_183'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_56'>56</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_56'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:throws_if_title_is_blank()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:throws_if_title_is_missing()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_65'>65</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_65'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:formats_a_single_word_author_name_without_a_comma()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:treats_a_null_author_list_the_same_as_no_authors()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_68'>68</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_68'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:omits_optional_fields_that_are_absent()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_71'>71</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_71'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:omits_venue_and_doi_when_blank_rather_than_null()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:maps_an_unrecognized_type_to_misc()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_79'>79</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_79'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:omits_venue_and_doi_when_blank_rather_than_null()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:maps_an_unrecognized_type_to_misc()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_82'>82</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_82'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:abstract_is_emitted_regardless_of_entry_type()]</span></span> removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_83'>83</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_83'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:free_text_type_scoped_fields_are_latex_normalized_and_stripped_of_stray_braces()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_84'>84</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_84'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:free_text_type_scoped_fields_are_latex_normalized_and_stripped_of_stray_braces()]</span></span> removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_85'>85</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_85'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:free_text_type_scoped_fields_are_latex_normalized_and_stripped_of_stray_braces()]</span></span> removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_87'>87</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_87'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:book_emits_publisher_address_isbn_series_and_volume_but_not_pages_or_number()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_88'>88</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_88'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:article_emits_pages_volume_and_number_but_not_publisher_address_isbn_or_series()]</span></span> removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_90'>90</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_90'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:an_unrecognized_type_emits_none_of_the_type_scoped_fields()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_91'>91</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_91'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:inproceedings_emits_publisher_address_pages_isbn_and_series()]</span></span> removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_92'>92</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_92'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:inproceedings_emits_publisher_address_pages_isbn_and_series()]</span></span> removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_94'>94</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_94'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:book_emits_publisher_address_isbn_series_and_volume_but_not_pages_or_number()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_95'>95</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_95'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:book_emits_publisher_address_isbn_series_and_volume_but_not_pages_or_number()]</span></span> removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_97'>97</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_97'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:book_emits_publisher_address_isbn_series_and_volume_but_not_pages_or_number()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_98'>98</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_98'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:article_emits_pages_volume_and_number_but_not_publisher_address_isbn_or_series()]</span></span> removed call to edu/ucsb/cs/citelines/services/BibTexSynthesisService::appendField &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_101'>101</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_101'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>synthesizeRawBibTex<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:maps_an_unrecognized_type_to_misc()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::synthesizeRawBibTex &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_110'>110</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_110'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>appendField<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:a_blank_abstract_is_omitted()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>appendField<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:maps_an_unrecognized_type_to_misc()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_117'>117</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_117'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>appendField<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:free_text_type_scoped_fields_are_latex_normalized_and_stripped_of_stray_braces()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_128'>128</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_128'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>generateUniqueCiteKey<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_to_entry_and_no_year_when_both_are_missing()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_129'>129</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_129'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>generateUniqueCiteKey<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_to_entry_and_no_year_when_both_are_missing()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::generateUniqueCiteKey &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_131'>131</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_131'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>generateUniqueCiteKey<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_tries_the_letter_z_before_falling_back_to_numbers()]</span></span> changed conditional boundary &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>generateUniqueCiteKey<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_through_all_26_letters_then_increments_past_a_taken_number()]</span></span> Replaced integer addition with subtraction &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>3.<span><b>3</b><br/><b>Location : </b>generateUniqueCiteKey<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_disambiguates_with_a_letter_suffix()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_133'>133</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_133'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>generateUniqueCiteKey<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_disambiguates_with_a_letter_suffix()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_134'>134</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_134'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>generateUniqueCiteKey<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_disambiguates_with_a_letter_suffix()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::generateUniqueCiteKey &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_138'>138</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_138'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>generateUniqueCiteKey<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_through_all_26_letters_then_increments_past_a_taken_number()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_139'>139</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_139'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>generateUniqueCiteKey<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_through_all_26_letters_then_increments_past_a_taken_number()]</span></span> Changed increment from 1 to -1 &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_141'>141</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_141'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>generateUniqueCiteKey<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_through_all_26_letters_then_increments_past_a_taken_number()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::generateUniqueCiteKey &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_146'>146</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_146'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>citeKeyBase<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_to_entry_and_no_year_when_both_are_missing()]</span></span> negated conditional &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>citeKeyBase<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_to_entry_when_the_author_list_is_null()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_148'>148</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_148'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>citeKeyBase<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_to_entry_when_the_first_authors_name_has_no_letters()]</span></span> Replaced integer subtraction with addition &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_149'>149</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_149'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>citeKeyBase<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_to_entry_when_the_first_authors_name_has_no_letters()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_153'>153</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_153'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>citeKeyBase<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_to_entry_and_no_year_when_both_are_missing()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_154'>154</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_154'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>citeKeyBase<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_to_entry_and_no_year_when_both_are_missing()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::citeKeyBase &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_158'>158</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_158'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>venueFieldName<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:strips_stray_braces_from_title_and_venue()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::venueFieldName &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_165'>165</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_165'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>formatAuthors<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:formats_a_single_word_author_name_without_a_comma()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::formatAuthors &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_173'>173</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_173'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>formatAuthorName<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:formats_a_single_word_author_name_without_a_comma()]</span></span> negated conditional &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_174'>174</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_174'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>formatAuthorName<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:formats_a_single_word_author_name_without_a_comma()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::formatAuthorName &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_176'>176</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_176'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>formatAuthorName<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:synthesizes_a_bibtex_string_that_the_real_converter_can_parse_back()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::formatAuthorName &rarr; KILLED</span>
+</div> <p class='KILLED'><span class='pop'>2.<span><b>2</b><br/><b>Location : </b>formatAuthorName<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:synthesizes_a_bibtex_string_that_the_real_converter_can_parse_back()]</span></span> Replaced integer addition with subtraction &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@6f601ce0_181'>181</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@6f601ce0_181'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>sanitize<br/><b>Killed by : </b>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_disambiguates_with_a_letter_suffix()]</span></span> replaced return value with &#34;&#34; for edu/ucsb/cs/citelines/services/BibTexSynthesisService::sanitize &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+<li class='mutator'>EMPTY_RETURNS</li>
+<li class='mutator'>FALSE_RETURNS</li>
+<li class='mutator'>INCREMENTS</li>
+<li class='mutator'>INVERT_NEGS</li>
+<li class='mutator'>MATH</li>
+<li class='mutator'>NEGATE_CONDITIONALS</li>
+<li class='mutator'>NULL_RETURNS</li>
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+<li class='mutator'>TRUE_RETURNS</li>
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:a_blank_abstract_is_omitted()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:free_text_type_scoped_fields_are_latex_normalized_and_stripped_of_stray_braces()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:abstract_is_emitted_regardless_of_entry_type()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:book_emits_publisher_address_isbn_series_and_volume_but_not_pages_or_number()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:article_emits_pages_volume_and_number_but_not_publisher_address_isbn_or_series()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:techreport_emits_publisher_address_and_number_but_not_pages_isbn_series_or_volume()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:an_unrecognized_type_emits_none_of_the_type_scoped_fields()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:inproceedings_emits_publisher_address_pages_isbn_and_series()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests]/[method:improveEntry_does_not_treat_misc_resolving_to_misc_as_an_entryType_upgrade()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests]/[method:improveEntry_returns_already_complete_when_nothing_new_is_available()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests]/[method:improveEntry_never_overwrites_an_entryType_that_is_not_misc()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests]/[method:improveEntry_never_changes_citeKey()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests]/[method:improveEntry_counts_as_improved_when_only_the_entryType_changes()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests]/[method:improveEntry_upgrades_entryType_from_misc_to_a_more_specific_resolved_type()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests]/[method:improveEntry_treats_a_blank_existing_value_the_same_as_a_missing_one()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests]/[method:improveEntry_fills_in_missing_fields_and_saves()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests]/[method:improveEntry_never_touches_CITELINES_fields()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests]/[method:improveEntries_logs_a_correct_summary_with_mixed_outcomes()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexEntryImproveServiceTests]/[method:improveEntry_never_overwrites_an_existing_non_blank_value()] (58 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_through_all_26_letters_then_increments_past_a_taken_number()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:maps_an_unrecognized_type_to_misc()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:treats_a_null_author_list_the_same_as_no_authors()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:omits_venue_and_doi_when_blank_rather_than_null()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:formats_a_single_word_author_name_without_a_comma()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:omits_optional_fields_that_are_absent()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:strips_stray_braces_from_title_and_venue()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:maps_proceedings_article_to_inproceedings_with_a_booktitle_field()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:maps_book_chapter_to_incollection_with_a_booktitle_field()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:normalizes_latex_escapes_in_title_venue_and_author()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:resolves_a_doi_found_by_the_first_resolver()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:synthesizes_a_bibtex_string_that_the_real_converter_can_parse_back()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:omits_the_CITELINES_relevance_field_when_relevance_is_an_empty_string()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:includes_a_CITELINES_relevance_field_when_relevance_is_provided()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:escapes_brace_characters_in_a_provided_relevance_value()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:falls_back_to_later_resolvers_when_earlier_ones_have_no_record()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:falls_back_to_dblp_when_the_other_three_have_no_record()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.DoiToBibTexServiceTests]/[method:generates_a_citeKey_that_does_not_collide_with_an_existing_one()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:resolveOrCreateEntry_indexes_a_new_entry_by_doi_so_a_later_call_with_the_same_doi_links_to_it()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_uses_crossref_as_a_last_resort_discovery_resolver()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchCitations_fetches_via_the_discovery_resolver_and_links_edges_in_the_other_direction()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_falls_back_to_semantic_scholar_when_openalex_has_no_record()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_falls_back_to_dblp_when_the_other_three_have_no_record()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_recovers_a_missing_title_via_a_fallback_resolver()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_adds_new_entries_and_links_edges()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_records_unresolved_for_a_new_entry_with_no_doi()] (4 ms)</li><li>edu.ucsb.cs.citelines.services.CitationGraphServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.CitationGraphServiceTests]/[method:fetchReferences_records_unresolved_when_no_resolver_can_find_a_referenced_work()] (1 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_disambiguates_with_a_letter_suffix()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_tries_the_letter_z_before_falling_back_to_numbers()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_to_entry_and_no_year_when_both_are_missing()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_to_entry_when_the_author_list_is_null()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_falls_back_to_entry_when_the_first_authors_name_has_no_letters()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:generateUniqueCiteKey_uses_first_author_lastname_and_year()] (0 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:throws_if_title_is_blank()] (3 ms)</li><li>edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.services.BibTexSynthesisServiceTests]/[method:throws_if_title_is_missing()] (0 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.17.0
+
+</body>
+</html>

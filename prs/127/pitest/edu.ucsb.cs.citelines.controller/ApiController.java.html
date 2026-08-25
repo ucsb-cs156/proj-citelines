@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="../style.css">
+</head>
+<body>
+
+
+<h1>ApiController.java</h1>
+
+<table class="src">
+
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_1'/>
+1
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_1'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>package edu.ucsb.cs.citelines.controller;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_2'/>
+2
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_2'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_3'/>
+3
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_3'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import edu.ucsb.cs.citelines.errors.DoiNotFoundException;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_4'/>
+4
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_4'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import edu.ucsb.cs.citelines.errors.EntityNotFoundException;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_5'/>
+5
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_5'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import edu.ucsb.cs.citelines.errors.ForbiddenException;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_6'/>
+6
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_6'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import edu.ucsb.cs.citelines.model.CurrentUser;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_7'/>
+7
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_7'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import edu.ucsb.cs.citelines.services.CurrentUserService;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_8'/>
+8
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_8'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import java.util.Map;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_9'/>
+9
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_9'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import lombok.extern.slf4j.Slf4j;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_10'/>
+10
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_10'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.beans.factory.annotation.Autowired;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_11'/>
+11
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_11'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.http.HttpStatus;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_12'/>
+12
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_12'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.http.ResponseEntity;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_13'/>
+13
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_13'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.bind.annotation.ExceptionHandler;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_14'/>
+14
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_14'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>import org.springframework.web.bind.annotation.ResponseStatus;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_15'/>
+15
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_15'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_16'/>
+16
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_16'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>@Slf4j</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_17'/>
+17
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_17'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>public abstract class ApiController {</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_18'/>
+18
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_18'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_19'/>
+19
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_19'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @Autowired private CurrentUserService currentUserService;</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_20'/>
+20
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_20'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_21'/>
+21
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_21'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  protected CurrentUser getCurrentUser() {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_22'/>
+22
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_22'>1</a>
+<span>
+1. getCurrentUser : replaced return value with null for edu/ucsb/cs/citelines/controller/ApiController::getCurrentUser &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return currentUserService.getCurrentUser();</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_23'/>
+23
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_23'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_24'/>
+24
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_24'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_25'/>
+25
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_25'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  protected Object genericMessage(String message) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_26'/>
+26
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_26'>1</a>
+<span>
+1. genericMessage : replaced return value with null for edu/ucsb/cs/citelines/controller/ApiController::genericMessage &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return Map.of(&#34;message&#34;, message);</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_27'/>
+27
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_27'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_28'/>
+28
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_28'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_29'/>
+29
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_29'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ExceptionHandler({EntityNotFoundException.class, DoiNotFoundException.class})</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_30'/>
+30
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_30'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ResponseStatus(HttpStatus.NOT_FOUND)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_31'/>
+31
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_31'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public Object handleEntityNotFoundException(Throwable e) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_32'/>
+32
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_32'>1</a>
+<span>
+1. handleEntityNotFoundException : replaced return value with null for edu/ucsb/cs/citelines/controller/ApiController::handleEntityNotFoundException &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return Map.of(</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_33'/>
+33
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_33'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        &#34;type&#34;, e.getClass().getSimpleName(),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_34'/>
+34
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_34'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        &#34;message&#34;, e.getMessage());</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_35'/>
+35
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_35'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_36'/>
+36
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_36'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_37'/>
+37
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_37'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ExceptionHandler({ForbiddenException.class})</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_38'/>
+38
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_38'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ResponseStatus(HttpStatus.FORBIDDEN)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_39'/>
+39
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_39'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public Object handleForbiddenException(Throwable e) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_40'/>
+40
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_40'>1</a>
+<span>
+1. handleForbiddenException : replaced return value with null for edu/ucsb/cs/citelines/controller/ApiController::handleForbiddenException &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return Map.of(</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_41'/>
+41
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_41'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        &#34;type&#34;, e.getClass().getSimpleName(),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_42'/>
+42
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_42'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        &#34;message&#34;, e.getMessage());</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_43'/>
+43
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_43'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_44'/>
+44
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_44'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_45'/>
+45
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_45'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ExceptionHandler(UnsupportedOperationException.class)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_46'/>
+46
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_46'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public ResponseEntity&#60;Map&#60;String, String&#62;&#62; handleUnsupportedOperation(</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_47'/>
+47
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_47'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>      UnsupportedOperationException ex) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_48'/>
+48
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_48'>1</a>
+<span>
+1. handleUnsupportedOperation : replaced return value with null for edu/ucsb/cs/citelines/controller/ApiController::handleUnsupportedOperation &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(&#34;message&#34;, ex.getMessage()));</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_49'/>
+49
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_49'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_50'/>
+50
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_50'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''></span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_51'/>
+51
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_51'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  /**</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_52'/>
+52
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_52'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * This method handles the IllegalArgumentException. This maps to a 400/Bad Request.</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_53'/>
+53
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_53'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   *</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_54'/>
+54
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_54'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @param e the exception</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_55'/>
+55
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_55'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   * @return a map with the type and message of the exception</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_56'/>
+56
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_56'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>   */</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_57'/>
+57
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_57'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ExceptionHandler({IllegalArgumentException.class})</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_58'/>
+58
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_58'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  @ResponseStatus(HttpStatus.BAD_REQUEST)</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_59'/>
+59
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_59'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  public Object handleIllegalArgument(Throwable e) {</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_60'/>
+60
+</td>
+<td class='killed'>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_60'>1</a>
+<span>
+1. handleIllegalArgument : replaced return value with null for edu/ucsb/cs/citelines/controller/ApiController::handleIllegalArgument &rarr; KILLED<br/>
+
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class='killed'>    return Map.of(</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_61'/>
+61
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_61'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        &#34;type&#34;, e.getClass().getSimpleName(),</span></pre></td></tr>
+
+<tr>
+<td class='covered'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_62'/>
+62
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_62'></a>
+<span>
+</span>
+</span>
+</td>
+<td class='covered'><pre><span  class=''>        &#34;message&#34;, e.getMessage());</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_63'/>
+63
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_63'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>  }</span></pre></td></tr>
+
+<tr>
+<td class='na'>
+<a name='org.pitest.mutationtest.report.html.SourceFile@75888cb_64'/>
+64
+</td>
+<td class=''>
+<span class='pop'>
+<a href='#grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_64'></a>
+<span>
+</span>
+</span>
+</td>
+<td class=''><pre><span  class=''>}</span></pre></td></tr>
+
+
+
+<tr><td></td><td></td><td><h2>Mutations</h2></td></tr>
+
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@75888cb_22'>22</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_22'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>getCurrentUser<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:posting_a_project_without_citation_format_defaults_to_acm()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/ApiController::getCurrentUser &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@75888cb_26'>26</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_26'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>genericMessage<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:owner_can_delete_a_project_and_its_collaborators()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/ApiController::genericMessage &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@75888cb_32'>32</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_32'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>handleEntityNotFoundException<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:update_throws_not_found_for_nonexistent_project()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/ApiController::handleEntityNotFoundException &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@75888cb_40'>40</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_40'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>handleForbiddenException<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.ApiControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ApiControllerTests]/[method:forbidden_exception_returns_403_with_type_and_message()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/ApiController::handleForbiddenException &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@75888cb_48'>48</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_48'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>handleUnsupportedOperation<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.AdminsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.AdminsControllerTests]/[method:admin_tries_to_delete_an_ADMIN_EMAIL_and_gets_right_error_message()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/ApiController::handleUnsupportedOperation &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+<tr>
+<td><a href='#org.pitest.mutationtest.report.html.SourceFile@75888cb_60'>60</a></td> 
+<td></td>
+<td>
+
+<a name='grouporg.pitest.mutationtest.report.html.SourceFile@75888cb_60'/> 
+
+<p class='KILLED'><span class='pop'>1.<span><b>1</b><br/><b>Location : </b>handleIllegalArgument<br/><b>Killed by : </b>edu.ucsb.cs.citelines.controller.ApiControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ApiControllerTests]/[method:illegal_argument_exception_returns_400_with_type_and_message()]</span></span> replaced return value with null for edu/ucsb/cs/citelines/controller/ApiController::handleIllegalArgument &rarr; KILLED</span>
+</div> 
+</td>
+</tr>
+
+</table>
+
+
+<h2>Active mutators</h2>
+<ul>
+<li class='mutator'>CONDITIONALS_BOUNDARY</li>
+<li class='mutator'>EMPTY_RETURNS</li>
+<li class='mutator'>FALSE_RETURNS</li>
+<li class='mutator'>INCREMENTS</li>
+<li class='mutator'>INVERT_NEGS</li>
+<li class='mutator'>MATH</li>
+<li class='mutator'>NEGATE_CONDITIONALS</li>
+<li class='mutator'>NULL_RETURNS</li>
+<li class='mutator'>PRIMITIVE_RETURNS</li>
+<li class='mutator'>TRUE_RETURNS</li>
+<li class='mutator'>VOID_METHOD_CALLS</li>
+
+</ul>
+
+<h2>Tests examined</h2>
+<ul>
+<li>edu.ucsb.cs.citelines.controller.ApiControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ApiControllerTests]/[method:forbidden_exception_returns_403_with_type_and_message()] (12 ms)</li><li>edu.ucsb.cs.citelines.controller.ApiControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ApiControllerTests]/[method:illegal_argument_exception_returns_400_with_type_and_message()] (5 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:posting_a_project_with_an_invalid_citation_format_returns_400()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.TagsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.TagsControllerTests]/[method:update_rejects_duplicate_tag_for_same_project()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:updating_a_project_with_an_invalid_citation_format_returns_400()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_bibtex_with_an_invalid_relationship_returns_a_bad_request()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_by_doi_with_an_invalid_relationship_returns_a_bad_request()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:post_with_malformed_bibtex_returns_a_useful_error()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.TagsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.TagsControllerTests]/[method:post_rejects_duplicate_tag_for_same_project()] (4 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:saving_a_comments_draft_that_does_not_exist_returns_a_bad_request()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:discarding_a_comments_draft_that_does_not_exist_returns_a_bad_request()] (4 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:update_rejects_bibtex_text_with_more_than_one_entry()] (5 ms)</li><li>edu.ucsb.cs.citelines.controller.AdminsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.AdminsControllerTests]/[method:admin_tries_to_delete_an_ADMIN_EMAIL_and_gets_right_error_message()] (5 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:owner_can_delete_a_project_and_its_collaborators()] (5 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:owner_can_delete_an_entry()] (5 ms)</li><li>edu.ucsb.cs.citelines.controller.AdminsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.AdminsControllerTests]/[method:admin_can_delete_an_admin()] (56 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectCollaboratorsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectCollaboratorsControllerTests]/[method:list_throws_not_found_for_nonexistent_project()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.JobsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.JobsControllerTests]/[method:list_jobs_throws_not_found_for_nonexistent_project()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.CitationFilterStateControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.CitationFilterStateControllerTests]/[method:post_throws_not_found_for_a_nonexistent_project()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.JobsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.JobsControllerTests]/[method:launch_detectDuplicates_throws_not_found_for_nonexistent_project()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.TagsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.TagsControllerTests]/[method:delete_throws_not_found_for_nonexistent_tag()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:update_throws_not_found_for_nonexistent_project()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.TagsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.TagsControllerTests]/[method:list_throws_not_found_for_nonexistent_project()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectCollaboratorsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectCollaboratorsControllerTests]/[method:post_throws_not_found_for_nonexistent_project()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:delete_throws_not_found_for_nonexistent_project()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.CitationFilterStateControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.CitationFilterStateControllerTests]/[method:get_throws_not_found_for_a_nonexistent_project()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.TagsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.TagsControllerTests]/[method:post_throws_not_found_for_nonexistent_project()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:get_by_id_throws_not_found_for_nonexistent_project()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.JobsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.JobsControllerTests]/[method:launch_improveBibTexEntries_throws_not_found_for_nonexistent_project()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.TagsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.TagsControllerTests]/[method:update_throws_not_found_for_nonexistent_tag()] (4 ms)</li><li>edu.ucsb.cs.citelines.controller.JobsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.JobsControllerTests]/[method:launch_checkLinks_throws_not_found_for_nonexistent_project()] (5 ms)</li><li>edu.ucsb.cs.citelines.controller.AdminsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.AdminsControllerTests]/[method:admin_tries_to_delete_non_existant_admin_and_gets_right_error_message()] (7 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:formatted_citation_throws_not_found_for_nonexistent_project()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectCollaboratorsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectCollaboratorsControllerTests]/[method:delete_throws_not_found_for_nonexistent_collaborator()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.CitationFilterStateControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.CitationFilterStateControllerTests]/[method:get_throws_not_found_for_a_citations_scoped_entry_not_in_the_project()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.JobsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.JobsControllerTests]/[method:launch_getCitations_throws_not_found_for_nonexistent_entry()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:get_single_entry_throws_not_found_for_nonexistent_id()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.CitationFilterStateControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.CitationFilterStateControllerTests]/[method:get_throws_not_found_when_entryId_is_missing_for_a_non_project_scope()] (4 ms)</li><li>edu.ucsb.cs.citelines.controller.JobsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.JobsControllerTests]/[method:launch_getReferences_throws_not_found_for_nonexistent_entry()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.JobsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.JobsControllerTests]/[method:launch_bulkCitationUploadFromAcmDlViewAll_throws_not_found_for_nonexistent_entry()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.JobsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.JobsControllerTests]/[method:launch_bulkReferenceUploadFromAcmDl_throws_not_found_for_nonexistent_entry()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:add_tag_throws_not_found_for_nonexistent_entry()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.JobsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.JobsControllerTests]/[method:launch_improveBibTexEntries_throws_not_found_for_an_entry_not_in_the_project()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:upsert_comments_draft_throws_not_found_for_nonexistent_entry()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:update_throws_not_found_for_nonexistent_entry()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:update_abstract_throws_not_found_for_nonexistent_entry()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:discard_comments_draft_throws_not_found_for_nonexistent_entry()] (4 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:delete_throws_not_found_for_nonexistent_entry()] (4 ms)</li><li>edu.ucsb.cs.citelines.controller.JobsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.JobsControllerTests]/[method:launch_improveBibTexEntries_throws_not_found_when_entryId_is_missing_for_a_non_project_scope()] (5 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:formatted_citation_throws_not_found_for_nonexistent_entry()] (4 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:save_comments_draft_throws_not_found_for_nonexistent_entry()] (4 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:add_tag_throws_not_found_when_tag_does_not_belong_to_the_project()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:posting_an_unresolvable_doi_returns_not_found_and_saves_nothing()] (4 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:export_throws_not_found_for_nonexistent_entry()] (6 ms)</li><li>edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.BibTexEntriesControllerTests]/[method:remove_tag_throws_not_found_for_nonexistent_entry()] (7 ms)</li><li>edu.ucsb.cs.citelines.controller.CitationFilterStateControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.CitationFilterStateControllerTests]/[method:post_throws_not_found_for_a_references_scoped_entry_not_in_the_project()] (15 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:posting_a_project_without_citation_format_defaults_to_acm()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:a_researcher_can_post_a_new_project()] (2 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:an_admin_can_post_a_new_project()] (3 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:a_researcher_can_list_their_own_projects()] (4 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:a_user_can_list_projects_they_collaborate_on()] (1 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:a_user_who_collaborates_on_two_projects_only_gets_each_project_once()] (4 ms)</li><li>edu.ucsb.cs.citelines.UserInfoControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.UserInfoControllerTests]/[method:getCurrentUserWhenAuthenticatedReturns200()] (16 ms)</li><li>edu.ucsb.cs.citelines.controller.ProjectsControllerTests.[engine:junit-jupiter]/[class:edu.ucsb.cs.citelines.controller.ProjectsControllerTests]/[method:a_researcher_can_post_a_new_project_with_a_citation_format()] (9 ms)</li>
+</ul>
+
+<br/>
+
+Report generated by <a href='https://pitest.org'>PIT</a> 1.17.0
+
+</body>
+</html>
