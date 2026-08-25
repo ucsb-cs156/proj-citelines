@@ -20,4 +20,4 @@ repo_name: "TBD"
 repo: ucsb-cs156/proj-citelines
 owner: ucsb-cs156
 repo_name: proj-citelines
-pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-Claude-issue110-improve-scopes","number":119,"title":"Rename Upgrade BibTeX Entries to Improve, add scope support (issue #110)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/119"}]
+pull_requests: []
