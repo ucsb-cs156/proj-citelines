@@ -79,90 +79,94 @@ public class BibTexEntryImproveService {
 <span class="fc" id="L79">    int skippedNoDoi = 0;</span>
 <span class="fc" id="L80">    int unresolved = 0;</span>
 <span class="fc bfc" id="L81" title="All 2 branches covered.">    for (BibTexEntry entry : entries) {</span>
-<span class="fc" id="L82">      Outcome outcome = improveEntry(entry, projectId, ctx);</span>
-<span class="fc bfc" id="L83" title="All 2 branches covered.">      if (outcome == Outcome.IMPROVED) {</span>
-<span class="fc" id="L84">        improved++;</span>
-<span class="fc bfc" id="L85" title="All 2 branches covered.">      } else if (outcome == Outcome.ALREADY_COMPLETE) {</span>
-<span class="fc" id="L86">        alreadyComplete++;</span>
-<span class="fc bfc" id="L87" title="All 2 branches covered.">      } else if (outcome == Outcome.SKIPPED_NO_DOI) {</span>
-<span class="fc" id="L88">        skippedNoDoi++;</span>
+      // An entry with no DOI (SKIPPED_NO_DOI) or with nothing new to add (ALREADY_COMPLETE)
+      // never calls ctx.log() -- checkCancellation() gives this loop its own checkpoint
+      // independent of whether an iteration does anything at all.
+<span class="fc" id="L85">      ctx.checkCancellation();</span>
+<span class="fc" id="L86">      Outcome outcome = improveEntry(entry, projectId, ctx);</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">      if (outcome == Outcome.IMPROVED) {</span>
+<span class="fc" id="L88">        improved++;</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">      } else if (outcome == Outcome.ALREADY_COMPLETE) {</span>
+<span class="fc" id="L90">        alreadyComplete++;</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">      } else if (outcome == Outcome.SKIPPED_NO_DOI) {</span>
+<span class="fc" id="L92">        skippedNoDoi++;</span>
       } else {
-<span class="fc" id="L90">        unresolved++;</span>
+<span class="fc" id="L94">        unresolved++;</span>
       }
-<span class="fc" id="L92">    }</span>
+<span class="fc" id="L96">    }</span>
 
-<span class="fc" id="L94">    ctx.log(</span>
+<span class="fc" id="L98">    ctx.log(</span>
         (&quot;Done: checked %d entr%s, %d improved, %d already complete, %d skipped (no DOI), %d&quot;
                 + &quot; unresolved.&quot;)
-<span class="fc" id="L97">            .formatted(</span>
-<span class="fc" id="L98">                entries.size(),</span>
-<span class="fc bfc" id="L99" title="All 2 branches covered.">                entries.size() == 1 ? &quot;y&quot; : &quot;ies&quot;,</span>
-<span class="fc" id="L100">                improved,</span>
-<span class="fc" id="L101">                alreadyComplete,</span>
-<span class="fc" id="L102">                skippedNoDoi,</span>
-<span class="fc" id="L103">                unresolved));</span>
-<span class="fc" id="L104">  }</span>
+<span class="fc" id="L101">            .formatted(</span>
+<span class="fc" id="L102">                entries.size(),</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">                entries.size() == 1 ? &quot;y&quot; : &quot;ies&quot;,</span>
+<span class="fc" id="L104">                improved,</span>
+<span class="fc" id="L105">                alreadyComplete,</span>
+<span class="fc" id="L106">                skippedNoDoi,</span>
+<span class="fc" id="L107">                unresolved));</span>
+<span class="fc" id="L108">  }</span>
 
   private List&lt;BibTexEntry&gt; entriesForScope(int projectId, ImproveScope scope, String entryId) {
-<span class="fc bfc" id="L107" title="All 4 branches covered.">    return switch (scope) {</span>
-<span class="fc" id="L108">      case PROJECT -&gt; bibTexEntryRepository.findByProjectId(projectId);</span>
-<span class="fc" id="L109">      case ENTRY -&gt; bibTexEntryRepository.findById(entryId).map(List::of).orElse(List.of());</span>
-<span class="fc" id="L110">      case REFERENCES -&gt; citationEdgeService.referencesOf(projectId, entryId);</span>
-<span class="fc" id="L111">      case CITATIONS -&gt; citationEdgeService.citationsOf(projectId, entryId);</span>
+<span class="fc bfc" id="L111" title="All 4 branches covered.">    return switch (scope) {</span>
+<span class="fc" id="L112">      case PROJECT -&gt; bibTexEntryRepository.findByProjectId(projectId);</span>
+<span class="fc" id="L113">      case ENTRY -&gt; bibTexEntryRepository.findById(entryId).map(List::of).orElse(List.of());</span>
+<span class="fc" id="L114">      case REFERENCES -&gt; citationEdgeService.referencesOf(projectId, entryId);</span>
+<span class="fc" id="L115">      case CITATIONS -&gt; citationEdgeService.citationsOf(projectId, entryId);</span>
     };
   }
 
   Outcome improveEntry(BibTexEntry entry, int projectId, JobContext ctx) {
-<span class="fc" id="L116">    Map&lt;String, String&gt; keyValuePairs = entry.getKeyValuePairs();</span>
-<span class="fc bfc" id="L117" title="All 2 branches covered.">    String doi = keyValuePairs != null ? keyValuePairs.get(&quot;doi&quot;) : null;</span>
-<span class="fc bfc" id="L118" title="All 4 branches covered.">    if (doi == null || doi.isBlank()) {</span>
-<span class="fc" id="L119">      return Outcome.SKIPPED_NO_DOI;</span>
+<span class="fc" id="L120">    Map&lt;String, String&gt; keyValuePairs = entry.getKeyValuePairs();</span>
+<span class="fc bfc" id="L121" title="All 2 branches covered.">    String doi = keyValuePairs != null ? keyValuePairs.get(&quot;doi&quot;) : null;</span>
+<span class="fc bfc" id="L122" title="All 4 branches covered.">    if (doi == null || doi.isBlank()) {</span>
+<span class="fc" id="L123">      return Outcome.SKIPPED_NO_DOI;</span>
     }
 
-<span class="fc" id="L122">    Optional&lt;CitationGraphService.ResolverResult&gt; resolved =</span>
-<span class="fc" id="L123">        citationGraphService.tryResolveByDoi(doi);</span>
-<span class="fc bfc" id="L124" title="All 2 branches covered.">    if (resolved.isEmpty()) {</span>
-<span class="fc" id="L125">      ctx.log(</span>
+<span class="fc" id="L126">    Optional&lt;CitationGraphService.ResolverResult&gt; resolved =</span>
+<span class="fc" id="L127">        citationGraphService.tryResolveByDoi(doi);</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">    if (resolved.isEmpty()) {</span>
+<span class="fc" id="L129">      ctx.log(</span>
           &quot;Could not re-resolve %s (DOI %s): no provider has a record.&quot;
-<span class="fc" id="L127">              .formatted(entry.getCiteKey(), doi));</span>
-<span class="fc" id="L128">      return Outcome.UNRESOLVED;</span>
+<span class="fc" id="L131">              .formatted(entry.getCiteKey(), doi));</span>
+<span class="fc" id="L132">      return Outcome.UNRESOLVED;</span>
     }
 
-<span class="fc" id="L131">    ResolvedWork work = resolved.get().work();</span>
-<span class="fc bfc" id="L132" title="All 4 branches covered.">    if (work.title() == null || work.title().isBlank()) {</span>
-<span class="fc" id="L133">      ctx.log(</span>
+<span class="fc" id="L135">    ResolvedWork work = resolved.get().work();</span>
+<span class="fc bfc" id="L136" title="All 4 branches covered.">    if (work.title() == null || work.title().isBlank()) {</span>
+<span class="fc" id="L137">      ctx.log(</span>
           &quot;Could not re-resolve %s (DOI %s): resolved, but no title is available.&quot;
-<span class="fc" id="L135">              .formatted(entry.getCiteKey(), doi));</span>
-<span class="fc" id="L136">      return Outcome.UNRESOLVED;</span>
+<span class="fc" id="L139">              .formatted(entry.getCiteKey(), doi));</span>
+<span class="fc" id="L140">      return Outcome.UNRESOLVED;</span>
     }
 
-<span class="fc" id="L139">    String candidateBibtex = bibTexSynthesisService.synthesizeRawBibTex(work, entry.getCiteKey());</span>
-<span class="fc" id="L140">    BibTexEntry candidate =</span>
-<span class="fc" id="L141">        bibTexConverterService.parseToEntries(candidateBibtex, projectId).get(0);</span>
+<span class="fc" id="L143">    String candidateBibtex = bibTexSynthesisService.synthesizeRawBibTex(work, entry.getCiteKey());</span>
+<span class="fc" id="L144">    BibTexEntry candidate =</span>
+<span class="fc" id="L145">        bibTexConverterService.parseToEntries(candidateBibtex, projectId).get(0);</span>
 
-<span class="fc" id="L143">    List&lt;String&gt; addedFields = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L144" title="All 4 branches covered.">    if (&quot;misc&quot;.equals(entry.getEntryType()) &amp;&amp; !&quot;misc&quot;.equals(candidate.getEntryType())) {</span>
-<span class="fc" id="L145">      addedFields.add(&quot;entryType (misc → %s)&quot;.formatted(candidate.getEntryType()));</span>
-<span class="fc" id="L146">      entry.setEntryType(candidate.getEntryType());</span>
+<span class="fc" id="L147">    List&lt;String&gt; addedFields = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L148" title="All 4 branches covered.">    if (&quot;misc&quot;.equals(entry.getEntryType()) &amp;&amp; !&quot;misc&quot;.equals(candidate.getEntryType())) {</span>
+<span class="fc" id="L149">      addedFields.add(&quot;entryType (misc → %s)&quot;.formatted(candidate.getEntryType()));</span>
+<span class="fc" id="L150">      entry.setEntryType(candidate.getEntryType());</span>
     }
 
-<span class="fc" id="L149">    Map&lt;String, String&gt; merged = new HashMap&lt;&gt;(keyValuePairs);</span>
-<span class="fc bfc" id="L150" title="All 2 branches covered.">    for (Map.Entry&lt;String, String&gt; field : candidate.getKeyValuePairs().entrySet()) {</span>
-<span class="fc" id="L151">      String currentValue = merged.get(field.getKey());</span>
-<span class="fc bfc" id="L152" title="All 4 branches covered.">      if (currentValue == null || currentValue.isBlank()) {</span>
-<span class="fc" id="L153">        merged.put(field.getKey(), field.getValue());</span>
-<span class="fc" id="L154">        addedFields.add(field.getKey());</span>
+<span class="fc" id="L153">    Map&lt;String, String&gt; merged = new HashMap&lt;&gt;(keyValuePairs);</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">    for (Map.Entry&lt;String, String&gt; field : candidate.getKeyValuePairs().entrySet()) {</span>
+<span class="fc" id="L155">      String currentValue = merged.get(field.getKey());</span>
+<span class="fc bfc" id="L156" title="All 4 branches covered.">      if (currentValue == null || currentValue.isBlank()) {</span>
+<span class="fc" id="L157">        merged.put(field.getKey(), field.getValue());</span>
+<span class="fc" id="L158">        addedFields.add(field.getKey());</span>
       }
-<span class="fc" id="L156">    }</span>
+<span class="fc" id="L160">    }</span>
 
-<span class="fc bfc" id="L158" title="All 2 branches covered.">    if (addedFields.isEmpty()) {</span>
-<span class="fc" id="L159">      return Outcome.ALREADY_COMPLETE;</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">    if (addedFields.isEmpty()) {</span>
+<span class="fc" id="L163">      return Outcome.ALREADY_COMPLETE;</span>
     }
 
-<span class="fc" id="L162">    entry.setKeyValuePairs(merged);</span>
-<span class="fc" id="L163">    bibTexEntryRepository.save(entry);</span>
-<span class="fc" id="L164">    ctx.log(&quot;Improved %s: added %s.&quot;.formatted(entry.getCiteKey(), String.join(&quot;, &quot;, addedFields)));</span>
-<span class="fc" id="L165">    return Outcome.IMPROVED;</span>
+<span class="fc" id="L166">    entry.setKeyValuePairs(merged);</span>
+<span class="fc" id="L167">    bibTexEntryRepository.save(entry);</span>
+<span class="fc" id="L168">    ctx.log(&quot;Improved %s: added %s.&quot;.formatted(entry.getCiteKey(), String.join(&quot;, &quot;, addedFields)));</span>
+<span class="fc" id="L169">    return Outcome.IMPROVED;</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
