@@ -1,17 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CitationEdgesController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.controller</a> &gt; <span class="el_source">CitationEdgesController.java</span></div><h1>CitationEdgesController.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.controller;
 
 import edu.ucsb.cs.citelines.collections.BibTexEntry;
-import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
-import edu.ucsb.cs.citelines.collections.CitationEdge;
-import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
 import edu.ucsb.cs.citelines.collections.UnresolvedCitation;
 import edu.ucsb.cs.citelines.collections.UnresolvedCitationRepository;
+import edu.ucsb.cs.citelines.services.CitationEdgeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,11 +25,10 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = &quot;CitationEdges&quot;)
 @RequestMapping(&quot;/api/citationedges&quot;)
 @RestController
-<span class="fc" id="L32">@Slf4j</span>
-<span class="fc" id="L33">public class CitationEdgesController extends ApiController {</span>
+<span class="fc" id="L28">@Slf4j</span>
+<span class="fc" id="L29">public class CitationEdgesController extends ApiController {</span>
 
-  @Autowired private CitationEdgeRepository citationEdgeRepository;
-  @Autowired private BibTexEntryRepository bibTexEntryRepository;
+  @Autowired private CitationEdgeService citationEdgeService;
   @Autowired private UnresolvedCitationRepository unresolvedCitationRepository;
 
   /**
@@ -46,9 +41,7 @@ import org.springframework.web.bind.annotation.RestController;
   public List&lt;BibTexEntry&gt; references(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;id&quot;) @RequestParam String id) {
-<span class="fc" id="L49">    return relatedEntries(</span>
-<span class="fc" id="L50">        citationEdgeRepository.findByProjectIdAndCitingEntryId(projectId.intValue(), id).stream()</span>
-<span class="fc" id="L51">            .map(CitationEdge::getCitedEntryId));</span>
+<span class="fc" id="L44">    return citationEdgeService.referencesOf(projectId.intValue(), id);</span>
   }
 
   /**
@@ -61,9 +54,7 @@ import org.springframework.web.bind.annotation.RestController;
   public List&lt;BibTexEntry&gt; citations(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;id&quot;) @RequestParam String id) {
-<span class="fc" id="L64">    return relatedEntries(</span>
-<span class="fc" id="L65">        citationEdgeRepository.findByProjectIdAndCitedEntryId(projectId.intValue(), id).stream()</span>
-<span class="fc" id="L66">            .map(CitationEdge::getCitingEntryId));</span>
+<span class="fc" id="L57">    return citationEdgeService.citationsOf(projectId.intValue(), id);</span>
   }
 
   @Operation(
@@ -75,17 +66,10 @@ import org.springframework.web.bind.annotation.RestController;
   public List&lt;UnresolvedCitation&gt; unresolved(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;sourceEntryId&quot;) @RequestParam(required = false) String sourceEntryId) {
-<span class="fc bfc" id="L78" title="All 2 branches covered.">    return sourceEntryId == null</span>
-<span class="fc" id="L79">        ? unresolvedCitationRepository.findByProjectId(projectId.intValue())</span>
-<span class="fc" id="L80">        : unresolvedCitationRepository.findByProjectIdAndSourceEntryId(</span>
-<span class="fc" id="L81">            projectId.intValue(), sourceEntryId);</span>
-  }
-
-  // A Mongo _id is unique by construction, so (unlike a lookup by citeKey) this can never match
-  // more than one entry — no coalescing needed, just a plain lookup that silently skips an edge
-  // whose related entry no longer exists (e.g. deleted since the edge was recorded).
-  private List&lt;BibTexEntry&gt; relatedEntries(Stream&lt;String&gt; entryIds) {
-<span class="fc" id="L88">    return entryIds.map(bibTexEntryRepository::findById).flatMap(Optional::stream).toList();</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">    return sourceEntryId == null</span>
+<span class="fc" id="L70">        ? unresolvedCitationRepository.findByProjectId(projectId.intValue())</span>
+<span class="fc" id="L71">        : unresolvedCitationRepository.findByProjectIdAndSourceEntryId(</span>
+<span class="fc" id="L72">            projectId.intValue(), sourceEntryId);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

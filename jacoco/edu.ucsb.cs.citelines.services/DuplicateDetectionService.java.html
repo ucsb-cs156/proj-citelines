@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service;
  * &lt;p&gt;Entries are grouped by normalized DOI first ({@link #REASON_SAME_DOI}, high confidence);
  * entries with no usable DOI are then grouped by normalized title ({@link #REASON_SIMILAR_TITLE}, a
  * weaker signal). Every run recomputes both fields from scratch for every entry, clearing stale
- * marks for entries no longer part of a group — unlike {@link BibTexEntryUpgradeService}, this job
+ * marks for entries no longer part of a group — unlike {@link BibTexEntryImproveService}, this job
  * owns this derived data outright rather than filling in gaps in user-entered content, so there is
  * no &quot;might already be reviewed/hand-edited&quot; reason to preserve a stale mark.
  */
