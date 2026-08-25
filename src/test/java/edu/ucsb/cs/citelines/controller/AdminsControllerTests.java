@@ -14,7 +14,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import edu.ucsb.cs.citelines.ControllerTestCase;
 import edu.ucsb.cs.citelines.entity.Admin;
+import edu.ucsb.cs.citelines.entity.User;
 import edu.ucsb.cs.citelines.repository.AdminRepository;
+import edu.ucsb.cs.citelines.repository.ResearcherRepository;
 import edu.ucsb.cs.citelines.repository.UserRepository;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -24,6 +26,10 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -36,6 +42,7 @@ import org.springframework.test.web.servlet.MvcResult;
 public class AdminsControllerTests extends ControllerTestCase {
 
   @MockitoBean AdminRepository adminRepository;
+  @MockitoBean ResearcherRepository researcherRepository;
   @MockitoBean UserRepository userRepository;
 
   // Authorization tests for post
@@ -68,6 +75,25 @@ public class AdminsControllerTests extends ControllerTestCase {
   @Test
   public void logged_in_admin_can_get_all() throws Exception {
     mockMvc.perform(get("/api/admin/all")).andExpect(status().is(200));
+  }
+
+  @Test
+  public void logged_out_users_cannot_get_paged_users() throws Exception {
+    mockMvc.perform(get("/api/admin/users")).andExpect(status().is(403));
+  }
+
+  @WithMockUser(roles = {"USER"})
+  @Test
+  public void logged_in_users_cannot_get_paged_users() throws Exception {
+    mockMvc.perform(get("/api/admin/users")).andExpect(status().is(403));
+  }
+
+  @WithMockUser(roles = {"ADMIN"})
+  @Test
+  public void logged_in_admin_can_get_paged_users() throws Exception {
+    when(userRepository.findAll(any(PageRequest.class)))
+        .thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 10, Sort.by("id")), 0));
+    mockMvc.perform(get("/api/admin/users")).andExpect(status().is(200));
   }
 
   // Authorization tests for delete
@@ -147,6 +173,52 @@ public class AdminsControllerTests extends ControllerTestCase {
 
     verify(adminRepository, times(1)).findAll();
     String expectedJson = mapper.writeValueAsString(expectedAdminDTOs);
+    String responseString = response.getResponse().getContentAsString();
+    assertEquals(expectedJson, responseString);
+  }
+
+  @WithMockUser(roles = {"ADMIN"})
+  @Test
+  public void logged_in_admin_can_get_paged_users_with_roles() throws Exception {
+    User user1 =
+        User.builder()
+            .id(1L)
+            .givenName("Phill")
+            .familyName("Conrad")
+            .email("phtcon@ucsb.edu")
+            .build();
+    User user2 =
+        User.builder()
+            .id(2L)
+            .givenName("Craig")
+            .familyName("Zzyxx")
+            .email("craig.zzyzx@example.org")
+            .build();
+
+    PageRequest pageRequest = PageRequest.of(0, 10, Sort.by("id"));
+    Page<User> usersPage = new PageImpl<>(List.of(user1, user2), pageRequest, 2);
+    List<AdminsController.UserDTO> expectedUsers =
+        List.of(
+            new AdminsController.UserDTO(user1, true, false),
+            new AdminsController.UserDTO(user2, false, true));
+    AdminsController.UsersPageDTO expectedPage =
+        new AdminsController.UsersPageDTO(expectedUsers, 0, 10, 2, 1);
+
+    when(userRepository.findAll(eq(pageRequest))).thenReturn(usersPage);
+    when(adminRepository.existsByEmail("phtcon@ucsb.edu")).thenReturn(true);
+    when(researcherRepository.existsByEmail("phtcon@ucsb.edu")).thenReturn(false);
+    when(adminRepository.existsByEmail("craig.zzyzx@example.org")).thenReturn(false);
+    when(researcherRepository.existsByEmail("craig.zzyzx@example.org")).thenReturn(true);
+
+    MvcResult response =
+        mockMvc.perform(get("/api/admin/users")).andExpect(status().isOk()).andReturn();
+
+    verify(userRepository, times(1)).findAll(pageRequest);
+    verify(adminRepository, times(1)).existsByEmail("phtcon@ucsb.edu");
+    verify(researcherRepository, times(1)).existsByEmail("phtcon@ucsb.edu");
+    verify(adminRepository, times(1)).existsByEmail("craig.zzyzx@example.org");
+    verify(researcherRepository, times(1)).existsByEmail("craig.zzyzx@example.org");
+    String expectedJson = mapper.writeValueAsString(expectedPage);
     String responseString = response.getResponse().getContentAsString();
     assertEquals(expectedJson, responseString);
   }

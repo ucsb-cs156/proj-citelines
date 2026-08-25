@@ -1,8 +1,11 @@
 package edu.ucsb.cs.citelines.controller;
 
 import edu.ucsb.cs.citelines.entity.Admin;
+import edu.ucsb.cs.citelines.entity.User;
 import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
 import edu.ucsb.cs.citelines.repository.AdminRepository;
+import edu.ucsb.cs.citelines.repository.ResearcherRepository;
+import edu.ucsb.cs.citelines.repository.UserRepository;
 import edu.ucsb.cs.citelines.utilities.CanonicalFormConverter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,6 +15,9 @@ import java.util.stream.StreamSupport;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +33,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminsController extends ApiController {
 
   @Autowired AdminRepository adminRepository;
+  @Autowired ResearcherRepository researcherRepository;
+  @Autowired UserRepository userRepository;
 
   @Value("#{'${app.admin.emails}'.split(',')}")
   List<String> adminEmails;
@@ -34,6 +42,36 @@ public class AdminsController extends ApiController {
   public static record AdminDTO(String email, boolean isInAdminEmails) {
     public AdminDTO(Admin admin, List<String> adminEmails) {
       this(admin.getEmail(), adminEmails.contains(admin.getEmail()));
+    }
+  }
+
+  public static record UserDTO(
+      long id,
+      String givenName,
+      String familyName,
+      String email,
+      boolean admin,
+      boolean researcher) {
+    public UserDTO(User user, boolean admin, boolean researcher) {
+      this(
+          user.getId(),
+          user.getGivenName(),
+          user.getFamilyName(),
+          user.getEmail(),
+          admin,
+          researcher);
+    }
+  }
+
+  public static record UsersPageDTO(
+      List<UserDTO> content, int number, int size, long totalElements, int totalPages) {
+    public UsersPageDTO(Page<UserDTO> page) {
+      this(
+          page.getContent(),
+          page.getNumber(),
+          page.getSize(),
+          page.getTotalElements(),
+          page.getTotalPages());
     }
   }
 
@@ -54,6 +92,24 @@ public class AdminsController extends ApiController {
     return StreamSupport.stream(admins.spliterator(), false)
         .map(admin -> new AdminDTO(admin, adminEmails))
         .toList();
+  }
+
+  @Operation(summary = "List paged users")
+  @PreAuthorize("hasRole('ROLE_ADMIN')")
+  @GetMapping("/users")
+  public UsersPageDTO pagedUsers(
+      @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+    Page<UserDTO> userPage =
+        userRepository
+            .findAll(PageRequest.of(page, size, Sort.by("id")))
+            .map(
+                user ->
+                    new UserDTO(
+                        user,
+                        adminRepository.existsByEmail(user.getEmail()),
+                        researcherRepository.existsByEmail(user.getEmail())));
+
+    return new UsersPageDTO(userPage);
   }
 
   @Operation(summary = "Delete an Admin")
