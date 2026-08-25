@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CrossrefResolver.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">CrossrefResolver.java</span></div><h1>CrossrefResolver.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
+
+/**
+ * Client for the Crossref REST API (https://api.crossref.org, no API key required), tried after
+ * OpenAlex and Semantic Scholar in the resolver chain — see {@code
+ * docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md}.
+ *
+ * &lt;p&gt;Crossref's public API has no citing-works endpoint at all ({@link #getCitations} always
+ * returns an empty list), but a work's own {@code reference} array is returned inline in the same
+ * response that resolves it — some items carry a {@code DOI}, some carry inline {@code
+ * article-title}/{@code year}/{@code author} with no DOI, some are pure {@code unstructured} free
+ * text with nothing parseable. All three shapes become {@link ResolvedWork} stubs in {@link
+ * #resolveByDoi}'s {@code embeddedReferences}, so {@link #getReferences} needs no extra network
+ * call — it just returns what was already parsed.
+ */
+<span class="fc" id="L29">@Slf4j</span>
+@Service
+public class CrossrefResolver implements CitationMetadataResolver {
+
+  private static final String BASE_URL = &quot;https://api.crossref.org&quot;;
+
+  // Crossref's own type vocabulary overlaps with, but isn't identical to, OpenAlex's — translated
+  // here into the vocabulary BibTexSynthesisService's ENTRY_TYPE_MAP already understands. Any type
+  // not listed here (e.g. &quot;posted-content&quot;, &quot;peer-review&quot;) is passed through unchanged and simply
+  // falls back to &quot;misc&quot; there, which is the correct behavior for an unmapped type either way.
+<span class="fc" id="L39">  private static final Map&lt;String, String&gt; TYPE_TRANSLATION =</span>
+<span class="fc" id="L40">      Map.of(</span>
+          &quot;journal-article&quot;, &quot;article&quot;,
+          &quot;monograph&quot;, &quot;book&quot;);
+
+  private final RestTemplate restTemplate;
+  private final DOIService doiService;
+  private final String mailto;
+  private final ApiRetryHelper retryHelper;
+<span class="fc" id="L48">  private final ObjectMapper objectMapper = new ObjectMapper();</span>
+
+  public CrossrefResolver(
+      RestTemplate restTemplate,
+      DOIService doiService,
+      @Value(&quot;${citelines.api.crossref.delay-ms:100}&quot;) int delayMs,
+<span class="fc" id="L54">      @Value(&quot;${citelines.api.crossref.mailto:}&quot;) String mailto) {</span>
+<span class="fc" id="L55">    this.restTemplate = restTemplate;</span>
+<span class="fc" id="L56">    this.doiService = doiService;</span>
+<span class="fc" id="L57">    this.mailto = mailto;</span>
+<span class="fc" id="L58">    this.retryHelper = new ApiRetryHelper(&quot;Crossref&quot;, &quot;CROSSREF_API_DELAY_MS&quot;, delayMs, 5, delayMs);</span>
+<span class="fc" id="L59">  }</span>
+
+  @Override
+  public String name() {
+<span class="fc" id="L63">    return &quot;Crossref&quot;;</span>
+  }
+
+  @Override
+  public Optional&lt;ResolvedWork&gt; resolveByDoi(String doi) {
+<span class="fc" id="L68">    String url = BASE_URL + &quot;/works/&quot; + doi + mailtoSuffix();</span>
+    try {
+<span class="fc" id="L70">      String body =</span>
+<span class="fc" id="L71">          retryHelper.execute(</span>
+<span class="fc" id="L72">              &quot;GET /works/&quot; + doi, () -&gt; restTemplate.getForObject(url, String.class));</span>
+<span class="fc" id="L73">      return Optional.of(parseWork(readTree(body).path(&quot;message&quot;)));</span>
+<span class="fc" id="L74">    } catch (HttpClientErrorException.NotFound e) {</span>
+<span class="fc" id="L75">      return Optional.empty();</span>
+    }
+  }
+
+  @Override
+  public List&lt;ResolvedWork&gt; getReferences(ResolvedWork sourceWork, int maxResults) {
+<span class="fc" id="L81">    List&lt;ResolvedWork&gt; embedded = sourceWork.embeddedReferences();</span>
+<span class="fc" id="L82">    return embedded.subList(0, Math.min(embedded.size(), maxResults));</span>
+  }
+
+  /** Crossref's public API has no citing-works endpoint. */
+  @Override
+  public List&lt;ResolvedWork&gt; getCitations(ResolvedWork sourceWork, int maxResults) {
+<span class="fc" id="L88">    return List.of();</span>
+  }
+
+  private String mailtoSuffix() {
+<span class="fc bfc" id="L92" title="All 4 branches covered.">    return mailto != null &amp;&amp; !mailto.isBlank() ? &quot;?mailto=&quot; + mailto : &quot;&quot;;</span>
+  }
+
+  private ResolvedWork parseWork(JsonNode node) {
+<span class="fc" id="L96">    List&lt;String&gt; authorNames = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">    for (JsonNode author : node.path(&quot;author&quot;)) {</span>
+<span class="fc" id="L98">      String name = authorFullName(author);</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">      if (name != null) {</span>
+<span class="fc" id="L100">        authorNames.add(name);</span>
+      }
+<span class="fc" id="L102">    }</span>
+
+<span class="fc" id="L104">    List&lt;ResolvedWork&gt; embeddedReferences = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">    for (JsonNode refNode : node.path(&quot;reference&quot;)) {</span>
+<span class="fc" id="L106">      embeddedReferences.add(parseReferenceItem(refNode));</span>
+<span class="fc" id="L107">    }</span>
+
+<span class="fc" id="L109">    return new ResolvedWork(</span>
+<span class="fc" id="L110">        textOrNull(node, &quot;DOI&quot;),</span>
+<span class="fc" id="L111">        normalizeDoiOrNull(textOrNull(node, &quot;DOI&quot;)),</span>
+<span class="fc" id="L112">        firstOrNull(node.path(&quot;title&quot;)),</span>
+<span class="fc" id="L113">        yearFrom(node),</span>
+<span class="fc" id="L114">        translateType(textOrNull(node, &quot;type&quot;)),</span>
+        authorNames,
+<span class="fc" id="L116">        firstOrNull(node.path(&quot;container-title&quot;)),</span>
+<span class="fc" id="L117">        List.of(),</span>
+        embeddedReferences,
+<span class="fc" id="L119">        List.of(),</span>
+<span class="fc" id="L120">        stripJatsTags(textOrNull(node, &quot;abstract&quot;)),</span>
+<span class="fc" id="L121">        textOrNull(node, &quot;publisher&quot;),</span>
+<span class="fc" id="L122">        textOrNull(node, &quot;page&quot;),</span>
+<span class="fc" id="L123">        firstOrNull(node.path(&quot;ISBN&quot;)),</span>
+<span class="fc" id="L124">        textOrNull(node.path(&quot;event&quot;), &quot;name&quot;),</span>
+<span class="fc" id="L125">        textOrNull(node.path(&quot;event&quot;), &quot;location&quot;),</span>
+<span class="fc" id="L126">        textOrNull(node, &quot;volume&quot;),</span>
+<span class="fc" id="L127">        textOrNull(node, &quot;issue&quot;));</span>
+  }
+
+  // Crossref's `abstract` field, when present, is deposited as a JATS XML fragment (e.g. wrapped
+  // in &lt;jats:p&gt; tags) even though the surrounding response is JSON — left as literal markup would
+  // look broken inside a BibTeX field, so any tag is stripped down to its plain text content.
+  private static String stripJatsTags(String value) {
+<span class="fc bfc" id="L134" title="All 2 branches covered.">    return value == null ? null : value.replaceAll(&quot;&lt;[^&gt;]+&gt;&quot;, &quot;&quot;).trim();</span>
+  }
+
+  // A Crossref `reference` array item is one of three shapes: DOI-only (most common — the
+  // referenced work's own metadata isn't inlined at all, just its DOI), structured-with-no-DOI
+  // (inline `article-title`/`year`/`author`), or pure `unstructured` free text with nothing
+  // parseable (left as an all-null stub, handled the same as any other unresolvable item).
+  private ResolvedWork parseReferenceItem(JsonNode refNode) {
+<span class="fc" id="L142">    String doi = normalizeDoiOrNull(textOrNull(refNode, &quot;DOI&quot;));</span>
+<span class="fc" id="L143">    String articleTitle = textOrNull(refNode, &quot;article-title&quot;);</span>
+<span class="fc" id="L144">    String author = textOrNull(refNode, &quot;author&quot;);</span>
+<span class="fc" id="L145">    return new ResolvedWork(</span>
+<span class="fc" id="L146">        textOrNull(refNode, &quot;key&quot;),</span>
+        doi,
+        articleTitle,
+<span class="fc" id="L149">        intOrNull(refNode, &quot;year&quot;),</span>
+        null,
+<span class="fc bfc" id="L151" title="All 2 branches covered.">        author != null ? List.of(author) : List.of(),</span>
+<span class="fc" id="L152">        textOrNull(refNode, &quot;journal-title&quot;),</span>
+<span class="fc" id="L153">        List.of(),</span>
+<span class="fc" id="L154">        List.of(),</span>
+<span class="fc" id="L155">        List.of());</span>
+  }
+
+  private static String authorFullName(JsonNode author) {
+<span class="fc" id="L159">    String given = textOrNull(author, &quot;given&quot;);</span>
+<span class="fc" id="L160">    String family = textOrNull(author, &quot;family&quot;);</span>
+<span class="fc bfc" id="L161" title="All 2 branches covered.">    if (family == null) {</span>
+<span class="fc" id="L162">      return given;</span>
+    }
+<span class="fc bfc" id="L164" title="All 2 branches covered.">    return given != null ? given + &quot; &quot; + family : family;</span>
+  }
+
+  private static String translateType(String crossrefType) {
+<span class="fc bfc" id="L168" title="All 2 branches covered.">    if (crossrefType == null) {</span>
+<span class="fc" id="L169">      return null;</span>
+    }
+<span class="fc" id="L171">    return TYPE_TRANSLATION.getOrDefault(crossrefType, crossrefType);</span>
+  }
+
+  private static Integer yearFrom(JsonNode node) {
+<span class="fc bfc" id="L175" title="All 2 branches covered.">    for (String field : List.of(&quot;published-print&quot;, &quot;published-online&quot;, &quot;published&quot;, &quot;issued&quot;)) {</span>
+<span class="fc" id="L176">      JsonNode dateParts = node.path(field).path(&quot;date-parts&quot;).path(0).path(0);</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">      if (dateParts.isInt()) {</span>
+<span class="fc" id="L178">        return dateParts.asInt();</span>
+      }
+<span class="fc" id="L180">    }</span>
+<span class="fc" id="L181">    return null;</span>
+  }
+
+  private static String firstOrNull(JsonNode arrayNode) {
+<span class="fc" id="L185">    JsonNode first = arrayNode.path(0);</span>
+<span class="fc bfc" id="L186" title="All 4 branches covered.">    return first.isMissingNode() || first.isNull() ? null : first.asText();</span>
+  }
+
+  private String normalizeDoiOrNull(String rawDoi) {
+<span class="fc bfc" id="L190" title="All 2 branches covered.">    if (rawDoi == null) {</span>
+<span class="fc" id="L191">      return null;</span>
+    }
+    try {
+<span class="fc" id="L194">      return doiService.normalizeRawDOI(rawDoi);</span>
+<span class="fc" id="L195">    } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L196">      log.debug(&quot;Could not normalize DOI from Crossref: {}&quot;, rawDoi);</span>
+<span class="fc" id="L197">      return null;</span>
+    }
+  }
+
+  private static String textOrNull(JsonNode node, String field) {
+<span class="fc" id="L202">    JsonNode child = node.path(field);</span>
+<span class="fc bfc" id="L203" title="All 4 branches covered.">    return child.isMissingNode() || child.isNull() ? null : child.asText();</span>
+  }
+
+  private static Integer intOrNull(JsonNode node, String field) {
+<span class="fc" id="L207">    JsonNode child = node.path(field);</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">    if (child.isInt()) {</span>
+<span class="fc" id="L209">      return child.asInt();</span>
+    }
+<span class="fc bfc" id="L211" title="All 2 branches covered.">    if (child.isTextual()) {</span>
+      try {
+<span class="fc" id="L213">        return Integer.parseInt(child.asText());</span>
+<span class="fc" id="L214">      } catch (NumberFormatException e) {</span>
+<span class="fc" id="L215">        return null;</span>
+      }
+    }
+<span class="fc" id="L218">    return null;</span>
+  }
+
+  private JsonNode readTree(String json) {
+    try {
+<span class="fc" id="L223">      return objectMapper.readTree(json);</span>
+<span class="fc" id="L224">    } catch (JsonProcessingException e) {</span>
+<span class="fc" id="L225">      throw new IllegalStateException(&quot;Could not parse Crossref API response as JSON&quot;, e);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

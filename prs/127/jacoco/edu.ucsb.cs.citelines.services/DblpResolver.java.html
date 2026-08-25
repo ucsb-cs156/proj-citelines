@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DblpResolver.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">DblpResolver.java</span></div><h1>DblpResolver.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+/**
+ * Client for DBLP's public search API (https://dblp.org/search/publ/api, no API key required),
+ * tried last in the resolver chain — see {@code
+ * docs/design/OpenAlex-MVP-to-full-tiered-fallback-engine.md} and issue #66. DBLP curates the CS
+ * literature catalog independently of Crossref/OpenAlex/Semantic Scholar, so it can have cleaner
+ * {@code venue}/{@code pages}/{@code volume}/{@code number} data than a very recently registered
+ * DOI has on the other three — at the cost of narrower (CS-adjacent-venues-only) coverage, and no
+ * {@code abstract}/{@code publisher}/{@code isbn} at all (not part of DBLP's schema).
+ *
+ * &lt;p&gt;DBLP has no dedicated by-DOI lookup endpoint, only free-text search — {@link #resolveByDoi}
+ * queries using the DOI itself as the search text (DBLP's index includes each record's DOI, so this
+ * reliably surfaces it as a hit if DBLP has the record at all) and accepts only a hit whose own
+ * {@code info.doi} field matches exactly — the same confirm-by-exact-field-match approach {@link
+ * CheckLinksService#confirmHandleViaDblp} already uses for handle verification, reused here instead
+ * of a second copy of it.
+ */
+<span class="fc" id="L37">@Slf4j</span>
+@Service
+public class DblpResolver implements CitationMetadataResolver {
+
+  static final String SEARCH_URL = &quot;https://dblp.org/search/publ/api&quot;;
+
+  // DBLP's own type vocabulary translated into the vocabulary BibTexSynthesisService's
+  // ENTRY_TYPE_MAP understands. Any type not listed here (e.g. &quot;Editorship&quot;, &quot;Informal and Other
+  // Publications&quot;) is passed through unchanged and simply falls back to &quot;misc&quot; there.
+<span class="fc" id="L46">  private static final Map&lt;String, String&gt; TYPE_TRANSLATION =</span>
+<span class="fc" id="L47">      Map.of(</span>
+          &quot;Journal Articles&quot;, &quot;article&quot;,
+          &quot;Conference and Workshop Papers&quot;, &quot;proceedings-article&quot;,
+          &quot;Books and Theses&quot;, &quot;book&quot;);
+
+  private final RestTemplate restTemplate;
+  private final ApiRetryHelper retryHelper;
+<span class="fc" id="L54">  private final ObjectMapper objectMapper = new ObjectMapper();</span>
+
+  public DblpResolver(
+<span class="fc" id="L57">      RestTemplate restTemplate, @Value(&quot;${citelines.api.dblp.delay-ms:100}&quot;) int delayMs) {</span>
+<span class="fc" id="L58">    this.restTemplate = restTemplate;</span>
+<span class="fc" id="L59">    this.retryHelper = new ApiRetryHelper(&quot;DBLP&quot;, &quot;DBLP_API_DELAY_MS&quot;, delayMs, 5, delayMs);</span>
+<span class="fc" id="L60">  }</span>
+
+  @Override
+  public String name() {
+<span class="fc" id="L64">    return &quot;DBLP&quot;;</span>
+  }
+
+  @Override
+  public Optional&lt;ResolvedWork&gt; resolveByDoi(String doi) {
+<span class="fc" id="L69">    String url = SEARCH_URL + &quot;?format=json&amp;q=&quot; + URLEncoder.encode(doi, StandardCharsets.UTF_8);</span>
+<span class="fc" id="L70">    HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L71">    headers.set(HttpHeaders.USER_AGENT, &quot;Citelines/1.0&quot;);</span>
+<span class="fc" id="L72">    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
+<span class="fc" id="L73">    String body =</span>
+<span class="fc" id="L74">        retryHelper.execute(</span>
+            &quot;GET &quot; + url,
+            () -&gt; {
+<span class="fc" id="L77">              ResponseEntity&lt;String&gt; response =</span>
+<span class="fc" id="L78">                  restTemplate.exchange(url, HttpMethod.GET, request, String.class);</span>
+<span class="fc" id="L79">              return response.getBody();</span>
+            });
+<span class="fc" id="L81">    return findMatchingHit(body, doi).map(info -&gt; parseHit(info, doi));</span>
+  }
+
+  /** DBLP's public API has no reference-list endpoint. */
+  @Override
+  public List&lt;ResolvedWork&gt; getReferences(ResolvedWork sourceWork, int maxResults) {
+<span class="fc" id="L87">    return List.of();</span>
+  }
+
+  /** DBLP's public API has no citing-works endpoint. */
+  @Override
+  public List&lt;ResolvedWork&gt; getCitations(ResolvedWork sourceWork, int maxResults) {
+<span class="fc" id="L93">    return List.of();</span>
+  }
+
+  private Optional&lt;JsonNode&gt; findMatchingHit(String body, String doi) {
+    JsonNode hits;
+    try {
+<span class="fc" id="L99">      hits = objectMapper.readTree(body).path(&quot;result&quot;).path(&quot;hits&quot;).path(&quot;hit&quot;);</span>
+<span class="fc" id="L100">    } catch (JsonProcessingException e) {</span>
+<span class="fc" id="L101">      log.debug(&quot;Could not parse DBLP response as JSON&quot;);</span>
+<span class="fc" id="L102">      return Optional.empty();</span>
+<span class="fc" id="L103">    }</span>
+<span class="fc bfc" id="L104" title="All 2 branches covered.">    for (JsonNode hit : hits) {</span>
+<span class="fc" id="L105">      JsonNode info = hit.path(&quot;info&quot;);</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">      if (doi.equalsIgnoreCase(textOrNull(info, &quot;doi&quot;))) {</span>
+<span class="fc" id="L107">        return Optional.of(info);</span>
+      }
+<span class="fc" id="L109">    }</span>
+<span class="fc" id="L110">    return Optional.empty();</span>
+  }
+
+  // `doi` is the already-normalized value resolveByDoi was called with, not re-extracted from
+  // info.doi: findMatchingHit only ever passes through a hit whose own info.doi already matched
+  // it exactly, so re-parsing/re-normalizing that same string here would be redundant.
+  private ResolvedWork parseHit(JsonNode info, String doi) {
+<span class="fc" id="L117">    return new ResolvedWork(</span>
+<span class="fc" id="L118">        textOrNull(info, &quot;key&quot;),</span>
+        doi,
+<span class="fc" id="L120">        textOrNull(info, &quot;title&quot;),</span>
+<span class="fc" id="L121">        intOrNull(info, &quot;year&quot;),</span>
+<span class="fc" id="L122">        translateType(textOrNull(info, &quot;type&quot;)),</span>
+<span class="fc" id="L123">        authorNames(info),</span>
+<span class="fc" id="L124">        textOrNull(info, &quot;venue&quot;),</span>
+<span class="fc" id="L125">        List.of(),</span>
+<span class="fc" id="L126">        List.of(),</span>
+<span class="fc" id="L127">        List.of(),</span>
+        null,
+        null,
+<span class="fc" id="L130">        textOrNull(info, &quot;pages&quot;),</span>
+        null,
+        null,
+        null,
+<span class="fc" id="L134">        textOrNull(info, &quot;volume&quot;),</span>
+<span class="fc" id="L135">        textOrNull(info, &quot;number&quot;));</span>
+  }
+
+  // DBLP's JSON API represents `authors.author` as a single object when there's exactly one
+  // author, or an array of such objects when there's more than one — a well-known quirk of DBLP's
+  // API (and of many similarly-generated XML-to-JSON APIs), handled defensively here rather than
+  // assuming either shape.
+  private static List&lt;String&gt; authorNames(JsonNode info) {
+<span class="fc" id="L143">    List&lt;String&gt; names = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L144">    JsonNode author = info.path(&quot;authors&quot;).path(&quot;author&quot;);</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">    if (author.isArray()) {</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">      for (JsonNode item : author) {</span>
+<span class="fc" id="L147">        addAuthorName(names, item);</span>
+<span class="fc" id="L148">      }</span>
+    } else {
+<span class="fc" id="L150">      addAuthorName(names, author);</span>
+    }
+<span class="fc" id="L152">    return names;</span>
+  }
+
+  private static void addAuthorName(List&lt;String&gt; names, JsonNode authorNode) {
+<span class="fc bfc" id="L156" title="All 2 branches covered.">    String name = authorNode.isObject() ? textOrNull(authorNode, &quot;text&quot;) : authorNode.asText(null);</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">    if (name != null) {</span>
+<span class="fc" id="L158">      names.add(name);</span>
+    }
+<span class="fc" id="L160">  }</span>
+
+  private static String translateType(String dblpType) {
+<span class="fc bfc" id="L163" title="All 2 branches covered.">    if (dblpType == null) {</span>
+<span class="fc" id="L164">      return null;</span>
+    }
+<span class="fc" id="L166">    return TYPE_TRANSLATION.getOrDefault(dblpType, dblpType);</span>
+  }
+
+  private static String textOrNull(JsonNode node, String field) {
+<span class="fc" id="L170">    JsonNode child = node.path(field);</span>
+<span class="fc bfc" id="L171" title="All 4 branches covered.">    return child.isMissingNode() || child.isNull() ? null : child.asText();</span>
+  }
+
+  private static Integer intOrNull(JsonNode node, String field) {
+<span class="fc" id="L175">    JsonNode child = node.path(field);</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">    if (child.isInt()) {</span>
+<span class="fc" id="L177">      return child.asInt();</span>
+    }
+<span class="fc bfc" id="L179" title="All 2 branches covered.">    if (child.isTextual()) {</span>
+      try {
+<span class="fc" id="L181">        return Integer.parseInt(child.asText());</span>
+<span class="fc" id="L182">      } catch (NumberFormatException e) {</span>
+<span class="fc" id="L183">        return null;</span>
+      }
+    }
+<span class="fc" id="L186">    return null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
