@@ -10,13 +10,15 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * A MongoDB document storing the last-saved state of a {@code CitationFilter} panel (and its
- * open/closed state), keyed by project and, for the two entry-scoped variants, which BibTexEntry
- * and direction it belongs to (see {@link Scope}). Shared per-project (not per-user) — whichever
- * researcher last changed a filter is what every collaborator on that project sees. See issue #121.
+ * open/closed state), keyed by project, which BibTexEntry and direction it belongs to for the two
+ * entry-scoped variants (see {@link Scope}), and which user saved it — per-user, not shared across
+ * a project's collaborators, so two researchers filtering the same project's literature search
+ * independently don't clobber each other's settings (issue #130; originally shared per-project when
+ * first built for issue #121, changed before any real user relied on it).
  *
- * <p>{@code id} is a deterministic composite (see {@link #makeId}) of the three fields that
- * identify a single filter panel's scope, so saving the same scope's state twice (i.e. every save
- * after the first) overwrites rather than duplicates it, mirroring {@link
+ * <p>{@code id} is a deterministic composite (see {@link #makeId}) of the four fields that identify
+ * a single user's filter panel scope, so saving the same scope's state twice (i.e. every save after
+ * the first) overwrites rather than duplicates it, mirroring {@link
  * UnresolvedCitation#makeId}/{@link CitationEdge}.
  */
 @Data
@@ -42,6 +44,9 @@ public class CitationFilterState {
   /** The Mongo {@code _id} of the BibTexEntry this panel belongs to; {@code null} for PROJECT. */
   private String entryId;
 
+  /** The Postgres id of the {@code User} this saved state belongs to (issue #130). */
+  private long userId;
+
   private boolean expanded;
   private List<String> relevance;
   private String link;
@@ -50,7 +55,7 @@ public class CitationFilterState {
   private List<Long> tagIds;
   private String tagMode;
 
-  public static String makeId(int projectId, Scope scope, String entryId) {
-    return "%d:%s:%s".formatted(projectId, scope, entryId == null ? "" : entryId);
+  public static String makeId(int projectId, Scope scope, String entryId, long userId) {
+    return "%d:%s:%s:%d".formatted(projectId, scope, entryId == null ? "" : entryId, userId);
   }
 }

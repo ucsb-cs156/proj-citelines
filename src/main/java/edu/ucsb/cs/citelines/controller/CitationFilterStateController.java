@@ -22,10 +22,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Persists (and retrieves) the last-saved state of a {@code CitationFilter} panel, shared per
- * project across every collaborator, per issue #121. Only ever written on an actual user change
- * (see {@link #post}); a scope nobody has touched yet reads back as a default, unsaved, via {@link
- * #get}.
+ * Persists (and retrieves) the last-saved state of a {@code CitationFilter} panel, per user (issue
+ * #130) rather than shared across a project's collaborators. Only ever written on an actual user
+ * change (see {@link #post}); a scope nobody has touched yet reads back as a default, unsaved, via
+ * {@link #get}.
  */
 @Tag(name = "CitationFilterState")
 @RequestMapping("/api/citationfilterstate")
@@ -51,7 +51,8 @@ public class CitationFilterStateController extends ApiController {
     if (scope != Scope.PROJECT) {
       requireEntry(projectId, entryId);
     }
-    return citationFilterStateService.getOrDefault(projectId.intValue(), scope, entryId);
+    return citationFilterStateService.getOrDefault(
+        projectId.intValue(), scope, entryId, getCurrentUser().getUser().getId());
   }
 
   @Operation(summary = "Save the state of a citation filter panel")
@@ -69,6 +70,7 @@ public class CitationFilterStateController extends ApiController {
     state.setProjectId(projectId.intValue());
     state.setScope(scope);
     state.setEntryId(entryId);
+    state.setUserId(getCurrentUser().getUser().getId());
     return citationFilterStateService.save(state);
   }
 

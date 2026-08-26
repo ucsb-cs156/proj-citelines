@@ -9,26 +9,33 @@ public class CitationFilterStateTests {
 
   @Test
   void makeId_for_project_scope_omits_entryId() {
-    String id = CitationFilterState.makeId(1, Scope.PROJECT, null);
-    assertEquals("1:PROJECT:", id);
+    String id = CitationFilterState.makeId(1, Scope.PROJECT, null, 42L);
+    assertEquals("1:PROJECT::42", id);
   }
 
   @Test
   void makeId_for_references_scope_includes_entryId() {
-    String id = CitationFilterState.makeId(1, Scope.REFERENCES, "id-smith2020");
-    assertEquals("1:REFERENCES:id-smith2020", id);
+    String id = CitationFilterState.makeId(1, Scope.REFERENCES, "id-smith2020", 42L);
+    assertEquals("1:REFERENCES:id-smith2020:42", id);
   }
 
   @Test
   void makeId_for_citations_scope_includes_entryId() {
-    String id = CitationFilterState.makeId(1, Scope.CITATIONS, "id-smith2020");
-    assertEquals("1:CITATIONS:id-smith2020", id);
+    String id = CitationFilterState.makeId(1, Scope.CITATIONS, "id-smith2020", 42L);
+    assertEquals("1:CITATIONS:id-smith2020:42", id);
   }
 
   @Test
   void makeId_differs_across_projects_for_the_same_scope_and_entry() {
-    String id1 = CitationFilterState.makeId(1, Scope.REFERENCES, "id-smith2020");
-    String id2 = CitationFilterState.makeId(2, Scope.REFERENCES, "id-smith2020");
+    String id1 = CitationFilterState.makeId(1, Scope.REFERENCES, "id-smith2020", 42L);
+    String id2 = CitationFilterState.makeId(2, Scope.REFERENCES, "id-smith2020", 42L);
+    assertEquals(false, id1.equals(id2));
+  }
+
+  @Test
+  void makeId_differs_across_users_for_the_same_project_scope_and_entry() {
+    String id1 = CitationFilterState.makeId(1, Scope.REFERENCES, "id-smith2020", 42L);
+    String id2 = CitationFilterState.makeId(1, Scope.REFERENCES, "id-smith2020", 43L);
     assertEquals(false, id1.equals(id2));
   }
 }

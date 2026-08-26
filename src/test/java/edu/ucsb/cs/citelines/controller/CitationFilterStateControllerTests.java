@@ -38,12 +38,21 @@ public class CitationFilterStateControllerTests extends ControllerTestCase {
   @MockitoBean BibTexEntryRepository bibTexEntryRepository;
   @MockitoBean CitationFilterStateService citationFilterStateService;
 
+  // TestConfig's MockCurrentUserServiceImpl always resolves any @WithMockUser to a User with
+  // id=1L, regardless of username -- so every authenticated test below is "user 1L". Cross-user
+  // isolation itself (different users' saved state never colliding) is proven directly at the
+  // service level in CitationFilterStateServiceTests; what's worth asserting here is only that
+  // this controller actually threads the current user's id through to the service (see
+  // post_overwrites_the_projectId_scope_entryId_and_userId_from_query_params_and_auth below).
+  private static final long CURRENT_USER_ID = 1L;
+
   private static CitationFilterState state(Scope scope, String entryId) {
     return CitationFilterState.builder()
-        .id("1:" + scope + ":" + (entryId == null ? "" : entryId))
+        .id("1:" + scope + ":" + (entryId == null ? "" : entryId) + ":" + CURRENT_USER_ID)
         .projectId(1)
         .scope(scope)
         .entryId(entryId)
+        .userId(CURRENT_USER_ID)
         .expanded(true)
         .relevance(List.of("High"))
         .link("doi")
@@ -95,7 +104,8 @@ public class CitationFilterStateControllerTests extends ControllerTestCase {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
     CitationFilterState saved = state(Scope.PROJECT, null);
-    when(citationFilterStateService.getOrDefault(1, Scope.PROJECT, null)).thenReturn(saved);
+    when(citationFilterStateService.getOrDefault(1, Scope.PROJECT, null, CURRENT_USER_ID))
+        .thenReturn(saved);
 
     MvcResult response =
         mockMvc
@@ -117,7 +127,8 @@ public class CitationFilterStateControllerTests extends ControllerTestCase {
     when(bibTexEntryRepository.findByIdAndProjectId("id-smith2020", 1))
         .thenReturn(Optional.of(entry));
     CitationFilterState saved = state(Scope.REFERENCES, "id-smith2020");
-    when(citationFilterStateService.getOrDefault(1, Scope.REFERENCES, "id-smith2020"))
+    when(citationFilterStateService.getOrDefault(
+            1, Scope.REFERENCES, "id-smith2020", CURRENT_USER_ID))
         .thenReturn(saved);
 
     MvcResult response =
@@ -202,7 +213,7 @@ public class CitationFilterStateControllerTests extends ControllerTestCase {
       username = "phtcon",
       roles = {"RESEARCHER"})
   @Test
-  public void post_overwrites_the_projectId_scope_and_entryId_from_the_query_params()
+  public void post_overwrites_the_projectId_scope_entryId_and_userId_from_query_params_and_auth()
       throws Exception {
     Project project = Project.builder().id(1L).owner("phtcon@example.org").build();
     BibTexEntry entry = BibTexEntry.builder().id("id-smith2020").projectId(1).build();
@@ -212,10 +223,11 @@ public class CitationFilterStateControllerTests extends ControllerTestCase {
     when(citationFilterStateService.save(any()))
         .thenReturn(state(Scope.REFERENCES, "id-smith2020"));
 
-    // A malicious/stale body claiming a different project/scope/entry -- the query params (which
-    // ProjectSecurity actually authorizes against) must win.
+    // A malicious/stale body claiming a different project/scope/entry/user -- the query params
+    // (which ProjectSecurity actually authorizes against) and the authenticated user must win.
     String body =
         "{\"projectId\":99,\"scope\":\"CITATIONS\",\"entryId\":\"someone-elses-entry\","
+            + "\"userId\":12345,"
             + "\"expanded\":false,\"relevance\":[],\"link\":\"all\",\"duplicates\":\"all\","
             + "\"search\":\"\",\"tagIds\":[],\"tagMode\":\"and\"}";
 
@@ -232,6 +244,7 @@ public class CitationFilterStateControllerTests extends ControllerTestCase {
     assertEquals(1, captor.getValue().getProjectId());
     assertEquals(Scope.REFERENCES, captor.getValue().getScope());
     assertEquals("id-smith2020", captor.getValue().getEntryId());
+    assertEquals(CURRENT_USER_ID, captor.getValue().getUserId());
   }
 
   @WithMockUser(
