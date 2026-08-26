@@ -37,6 +37,7 @@ describe("useFilteredSortedCitations", () => {
     expect(result.current.filter).toEqual(DEFAULT_CITATION_FILTER);
     expect(result.current.sortCriteria).toEqual(DEFAULT_CITATION_SORT);
     expect(result.current.expanded).toBe(false);
+    expect(result.current.sortExpanded).toBe(false);
     expect(result.current.visibleCitations).toEqual(entries);
     expect(result.current.enableColumnSort).toBe(true);
   });
@@ -51,6 +52,19 @@ describe("useFilteredSortedCitations", () => {
     });
 
     expect(result.current.expanded).toBe(true);
+  });
+
+  test("setSortExpanded toggles the sortExpanded flag independently of expanded", () => {
+    const { result } = renderHook(() => useFilteredSortedCitations([]), {
+      wrapper: queryClientWrapper(),
+    });
+
+    act(() => {
+      result.current.setSortExpanded(true);
+    });
+
+    expect(result.current.sortExpanded).toBe(true);
+    expect(result.current.expanded).toBe(false);
   });
 
   test("setFilter narrows visibleCitations via matchesCitationFilter", () => {
@@ -126,6 +140,7 @@ describe("useFilteredSortedCitations", () => {
     act(() => {
       a.current.setSortCriteria([{ field: "Author", direction: "asc" }]);
       a.current.setExpanded(true);
+      a.current.setSortExpanded(true);
     });
 
     expect(a.current.enableColumnSort).toBe(false);
@@ -133,6 +148,8 @@ describe("useFilteredSortedCitations", () => {
     expect(b.current.sortCriteria).toEqual(DEFAULT_CITATION_SORT);
     expect(a.current.expanded).toBe(true);
     expect(b.current.expanded).toBe(false);
+    expect(a.current.sortExpanded).toBe(true);
+    expect(b.current.sortExpanded).toBe(false);
   });
 
   test("without persistence, no GET/POST is ever made", async () => {

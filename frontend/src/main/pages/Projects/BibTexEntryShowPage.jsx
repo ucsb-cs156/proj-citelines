@@ -812,6 +812,8 @@ export default function BibTexEntryShowPage({
             <CitationSort
               sortCriteria={referencesFilterSort.sortCriteria}
               onChange={referencesFilterSort.setSortCriteria}
+              expanded={referencesFilterSort.sortExpanded}
+              onExpandedChange={referencesFilterSort.setSortExpanded}
               testId={`${testId}-ReferencesSort`}
             />
             <CitationTable
@@ -862,6 +864,8 @@ export default function BibTexEntryShowPage({
             <CitationSort
               sortCriteria={citationsFilterSort.sortCriteria}
               onChange={citationsFilterSort.setSortCriteria}
+              expanded={citationsFilterSort.sortExpanded}
+              onExpandedChange={citationsFilterSort.setSortExpanded}
               testId={`${testId}-CitationsSort`}
             />
             <CitationTable

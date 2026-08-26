@@ -47,6 +47,8 @@ export default function CitationsTabComponent({
     setSortCriteria,
     expanded,
     setExpanded,
+    sortExpanded,
+    setSortExpanded,
     visibleCitations,
     enableColumnSort,
   } = useFilteredSortedCitations(citations, { projectId, scope: "PROJECT" });
@@ -98,6 +100,8 @@ export default function CitationsTabComponent({
         <CitationSort
           sortCriteria={sortCriteria}
           onChange={setSortCriteria}
+          expanded={sortExpanded}
+          onExpandedChange={setSortExpanded}
           testId={`${testIdPrefix}-CitationSort`}
         />
       </Row>
