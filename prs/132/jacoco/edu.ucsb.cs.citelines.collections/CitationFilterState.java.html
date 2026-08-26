@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CitationFilterState.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.collections</a> &gt; <span class="el_source">CitationFilterState.java</span></div><h1>CitationFilterState.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.collections;
+
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+/**
+ * A MongoDB document storing the last-saved state of a {@code CitationFilter} panel (and its
+ * open/closed state), keyed by project, which BibTexEntry and direction it belongs to for the two
+ * entry-scoped variants (see {@link Scope}), and which user saved it — per-user, not shared across
+ * a project's collaborators, so two researchers filtering the same project's literature search
+ * independently don't clobber each other's settings (issue #130; originally shared per-project when
+ * first built for issue #121, changed before any real user relied on it).
+ *
+ * &lt;p&gt;{@code id} is a deterministic composite (see {@link #makeId}) of the four fields that identify
+ * a single user's filter panel scope, so saving the same scope's state twice (i.e. every save after
+ * the first) overwrites rather than duplicates it, mirroring {@link
+ * UnresolvedCitation#makeId}/{@link CitationEdge}.
+ */
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Document(collection = &quot;citation_filter_state&quot;)
+public class CitationFilterState {
+
+  @Id private String id;
+
+  private int projectId;
+
+  /** Which of the three panels this state belongs to. */
+<span class="fc" id="L36">  public enum Scope {</span>
+<span class="fc" id="L37">    PROJECT,</span>
+<span class="fc" id="L38">    REFERENCES,</span>
+<span class="fc" id="L39">    CITATIONS</span>
+  }
+
+  private Scope scope;
+
+  /** The Mongo {@code _id} of the BibTexEntry this panel belongs to; {@code null} for PROJECT. */
+  private String entryId;
+
+  /** The Postgres id of the {@code User} this saved state belongs to (issue #130). */
+  private long userId;
+
+  private boolean expanded;
+  private List&lt;String&gt; relevance;
+  private String link;
+  private String duplicates;
+  private String search;
+  private List&lt;Long&gt; tagIds;
+  private String tagMode;
+
+  public static String makeId(int projectId, Scope scope, String entryId, long userId) {
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    return &quot;%d:%s:%s:%d&quot;.formatted(projectId, scope, entryId == null ? &quot;&quot; : entryId, userId);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
