@@ -9,6 +9,7 @@ import CitationsTabComponent from "main/components/Citations/TabComponent/Citati
 import bibTexEntriesFixtures from "fixtures/bibTexEntriesFixtures";
 import { tagsFixtures } from "fixtures/tagsFixtures";
 import { DEFAULT_CITATION_FILTER } from "main/utils/citationFilter";
+import { DEFAULT_CITATION_SORT } from "main/utils/citationSort";
 
 const mockToast = vi.fn();
 vi.mock("react-toastify", async (importOriginal) => {
@@ -43,6 +44,9 @@ describe("CitationsTabComponent tests", () => {
     axiosMock
       .onGet("/api/citationfilterstate")
       .reply(200, { ...DEFAULT_CITATION_FILTER, expanded: false });
+    axiosMock
+      .onGet("/api/citationsortstate")
+      .reply(200, { sortCriteria: DEFAULT_CITATION_SORT, expanded: false });
   });
 
   test("renders the Add Citation via BibTex and Add Citation via DOI buttons, and the citation table", async () => {
