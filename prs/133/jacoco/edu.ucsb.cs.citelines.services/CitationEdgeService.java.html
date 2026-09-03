@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CitationEdgeService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">CitationEdgeService.java</span></div><h1>CitationEdgeService.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import edu.ucsb.cs.citelines.collections.BibTexEntry;
+import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
+import edu.ucsb.cs.citelines.collections.CitationEdge;
+import edu.ucsb.cs.citelines.collections.CitationEdgeRepository;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
+import org.springframework.stereotype.Service;
+
+/**
+ * Looks up the BibTeX entries related to a given entry via the citation graph built by the &quot;Get
+ * References&quot;/&quot;Get Citations&quot; jobs (see {@link CitationGraphService}) — lifted out of {@code
+ * CitationEdgesController} once {@link edu.ucsb.cs.citelines.services.BibTexEntryImproveService}
+ * needed the same lookups for its {@code REFERENCES}/{@code CITATIONS} scopes (issue #110).
+ */
+@Service
+public class CitationEdgeService {
+
+  private final CitationEdgeRepository citationEdgeRepository;
+  private final BibTexEntryRepository bibTexEntryRepository;
+
+  public CitationEdgeService(
+<span class="fc" id="L25">      CitationEdgeRepository citationEdgeRepository, BibTexEntryRepository bibTexEntryRepository) {</span>
+<span class="fc" id="L26">    this.citationEdgeRepository = citationEdgeRepository;</span>
+<span class="fc" id="L27">    this.bibTexEntryRepository = bibTexEntryRepository;</span>
+<span class="fc" id="L28">  }</span>
+
+  /**
+   * @param entryId the Mongo {@code _id} of the entry to list references for — not its citeKey,
+   *     which a user can freely rename (see {@code CitationEdge}'s Javadoc)
+   */
+  public List&lt;BibTexEntry&gt; referencesOf(int projectId, String entryId) {
+<span class="fc" id="L35">    return relatedEntries(</span>
+<span class="fc" id="L36">        citationEdgeRepository.findByProjectIdAndCitingEntryId(projectId, entryId).stream()</span>
+<span class="fc" id="L37">            .map(CitationEdge::getCitedEntryId));</span>
+  }
+
+  /**
+   * @param entryId the Mongo {@code _id} of the entry to list citations for — not its citeKey,
+   *     which a user can freely rename (see {@code CitationEdge}'s Javadoc)
+   */
+  public List&lt;BibTexEntry&gt; citationsOf(int projectId, String entryId) {
+<span class="fc" id="L45">    return relatedEntries(</span>
+<span class="fc" id="L46">        citationEdgeRepository.findByProjectIdAndCitedEntryId(projectId, entryId).stream()</span>
+<span class="fc" id="L47">            .map(CitationEdge::getCitingEntryId));</span>
+  }
+
+  // A Mongo _id is unique by construction, so (unlike a lookup by citeKey) this can never match
+  // more than one entry — no coalescing needed, just a plain lookup that silently skips an edge
+  // whose related entry no longer exists (e.g. deleted since the edge was recorded).
+  private List&lt;BibTexEntry&gt; relatedEntries(Stream&lt;String&gt; entryIds) {
+<span class="fc" id="L54">    return entryIds.map(bibTexEntryRepository::findById).flatMap(Optional::stream).toList();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

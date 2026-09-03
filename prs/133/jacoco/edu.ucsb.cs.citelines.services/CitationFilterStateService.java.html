@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CitationFilterStateService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.services</a> &gt; <span class="el_source">CitationFilterStateService.java</span></div><h1>CitationFilterStateService.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.services;
+
+import edu.ucsb.cs.citelines.collections.CitationFilterState;
+import edu.ucsb.cs.citelines.collections.CitationFilterState.Scope;
+import edu.ucsb.cs.citelines.collections.CitationFilterStateRepository;
+import java.util.List;
+import org.springframework.stereotype.Service;
+
+/**
+ * Looks up and persists a {@link CitationFilterState} by its deterministic scope key (see {@link
+ * CitationFilterState#makeId}), materializing a default (unsaved) state when nothing has been saved
+ * yet for that scope+user, per issue #121: &quot;It is not necessary to store that unless/until the user
+ * alters it.&quot; Per-user, not shared across a project's collaborators (issue #130).
+ */
+@Service
+public class CitationFilterStateService {
+
+  // Kept in sync by hand with the frontend's own defaults: RELEVANCE_OPTIONS
+  // (main/utils/citelinesFields.js) and DEFAULT_CITATION_FILTER (main/utils/citationFilter.js).
+  // Not read from either at runtime -- this is the one place the backend needs to materialize
+  // that same default when nothing has been saved yet, and there's no existing shared-constant
+  // mechanism between the two layers for content like this.
+<span class="fc" id="L23">  private static final List&lt;String&gt; DEFAULT_RELEVANCE =</span>
+<span class="fc" id="L24">      List.of(&quot;High&quot;, &quot;Medium&quot;, &quot;Low&quot;, &quot;None&quot;, &quot;Unreviewed&quot;);</span>
+
+  private final CitationFilterStateRepository citationFilterStateRepository;
+
+<span class="fc" id="L28">  public CitationFilterStateService(CitationFilterStateRepository citationFilterStateRepository) {</span>
+<span class="fc" id="L29">    this.citationFilterStateRepository = citationFilterStateRepository;</span>
+<span class="fc" id="L30">  }</span>
+
+  public CitationFilterState getOrDefault(int projectId, Scope scope, String entryId, long userId) {
+<span class="fc" id="L33">    return citationFilterStateRepository</span>
+<span class="fc" id="L34">        .findById(CitationFilterState.makeId(projectId, scope, entryId, userId))</span>
+<span class="fc" id="L35">        .orElseGet(() -&gt; defaultState(projectId, scope, entryId, userId));</span>
+  }
+
+  public CitationFilterState save(CitationFilterState state) {
+<span class="fc" id="L39">    state.setId(</span>
+<span class="fc" id="L40">        CitationFilterState.makeId(</span>
+<span class="fc" id="L41">            state.getProjectId(), state.getScope(), state.getEntryId(), state.getUserId()));</span>
+<span class="fc" id="L42">    return citationFilterStateRepository.save(state);</span>
+  }
+
+  private CitationFilterState defaultState(
+      int projectId, Scope scope, String entryId, long userId) {
+<span class="fc" id="L47">    return CitationFilterState.builder()</span>
+<span class="fc" id="L48">        .id(CitationFilterState.makeId(projectId, scope, entryId, userId))</span>
+<span class="fc" id="L49">        .projectId(projectId)</span>
+<span class="fc" id="L50">        .scope(scope)</span>
+<span class="fc" id="L51">        .entryId(entryId)</span>
+<span class="fc" id="L52">        .userId(userId)</span>
+<span class="fc" id="L53">        .expanded(false)</span>
+<span class="fc" id="L54">        .relevance(DEFAULT_RELEVANCE)</span>
+<span class="fc" id="L55">        .link(&quot;all&quot;)</span>
+<span class="fc" id="L56">        .duplicates(&quot;all&quot;)</span>
+<span class="fc" id="L57">        .search(&quot;&quot;)</span>
+<span class="fc" id="L58">        .tagIds(List.of())</span>
+<span class="fc" id="L59">        .tagMode(&quot;and&quot;)</span>
+<span class="fc" id="L60">        .build();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
