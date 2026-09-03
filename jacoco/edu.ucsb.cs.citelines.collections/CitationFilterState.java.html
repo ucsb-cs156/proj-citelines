@@ -10,13 +10,15 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * A MongoDB document storing the last-saved state of a {@code CitationFilter} panel (and its
- * open/closed state), keyed by project and, for the two entry-scoped variants, which BibTexEntry
- * and direction it belongs to (see {@link Scope}). Shared per-project (not per-user) — whichever
- * researcher last changed a filter is what every collaborator on that project sees. See issue #121.
+ * open/closed state), keyed by project, which BibTexEntry and direction it belongs to for the two
+ * entry-scoped variants (see {@link Scope}), and which user saved it — per-user, not shared across
+ * a project's collaborators, so two researchers filtering the same project's literature search
+ * independently don't clobber each other's settings (issue #130; originally shared per-project when
+ * first built for issue #121, changed before any real user relied on it).
  *
- * &lt;p&gt;{@code id} is a deterministic composite (see {@link #makeId}) of the three fields that
- * identify a single filter panel's scope, so saving the same scope's state twice (i.e. every save
- * after the first) overwrites rather than duplicates it, mirroring {@link
+ * &lt;p&gt;{@code id} is a deterministic composite (see {@link #makeId}) of the four fields that identify
+ * a single user's filter panel scope, so saving the same scope's state twice (i.e. every save after
+ * the first) overwrites rather than duplicates it, mirroring {@link
  * UnresolvedCitation#makeId}/{@link CitationEdge}.
  */
 @Data
@@ -31,16 +33,19 @@ public class CitationFilterState {
   private int projectId;
 
   /** Which of the three panels this state belongs to. */
-<span class="fc" id="L34">  public enum Scope {</span>
-<span class="fc" id="L35">    PROJECT,</span>
-<span class="fc" id="L36">    REFERENCES,</span>
-<span class="fc" id="L37">    CITATIONS</span>
+<span class="fc" id="L36">  public enum Scope {</span>
+<span class="fc" id="L37">    PROJECT,</span>
+<span class="fc" id="L38">    REFERENCES,</span>
+<span class="fc" id="L39">    CITATIONS</span>
   }
 
   private Scope scope;
 
   /** The Mongo {@code _id} of the BibTexEntry this panel belongs to; {@code null} for PROJECT. */
   private String entryId;
+
+  /** The Postgres id of the {@code User} this saved state belongs to (issue #130). */
+  private long userId;
 
   private boolean expanded;
   private List&lt;String&gt; relevance;
@@ -50,8 +55,8 @@ public class CitationFilterState {
   private List&lt;Long&gt; tagIds;
   private String tagMode;
 
-  public static String makeId(int projectId, Scope scope, String entryId) {
-<span class="fc bfc" id="L54" title="All 2 branches covered.">    return &quot;%d:%s:%s&quot;.formatted(projectId, scope, entryId == null ? &quot;&quot; : entryId);</span>
+  public static String makeId(int projectId, Scope scope, String entryId, long userId) {
+<span class="fc bfc" id="L59" title="All 2 branches covered.">    return &quot;%d:%s:%s:%d&quot;.formatted(projectId, scope, entryId == null ? &quot;&quot; : entryId, userId);</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

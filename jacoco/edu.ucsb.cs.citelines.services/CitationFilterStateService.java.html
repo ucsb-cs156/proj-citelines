@@ -9,8 +9,8 @@ import org.springframework.stereotype.Service;
 /**
  * Looks up and persists a {@link CitationFilterState} by its deterministic scope key (see {@link
  * CitationFilterState#makeId}), materializing a default (unsaved) state when nothing has been saved
- * yet for that scope, per issue #121: &quot;It is not necessary to store that unless/until the user
- * alters it.&quot;
+ * yet for that scope+user, per issue #121: &quot;It is not necessary to store that unless/until the user
+ * alters it.&quot; Per-user, not shared across a project's collaborators (issue #130).
  */
 @Service
 public class CitationFilterStateService {
@@ -29,32 +29,35 @@ public class CitationFilterStateService {
 <span class="fc" id="L29">    this.citationFilterStateRepository = citationFilterStateRepository;</span>
 <span class="fc" id="L30">  }</span>
 
-  public CitationFilterState getOrDefault(int projectId, Scope scope, String entryId) {
+  public CitationFilterState getOrDefault(int projectId, Scope scope, String entryId, long userId) {
 <span class="fc" id="L33">    return citationFilterStateRepository</span>
-<span class="fc" id="L34">        .findById(CitationFilterState.makeId(projectId, scope, entryId))</span>
-<span class="fc" id="L35">        .orElseGet(() -&gt; defaultState(projectId, scope, entryId));</span>
+<span class="fc" id="L34">        .findById(CitationFilterState.makeId(projectId, scope, entryId, userId))</span>
+<span class="fc" id="L35">        .orElseGet(() -&gt; defaultState(projectId, scope, entryId, userId));</span>
   }
 
   public CitationFilterState save(CitationFilterState state) {
 <span class="fc" id="L39">    state.setId(</span>
-<span class="fc" id="L40">        CitationFilterState.makeId(state.getProjectId(), state.getScope(), state.getEntryId()));</span>
-<span class="fc" id="L41">    return citationFilterStateRepository.save(state);</span>
+<span class="fc" id="L40">        CitationFilterState.makeId(</span>
+<span class="fc" id="L41">            state.getProjectId(), state.getScope(), state.getEntryId(), state.getUserId()));</span>
+<span class="fc" id="L42">    return citationFilterStateRepository.save(state);</span>
   }
 
-  private CitationFilterState defaultState(int projectId, Scope scope, String entryId) {
-<span class="fc" id="L45">    return CitationFilterState.builder()</span>
-<span class="fc" id="L46">        .id(CitationFilterState.makeId(projectId, scope, entryId))</span>
-<span class="fc" id="L47">        .projectId(projectId)</span>
-<span class="fc" id="L48">        .scope(scope)</span>
-<span class="fc" id="L49">        .entryId(entryId)</span>
-<span class="fc" id="L50">        .expanded(false)</span>
-<span class="fc" id="L51">        .relevance(DEFAULT_RELEVANCE)</span>
-<span class="fc" id="L52">        .link(&quot;all&quot;)</span>
-<span class="fc" id="L53">        .duplicates(&quot;all&quot;)</span>
-<span class="fc" id="L54">        .search(&quot;&quot;)</span>
-<span class="fc" id="L55">        .tagIds(List.of())</span>
-<span class="fc" id="L56">        .tagMode(&quot;and&quot;)</span>
-<span class="fc" id="L57">        .build();</span>
+  private CitationFilterState defaultState(
+      int projectId, Scope scope, String entryId, long userId) {
+<span class="fc" id="L47">    return CitationFilterState.builder()</span>
+<span class="fc" id="L48">        .id(CitationFilterState.makeId(projectId, scope, entryId, userId))</span>
+<span class="fc" id="L49">        .projectId(projectId)</span>
+<span class="fc" id="L50">        .scope(scope)</span>
+<span class="fc" id="L51">        .entryId(entryId)</span>
+<span class="fc" id="L52">        .userId(userId)</span>
+<span class="fc" id="L53">        .expanded(false)</span>
+<span class="fc" id="L54">        .relevance(DEFAULT_RELEVANCE)</span>
+<span class="fc" id="L55">        .link(&quot;all&quot;)</span>
+<span class="fc" id="L56">        .duplicates(&quot;all&quot;)</span>
+<span class="fc" id="L57">        .search(&quot;&quot;)</span>
+<span class="fc" id="L58">        .tagIds(List.of())</span>
+<span class="fc" id="L59">        .tagMode(&quot;and&quot;)</span>
+<span class="fc" id="L60">        .build();</span>
   }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

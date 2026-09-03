@@ -22,10 +22,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Persists (and retrieves) the last-saved state of a {@code CitationFilter} panel, shared per
- * project across every collaborator, per issue #121. Only ever written on an actual user change
- * (see {@link #post}); a scope nobody has touched yet reads back as a default, unsaved, via {@link
- * #get}.
+ * Persists (and retrieves) the last-saved state of a {@code CitationFilter} panel, per user (issue
+ * #130) rather than shared across a project's collaborators. Only ever written on an actual user
+ * change (see {@link #post}); a scope nobody has touched yet reads back as a default, unsaved, via
+ * {@link #get}.
  */
 @Tag(name = &quot;CitationFilterState&quot;)
 @RequestMapping(&quot;/api/citationfilterstate&quot;)
@@ -51,7 +51,8 @@ import org.springframework.web.bind.annotation.RestController;
 <span class="fc bfc" id="L51" title="All 2 branches covered.">    if (scope != Scope.PROJECT) {</span>
 <span class="fc" id="L52">      requireEntry(projectId, entryId);</span>
     }
-<span class="fc" id="L54">    return citationFilterStateService.getOrDefault(projectId.intValue(), scope, entryId);</span>
+<span class="fc" id="L54">    return citationFilterStateService.getOrDefault(</span>
+<span class="fc" id="L55">        projectId.intValue(), scope, entryId, getCurrentUser().getUser().getId());</span>
   }
 
   @Operation(summary = &quot;Save the state of a citation filter panel&quot;)
@@ -62,32 +63,33 @@ import org.springframework.web.bind.annotation.RestController;
       @Parameter(name = &quot;scope&quot;) @RequestParam Scope scope,
       @Parameter(name = &quot;entryId&quot;) @RequestParam(required = false) String entryId,
       @RequestBody CitationFilterState state) {
-<span class="fc" id="L65">    requireProject(projectId);</span>
-<span class="fc bfc" id="L66" title="All 2 branches covered.">    if (scope != Scope.PROJECT) {</span>
-<span class="fc" id="L67">      requireEntry(projectId, entryId);</span>
+<span class="fc" id="L66">    requireProject(projectId);</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">    if (scope != Scope.PROJECT) {</span>
+<span class="fc" id="L68">      requireEntry(projectId, entryId);</span>
     }
-<span class="fc" id="L69">    state.setProjectId(projectId.intValue());</span>
-<span class="fc" id="L70">    state.setScope(scope);</span>
-<span class="fc" id="L71">    state.setEntryId(entryId);</span>
-<span class="fc" id="L72">    return citationFilterStateService.save(state);</span>
+<span class="fc" id="L70">    state.setProjectId(projectId.intValue());</span>
+<span class="fc" id="L71">    state.setScope(scope);</span>
+<span class="fc" id="L72">    state.setEntryId(entryId);</span>
+<span class="fc" id="L73">    state.setUserId(getCurrentUser().getUser().getId());</span>
+<span class="fc" id="L74">    return citationFilterStateService.save(state);</span>
   }
 
   private void requireProject(Long projectId) {
-<span class="fc" id="L76">    projectRepository</span>
-<span class="fc" id="L77">        .findById(projectId)</span>
-<span class="fc" id="L78">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
-<span class="fc" id="L79">  }</span>
+<span class="fc" id="L78">    projectRepository</span>
+<span class="fc" id="L79">        .findById(projectId)</span>
+<span class="fc" id="L80">        .orElseThrow(() -&gt; new EntityNotFoundException(Project.class, projectId));</span>
+<span class="fc" id="L81">  }</span>
 
   private void requireEntry(Long projectId, String entryId) {
     BibTexEntry entry =
-<span class="fc bfc" id="L83" title="All 2 branches covered.">        entryId == null</span>
-<span class="fc" id="L84">            ? null</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">        entryId == null</span>
+<span class="fc" id="L86">            ? null</span>
             : bibTexEntryRepository
-<span class="fc" id="L86">                .findByIdAndProjectId(entryId, projectId.intValue())</span>
-<span class="fc" id="L87">                .orElse(null);</span>
-<span class="fc bfc" id="L88" title="All 2 branches covered.">    if (entry == null) {</span>
-<span class="fc bfc" id="L89" title="All 2 branches covered.">      throw new EntityNotFoundException(BibTexEntry.class, entryId == null ? &quot;(missing)&quot; : entryId);</span>
+<span class="fc" id="L88">                .findByIdAndProjectId(entryId, projectId.intValue())</span>
+<span class="fc" id="L89">                .orElse(null);</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">    if (entry == null) {</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">      throw new EntityNotFoundException(BibTexEntry.class, entryId == null ? &quot;(missing)&quot; : entryId);</span>
     }
-<span class="fc" id="L91">  }</span>
+<span class="fc" id="L93">  }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
