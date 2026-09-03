@@ -168,7 +168,7 @@ describe("useFilteredSortedCitations", () => {
   });
 
   describe("with persistence", () => {
-    const savedState = {
+    const savedFilterState = {
       relevance: ["High"],
       link: "doi",
       duplicates: "dup",
@@ -177,10 +177,23 @@ describe("useFilteredSortedCitations", () => {
       tagMode: "or",
       expanded: true,
     };
+    const savedSortState = {
+      sortCriteria: [{ field: "Author", direction: "asc" }],
+      expanded: true,
+    };
 
-    test("loads the saved state on mount and seeds filter/expanded from it", async () => {
-      axiosMock.onGet("/api/citationfilterstate").reply(200, savedState);
+    function postsTo(url) {
+      return axiosMock.history.post.filter((r) => r.url === url);
+    }
 
+    beforeEach(() => {
+      axiosMock.onGet("/api/citationfilterstate").reply(200, savedFilterState);
+      axiosMock.onGet("/api/citationsortstate").reply(200, savedSortState);
+      axiosMock.onPost("/api/citationfilterstate").reply(200, savedFilterState);
+      axiosMock.onPost("/api/citationsortstate").reply(200, savedSortState);
+    });
+
+    test("loads the saved state on mount and seeds filter/sortCriteria/expanded from it", async () => {
       const { result } = renderHook(
         () =>
           useFilteredSortedCitations([], {
@@ -192,6 +205,7 @@ describe("useFilteredSortedCitations", () => {
       );
 
       await waitFor(() => expect(result.current.expanded).toBe(true));
+      await waitFor(() => expect(result.current.sortExpanded).toBe(true));
       expect(result.current.filter).toEqual({
         relevance: ["High"],
         link: "doi",
@@ -200,17 +214,29 @@ describe("useFilteredSortedCitations", () => {
         tagIds: [2],
         tagMode: "or",
       });
-      expect(axiosMock.history.get[0].params).toEqual({
+      expect(result.current.sortCriteria).toEqual([
+        { field: "Author", direction: "asc" },
+      ]);
+
+      const filterGets = axiosMock.history.get.filter(
+        (r) => r.url === "/api/citationfilterstate",
+      );
+      const sortGets = axiosMock.history.get.filter(
+        (r) => r.url === "/api/citationsortstate",
+      );
+      expect(filterGets[0].params).toEqual({
+        projectId: 1,
+        scope: "REFERENCES",
+        entryId: "id-smith2020",
+      });
+      expect(sortGets[0].params).toEqual({
         projectId: 1,
         scope: "REFERENCES",
         entryId: "id-smith2020",
       });
     });
 
-    test("does not autosave right after loading -- only a real change marks it dirty", async () => {
-      axiosMock.onGet("/api/citationfilterstate").reply(200, savedState);
-      axiosMock.onPost("/api/citationfilterstate").reply(200, savedState);
-
+    test("does not autosave either panel right after loading -- only a real change marks it dirty", async () => {
       const { result } = renderHook(
         () =>
           useFilteredSortedCitations([], {
@@ -222,15 +248,14 @@ describe("useFilteredSortedCitations", () => {
       );
 
       await waitFor(() => expect(result.current.expanded).toBe(true));
+      await waitFor(() => expect(result.current.sortExpanded).toBe(true));
       await new Promise((resolve) => setTimeout(resolve, 80));
 
-      expect(axiosMock.history.post.length).toBe(0);
+      expect(postsTo("/api/citationfilterstate").length).toBe(0);
+      expect(postsTo("/api/citationsortstate").length).toBe(0);
     });
 
-    test("autosaves the current filter/expanded on the next heartbeat after a change", async () => {
-      axiosMock.onGet("/api/citationfilterstate").reply(200, savedState);
-      axiosMock.onPost("/api/citationfilterstate").reply(200, savedState);
-
+    test("autosaves the current filter/expanded on the next heartbeat after a filter change", async () => {
       const { result } = renderHook(
         () =>
           useFilteredSortedCitations([], {
@@ -247,13 +272,15 @@ describe("useFilteredSortedCitations", () => {
         result.current.setFilter({ ...result.current.filter, search: "jones" });
       });
 
-      await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
-      expect(axiosMock.history.post[0].params).toEqual({
+      await waitFor(() =>
+        expect(postsTo("/api/citationfilterstate").length).toBe(1),
+      );
+      expect(postsTo("/api/citationfilterstate")[0].params).toEqual({
         projectId: 1,
         scope: "PROJECT",
         entryId: undefined,
       });
-      expect(JSON.parse(axiosMock.history.post[0].data)).toEqual({
+      expect(JSON.parse(postsTo("/api/citationfilterstate")[0].data)).toEqual({
         relevance: ["High"],
         link: "doi",
         duplicates: "dup",
@@ -262,12 +289,48 @@ describe("useFilteredSortedCitations", () => {
         tagMode: "or",
         expanded: true,
       });
+      expect(postsTo("/api/citationsortstate").length).toBe(0);
     });
 
-    test("a second heartbeat with no further change does not autosave again", async () => {
-      axiosMock.onGet("/api/citationfilterstate").reply(200, savedState);
-      axiosMock.onPost("/api/citationfilterstate").reply(200, savedState);
+    test("autosaves the current sortCriteria/expanded on the next heartbeat after a sort change", async () => {
+      const { result } = renderHook(
+        () =>
+          useFilteredSortedCitations([], {
+            projectId: 1,
+            scope: "PROJECT",
+            autosaveIntervalMs: 30,
+          }),
+        { wrapper: queryClientWrapper() },
+      );
 
+      await waitFor(() => expect(result.current.sortExpanded).toBe(true));
+
+      act(() => {
+        result.current.setSortCriteria([
+          ...result.current.sortCriteria,
+          { field: "Year", direction: "desc" },
+        ]);
+      });
+
+      await waitFor(() =>
+        expect(postsTo("/api/citationsortstate").length).toBe(1),
+      );
+      expect(postsTo("/api/citationsortstate")[0].params).toEqual({
+        projectId: 1,
+        scope: "PROJECT",
+        entryId: undefined,
+      });
+      expect(JSON.parse(postsTo("/api/citationsortstate")[0].data)).toEqual({
+        sortCriteria: [
+          { field: "Author", direction: "asc" },
+          { field: "Year", direction: "desc" },
+        ],
+        expanded: true,
+      });
+      expect(postsTo("/api/citationfilterstate").length).toBe(0);
+    });
+
+    test("a second heartbeat with no further change does not autosave either panel again", async () => {
       const { result } = renderHook(
         () =>
           useFilteredSortedCitations([], {
@@ -282,12 +345,19 @@ describe("useFilteredSortedCitations", () => {
 
       act(() => {
         result.current.setExpanded(false);
+        result.current.setSortExpanded(false);
       });
 
-      await waitFor(() => expect(axiosMock.history.post.length).toBe(1));
+      await waitFor(() =>
+        expect(postsTo("/api/citationfilterstate").length).toBe(1),
+      );
+      await waitFor(() =>
+        expect(postsTo("/api/citationsortstate").length).toBe(1),
+      );
       await new Promise((resolve) => setTimeout(resolve, 80));
 
-      expect(axiosMock.history.post.length).toBe(1);
+      expect(postsTo("/api/citationfilterstate").length).toBe(1);
+      expect(postsTo("/api/citationsortstate").length).toBe(1);
     });
   });
 });

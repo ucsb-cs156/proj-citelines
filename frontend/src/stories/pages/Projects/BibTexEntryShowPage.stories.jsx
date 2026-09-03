@@ -91,6 +91,10 @@ const commonHandlers = [
       expanded: false,
     }),
   ),
+  // Same as above, for the sort panel (issue #126).
+  http.get("/api/citationsortstate", () =>
+    HttpResponse.json({ sortCriteria: [], expanded: false }),
+  ),
 ];
 
 const mutationHandlers = [
@@ -113,6 +117,11 @@ const mutationHandlers = [
     "post",
     "/api/citationfilterstate",
     "Saves the References/Citations filter panel's state.",
+  ),
+  alertingHandler(
+    "post",
+    "/api/citationsortstate",
+    "Saves the References/Citations sort panel's state.",
   ),
   alertingHandler(
     "patch",

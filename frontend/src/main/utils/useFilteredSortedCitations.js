@@ -20,18 +20,21 @@ import {
  * Each call owns its own independent filter/sort state, so two calls in the same component (one
  * per card, for instance) never affect each other.
  *
- * When `persistence` is given, the filter's fields and open/closed state are loaded from (and, on
- * any change, saved back to) `/api/citationfilterstate` for that scope (issue #121) — a project
- * that's never touched a given scope's filter gets back the same defaults used when `persistence`
- * is omitted, without writing anything. Sort criteria are NOT persisted (out of scope for #121;
- * see #126 for the parallel follow-up). Saves are sent on a heartbeat (matching
- * BibTexEntryComments' autosave), not on every change, so rapid edits (e.g. typing in the search
- * box) don't POST once per keystroke.
+ * When `persistence` is given, both panels' fields and open/closed state are loaded from (and, on
+ * any change, saved back to) the backend for that scope — the filter via
+ * `/api/citationfilterstate` (issue #121) and the sort via `/api/citationsortstate` (issue #126)
+ * — two independent endpoints/collections, since the two panels are independent (see #126's own
+ * text for why: simpler to reason about each on its own rather than one combined record). A scope
+ * that's never touched a given panel gets back the same defaults used when `persistence` is
+ * omitted, without writing anything. Both are per-user (issue #130) — resolved entirely
+ * server-side from the authenticated session, nothing extra to pass here. Saves are sent on a
+ * heartbeat (matching BibTexEntryComments' autosave), not on every change, so rapid edits (e.g.
+ * typing in the search box) don't POST once per keystroke.
  *
  * @param {object[]} entries - the full, unfiltered/unsorted entry list for this call's scope
  * @param {{projectId: (string|number), scope: "PROJECT"|"REFERENCES"|"CITATIONS", entryId?: string, autosaveIntervalMs?: number}} [persistence] -
- *   when given, this call's filter/expanded state is loaded from and saved to the backend for
- *   this scope; omit for filter state that's local-only (e.g. in tests/stories).
+ *   when given, this call's filter/sort/expanded state is loaded from and saved to the backend
+ *   for this scope; omit for state that's local-only (e.g. in tests/stories).
  *   `autosaveIntervalMs` defaults to `CITELINES_AUTOSAVE_INTERVAL_MS`; overridable for tests, the
  *   same pattern `BibTexEntryComments` uses.
  * @returns {{
@@ -49,15 +52,13 @@ import {
  */
 export function useFilteredSortedCitations(entries, persistence) {
   const [filter, setFilterState] = useState(DEFAULT_CITATION_FILTER);
-  const [sortCriteria, setSortCriteria] = useState(DEFAULT_CITATION_SORT);
+  const [sortCriteria, setSortCriteriaState] = useState(DEFAULT_CITATION_SORT);
   // The CitationFilter panel's own open/closed state (issue #122) — closed by default, owned
   // here (rather than inside CitationFilter itself) so it's available alongside filter for
   // persistence below.
   const [expanded, setExpandedState] = useState(false);
   // CitationSort's own open/closed state (issue #126, mirroring #122) — closed by default.
-  // Not yet persisted (that's #126's follow-up PR, mirroring #121); plain local state for now,
-  // same as `expanded` was here before #121 wired its persistence up.
-  const [sortExpanded, setSortExpanded] = useState(false);
+  const [sortExpanded, setSortExpandedState] = useState(false);
 
   const hasPersistence = Boolean(persistence);
   const {
@@ -76,6 +77,11 @@ export function useFilteredSortedCitations(entries, persistence) {
   const seededRef = useRef(!hasPersistence);
   const dirtyRef = useRef(false);
 
+  // Same three refs, for the independent sort panel.
+  const latestSortRef = useRef({ sortCriteria, sortExpanded });
+  const seededSortRef = useRef(!hasPersistence);
+  const dirtySortRef = useRef(false);
+
   const setFilter = (newFilter) => {
     setFilterState(newFilter);
     latestRef.current = { ...latestRef.current, filter: newFilter };
@@ -88,7 +94,25 @@ export function useFilteredSortedCitations(entries, persistence) {
     if (hasPersistence && seededRef.current) dirtyRef.current = true;
   };
 
-  const { data: savedState } = useBackend(
+  const setSortCriteria = (newSortCriteria) => {
+    setSortCriteriaState(newSortCriteria);
+    latestSortRef.current = {
+      ...latestSortRef.current,
+      sortCriteria: newSortCriteria,
+    };
+    if (hasPersistence && seededSortRef.current) dirtySortRef.current = true;
+  };
+
+  const setSortExpanded = (newSortExpanded) => {
+    setSortExpandedState(newSortExpanded);
+    latestSortRef.current = {
+      ...latestSortRef.current,
+      sortExpanded: newSortExpanded,
+    };
+    if (hasPersistence && seededSortRef.current) dirtySortRef.current = true;
+  };
+
+  const { data: savedFilterState } = useBackend(
     [
       "/api/citationfilterstate",
       String(projectId),
@@ -106,20 +130,51 @@ export function useFilteredSortedCitations(entries, persistence) {
   );
 
   useEffect(() => {
-    if (!savedState || seededRef.current) return;
+    if (!savedFilterState || seededRef.current) return;
     seededRef.current = true;
     const seededFilter = {
-      relevance: savedState.relevance,
-      link: savedState.link,
-      duplicates: savedState.duplicates,
-      search: savedState.search,
-      tagIds: savedState.tagIds,
-      tagMode: savedState.tagMode,
+      relevance: savedFilterState.relevance,
+      link: savedFilterState.link,
+      duplicates: savedFilterState.duplicates,
+      search: savedFilterState.search,
+      tagIds: savedFilterState.tagIds,
+      tagMode: savedFilterState.tagMode,
     };
     setFilterState(seededFilter);
-    setExpandedState(savedState.expanded);
-    latestRef.current = { filter: seededFilter, expanded: savedState.expanded };
-  }, [savedState]);
+    setExpandedState(savedFilterState.expanded);
+    latestRef.current = {
+      filter: seededFilter,
+      expanded: savedFilterState.expanded,
+    };
+  }, [savedFilterState]);
+
+  const { data: savedSortState } = useBackend(
+    [
+      "/api/citationsortstate",
+      String(projectId),
+      String(scope),
+      String(entryId),
+    ],
+    {
+      method: "GET",
+      url: "/api/citationsortstate",
+      params: { projectId, scope, entryId },
+    },
+    null,
+    true,
+    { enabled: hasPersistence },
+  );
+
+  useEffect(() => {
+    if (!savedSortState || seededSortRef.current) return;
+    seededSortRef.current = true;
+    setSortCriteriaState(savedSortState.sortCriteria);
+    setSortExpandedState(savedSortState.expanded);
+    latestSortRef.current = {
+      sortCriteria: savedSortState.sortCriteria,
+      sortExpanded: savedSortState.expanded,
+    };
+  }, [savedSortState]);
 
   const saveMutation = useBackendMutation(
     ({ filter: f, expanded: e }) => ({
@@ -131,6 +186,16 @@ export function useFilteredSortedCitations(entries, persistence) {
     {},
   );
 
+  const saveSortMutation = useBackendMutation(
+    ({ sortCriteria: c, sortExpanded: e }) => ({
+      method: "POST",
+      url: "/api/citationsortstate",
+      params: { projectId, scope, entryId },
+      data: { sortCriteria: c, expanded: e },
+    }),
+    {},
+  );
+
   useEffect(() => {
     if (!hasPersistence) return undefined;
     const id = setInterval(() => {
@@ -138,11 +203,15 @@ export function useFilteredSortedCitations(entries, persistence) {
         dirtyRef.current = false;
         saveMutation.mutate(latestRef.current);
       }
+      if (dirtySortRef.current) {
+        dirtySortRef.current = false;
+        saveSortMutation.mutate(latestSortRef.current);
+      }
       // Stryker disable next-line ArrayDeclaration : the interval must persist across
-      // re-renders, not reset on every filter/expanded change
+      // re-renders, not reset on every filter/sort/expanded change
     }, autosaveIntervalMs);
     return () => clearInterval(id);
-  }, [hasPersistence, autosaveIntervalMs, saveMutation]);
+  }, [hasPersistence, autosaveIntervalMs, saveMutation, saveSortMutation]);
 
   const visibleCitations = entries
     .filter((entry) => matchesCitationFilter(entry, filter))
