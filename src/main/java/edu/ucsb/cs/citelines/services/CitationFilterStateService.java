@@ -9,8 +9,8 @@ import org.springframework.stereotype.Service;
 /**
  * Looks up and persists a {@link CitationFilterState} by its deterministic scope key (see {@link
  * CitationFilterState#makeId}), materializing a default (unsaved) state when nothing has been saved
- * yet for that scope, per issue #121: "It is not necessary to store that unless/until the user
- * alters it."
+ * yet for that scope+user, per issue #121: "It is not necessary to store that unless/until the user
+ * alters it." Per-user, not shared across a project's collaborators (issue #130).
  */
 @Service
 public class CitationFilterStateService {
@@ -29,24 +29,27 @@ public class CitationFilterStateService {
     this.citationFilterStateRepository = citationFilterStateRepository;
   }
 
-  public CitationFilterState getOrDefault(int projectId, Scope scope, String entryId) {
+  public CitationFilterState getOrDefault(int projectId, Scope scope, String entryId, long userId) {
     return citationFilterStateRepository
-        .findById(CitationFilterState.makeId(projectId, scope, entryId))
-        .orElseGet(() -> defaultState(projectId, scope, entryId));
+        .findById(CitationFilterState.makeId(projectId, scope, entryId, userId))
+        .orElseGet(() -> defaultState(projectId, scope, entryId, userId));
   }
 
   public CitationFilterState save(CitationFilterState state) {
     state.setId(
-        CitationFilterState.makeId(state.getProjectId(), state.getScope(), state.getEntryId()));
+        CitationFilterState.makeId(
+            state.getProjectId(), state.getScope(), state.getEntryId(), state.getUserId()));
     return citationFilterStateRepository.save(state);
   }
 
-  private CitationFilterState defaultState(int projectId, Scope scope, String entryId) {
+  private CitationFilterState defaultState(
+      int projectId, Scope scope, String entryId, long userId) {
     return CitationFilterState.builder()
-        .id(CitationFilterState.makeId(projectId, scope, entryId))
+        .id(CitationFilterState.makeId(projectId, scope, entryId, userId))
         .projectId(projectId)
         .scope(scope)
         .entryId(entryId)
+        .userId(userId)
         .expanded(false)
         .relevance(DEFAULT_RELEVANCE)
         .link("all")
