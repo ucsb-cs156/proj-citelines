@@ -1,13 +1,13 @@
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CitationFilterStateController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.controller</a> &gt; <span class="el_source">CitationFilterStateController.java</span></div><h1>CitationFilterStateController.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.controller;
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CitationSortStateController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">citelines</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs.citelines.controller</a> &gt; <span class="el_source">CitationSortStateController.java</span></div><h1>CitationSortStateController.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs.citelines.controller;
 
 import edu.ucsb.cs.citelines.collections.BibTexEntry;
 import edu.ucsb.cs.citelines.collections.BibTexEntryRepository;
-import edu.ucsb.cs.citelines.collections.CitationFilterState;
 import edu.ucsb.cs.citelines.collections.CitationFilterState.Scope;
+import edu.ucsb.cs.citelines.collections.CitationSortState;
 import edu.ucsb.cs.citelines.entity.Project;
 import edu.ucsb.cs.citelines.errors.EntityNotFoundException;
 import edu.ucsb.cs.citelines.repository.ProjectRepository;
-import edu.ucsb.cs.citelines.services.CitationFilterStateService;
+import edu.ucsb.cs.citelines.services.CitationSortStateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,28 +22,28 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Persists (and retrieves) the last-saved state of a {@code CitationFilter} panel, per user (issue
- * #130) rather than shared across a project's collaborators. Only ever written on an actual user
- * change (see {@link #post}); a scope nobody has touched yet reads back as a default, unsaved, via
- * {@link #get}.
+ * Persists (and retrieves) the last-saved state of a {@code CitationSort} panel, per user, same
+ * semantics as {@link CitationFilterStateController} — issue #126. Only ever written on an actual
+ * user change (see {@link #post}); a scope nobody has touched yet reads back as a default, unsaved,
+ * via {@link #get}.
  */
-@Tag(name = &quot;CitationFilterState&quot;)
-@RequestMapping(&quot;/api/citationfilterstate&quot;)
+@Tag(name = &quot;CitationSortState&quot;)
+@RequestMapping(&quot;/api/citationsortstate&quot;)
 @RestController
 <span class="fc" id="L33">@Slf4j</span>
-<span class="fc" id="L34">public class CitationFilterStateController extends ApiController {</span>
+<span class="fc" id="L34">public class CitationSortStateController extends ApiController {</span>
 
   @Autowired private ProjectRepository projectRepository;
   @Autowired private BibTexEntryRepository bibTexEntryRepository;
-  @Autowired private CitationFilterStateService citationFilterStateService;
+  @Autowired private CitationSortStateService citationSortStateService;
 
   @Operation(
       summary =
-          &quot;Get the saved state of a citation filter panel, or a default (unsaved) state if none&quot;
-              + &quot; has been saved for this scope yet&quot;)
+          &quot;Get the saved state of a citation sort panel, or a default (unsaved) state if none has&quot;
+              + &quot; been saved for this scope yet&quot;)
   @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
   @GetMapping(&quot;&quot;)
-  public CitationFilterState get(
+  public CitationSortState get(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;scope&quot;) @RequestParam Scope scope,
       @Parameter(name = &quot;entryId&quot;) @RequestParam(required = false) String entryId) {
@@ -51,18 +51,18 @@ import org.springframework.web.bind.annotation.RestController;
 <span class="fc bfc" id="L51" title="All 2 branches covered.">    if (scope != Scope.PROJECT) {</span>
 <span class="fc" id="L52">      requireEntry(projectId, entryId);</span>
     }
-<span class="fc" id="L54">    return citationFilterStateService.getOrDefault(</span>
+<span class="fc" id="L54">    return citationSortStateService.getOrDefault(</span>
 <span class="fc" id="L55">        projectId.intValue(), scope, entryId, getCurrentUser().getUser().getId());</span>
   }
 
-  @Operation(summary = &quot;Save the state of a citation filter panel&quot;)
+  @Operation(summary = &quot;Save the state of a citation sort panel&quot;)
   @PreAuthorize(&quot;@ProjectSecurity.hasManagePermissions(#root, #projectId)&quot;)
   @PostMapping(&quot;&quot;)
-  public CitationFilterState post(
+  public CitationSortState post(
       @Parameter(name = &quot;projectId&quot;) @RequestParam Long projectId,
       @Parameter(name = &quot;scope&quot;) @RequestParam Scope scope,
       @Parameter(name = &quot;entryId&quot;) @RequestParam(required = false) String entryId,
-      @RequestBody CitationFilterState state) {
+      @RequestBody CitationSortState state) {
 <span class="fc" id="L66">    requireProject(projectId);</span>
 <span class="fc bfc" id="L67" title="All 2 branches covered.">    if (scope != Scope.PROJECT) {</span>
 <span class="fc" id="L68">      requireEntry(projectId, entryId);</span>
@@ -71,7 +71,7 @@ import org.springframework.web.bind.annotation.RestController;
 <span class="fc" id="L71">    state.setScope(scope);</span>
 <span class="fc" id="L72">    state.setEntryId(entryId);</span>
 <span class="fc" id="L73">    state.setUserId(getCurrentUser().getUser().getId());</span>
-<span class="fc" id="L74">    return citationFilterStateService.save(state);</span>
+<span class="fc" id="L74">    return citationSortStateService.save(state);</span>
   }
 
   private void requireProject(Long projectId) {
