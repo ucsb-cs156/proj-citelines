@@ -20,4 +20,4 @@ repo_name: "TBD"
 repo: ucsb-cs156/proj-citelines
 owner: ucsb-cs156
 repo_name: proj-citelines
-pull_requests: [{"author":{"id":"MDQ6VXNlcjExMTkwMTc=","is_bot":false,"login":"pconrad","name":"Phill Conrad"},"headRefName":"pc-lib-jobs-v041","number":141,"title":"Bump lib-jobs to v0.4.1 (log preview shows when lines were omitted)","url":"https://github.com/ucsb-cs156/proj-citelines/pull/141"}]
+pull_requests: []
