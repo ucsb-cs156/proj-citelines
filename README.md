@@ -1,5 +1,13 @@
 # citelines
 
+## Versions
+
+- Java: `25`
+- Node: `24.21.0` (current LTS)
+
+See [`docs/versions.md`](docs/versions.md) for where these are pinned and what
+to check when bumping either one.
+
 ## Setup before running
 
 Before running the application for the first time, configure your OAuth credentials:
